@@ -6,41 +6,15 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <RadioGroup
-        android:id="@+id/radioGroup"
-        android:layout_width="208dp"
-        android:layout_height="118dp"
-        tools:layout_editor_absoluteX="16dp"
-        tools:layout_editor_absoluteY="16dp">
-
-        <RadioButton
-            android:id="@+id/preview"
-            android:layout_width="166dp"
-            android:layout_height="wrap_content"
-            android:text="preview" />
-
-        <RadioButton
-            android:id="@+id/takePicture"
-            android:layout_width="208dp"
-            android:layout_height="wrap_content"
-            android:text="coopration full size pic to SNS" />
-    </RadioGroup>
-
-    <Button
-        android:id="@+id/cameraButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Button"
-        app:layout_constraintBottom_toBottomOf="@+id/radioGroup"
-        app:layout_constraintTop_toTopOf="@+id/radioGroup"
-        tools:layout_editor_absoluteX="274dp" />
 
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:layout_marginStart="141dp"
+        android:layout_marginBottom="249dp"
         android:scaleType="center"
-        tools:layout_editor_absoluteX="141dp"
-        tools:layout_editor_absoluteY="354dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         tools:srcCompat="@tools:sample/avatars" />
 </androidx.constraintlayout.widget.ConstraintLayout>
