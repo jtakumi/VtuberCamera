@@ -79,12 +79,11 @@ class MainActivity : AppCompatActivity() {
             val texture = cameraView.surfaceTexture
             texture?.setDefaultBufferSize(640, 480)
             val surface = Surface(texture)
-            val previewRequestBuilder = it.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+            val previewRequestBuilder = cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
             previewRequestBuilder.addTarget(surface)
             it.createCaptureSession(listOf(surface), object : CameraCaptureSession.StateCallback() {
                 override fun onConfigured(p0: CameraCaptureSession) {
-                    val captureSession = p0
-                    captureSession.setRepeatingRequest(previewRequestBuilder.build(), null, null)
+                    p0.setRepeatingRequest(previewRequestBuilder.build(), null, null)
                 }
 
                 override fun onConfigureFailed(p0: CameraCaptureSession) {
