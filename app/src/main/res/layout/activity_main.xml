@@ -6,12 +6,23 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <TextureView
-        android:id="@+id/camera_texture_view"
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar_main"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        android:hardwareAccelerated = "false"/>
+        app:layout_constraintEnd_toEndOf="parent"
+        android:background="@color/toolbar_main"
+        app:titleTextColor="@color/toolbar_main_font"
+        app:title="@string/toolbar_main_title" />
+
+    <TextureView
+        android:id="@+id/camera_texture_view"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hardwareAccelerated="false"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
