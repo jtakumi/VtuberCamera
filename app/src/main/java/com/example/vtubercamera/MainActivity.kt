@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.Surface
 import android.view.TextureView
+import android.widget.Toolbar
 import androidx.core.app.ActivityCompat
 import com.example.vtubercamera.databinding.ActivityMainBinding
 
@@ -21,9 +22,10 @@ class MainActivity : AppCompatActivity() {
     private var cameraDevice: CameraDevice? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
         binding = ActivityMainBinding.inflate(layoutInflater)
+        val toolbar = binding.toolbarMain
         setContentView(binding.root)
+        setSupportActionBar(toolbar)
         cameraView = binding.cameraTextureView
     }
 
