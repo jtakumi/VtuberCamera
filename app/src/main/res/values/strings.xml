@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">VtuberCamera</string>
+    <string name="toolbar_main_title">Vtuber Camera</string>
 </resources>
