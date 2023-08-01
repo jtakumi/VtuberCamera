@@ -12,12 +12,10 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.Surface
 import android.view.TextureView
-import android.widget.Toolbar
 import androidx.core.app.ActivityCompat
 import com.example.vtubercamera.databinding.ActivityMainBinding
-import android.util.Size
-class MainActivity : AppCompatActivity() {
 @Suppress("DEPRECATION")
+class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var cameraView: TextureView
     private var cameraDevice: CameraDevice? = null
