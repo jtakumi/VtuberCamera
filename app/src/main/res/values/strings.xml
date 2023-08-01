@@ -1,4 +1,6 @@
 <resources>
     <string name="app_name">VtuberCamera</string>
     <string name="toolbar_main_title">Vtuber Camera</string>
+    <string name="enter">Enter</string>
+    <string name="announce_enter_tap">Tap this door</string>
 </resources>
