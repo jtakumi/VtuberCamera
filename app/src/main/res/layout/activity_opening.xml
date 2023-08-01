@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/toolbar_main"
+    tools:context=".OpeningActivity">
+
+    <ImageView
+        android:id="@+id/opening_image"
+        android:layout_width="516dp"
+        android:layout_height="800dp"
+        android:src="@drawable/vtuber_camera_door_img"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/opening_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="60dp"
+        android:layout_marginBottom="180dp"
+        android:text="@string/toolbar_main_title"
+        android:textColor="@color/opening_title"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@+id/enter_tap"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.534"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.087" />
+
+    <TextView
+        android:id="@+id/announce_enter_tap"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/announce_enter_tap"
+        android:textStyle="italic"
+        android:textSize="24dp"
+        android:textColor="@color/white"
+        app:layout_constraintBottom_toTopOf="@+id/enter_tap"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/opening_title" />
+
+    <ImageView
+        android:id="@+id/enter_tap"
+        android:layout_width="286dp"
+        android:layout_height="0dp"
+        android:layout_marginBottom="152dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/opening_title" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
