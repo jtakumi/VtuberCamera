@@ -2,6 +2,7 @@ package com.example.vtubercamera
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraCaptureSession
@@ -10,10 +11,12 @@ import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.MenuItem
 import android.view.Surface
 import android.view.TextureView
 import androidx.core.app.ActivityCompat
 import com.example.vtubercamera.databinding.ActivityMainBinding
+
 @Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -23,6 +26,7 @@ class MainActivity : AppCompatActivity() {
     private val cameraManager by lazy {
         getSystemService(Context.CAMERA_SERVICE) as CameraManager
     }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -30,12 +34,33 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         setSupportActionBar(toolbar)
         cameraView = binding.cameraTextureView
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         if (allPermissionsGranted()) {
             startCamera()
         } else {
-            ActivityCompat.requestPermissions(this, requiredPermissions, CAMERA_PERMISSION_REQUEST_CODE)
+            ActivityCompat.requestPermissions(
+                this,
+                requiredPermissions,
+                CAMERA_PERMISSION_REQUEST_CODE
+            )
         }
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when(item.itemId){
+            android.R.id.home -> {
+                backOpeningScreen()
+                return true
+            }
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+    private fun backOpeningScreen() {
+        val intent = Intent(this,OpeningActivity::class.java)
+        startActivity(intent)
+        finish()
     }
 
     private fun startCamera() {
@@ -115,6 +140,7 @@ class MainActivity : AppCompatActivity() {
             }, null)
         }
     }
+
     private fun allPermissionsGranted() =
         requiredPermissions.all {
             ActivityCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
