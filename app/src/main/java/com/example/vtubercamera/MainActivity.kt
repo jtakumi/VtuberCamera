@@ -14,11 +14,13 @@ import android.os.Bundle
 import android.view.MenuItem
 import android.view.Surface
 import android.view.TextureView
+import android.view.ViewGroup
 import androidx.core.app.ActivityCompat
 import com.example.vtubercamera.databinding.ActivityMainBinding
 
 @Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity() {
+    private lateinit var originalTextureViewParams:ViewGroup.LayoutParams
     private lateinit var binding: ActivityMainBinding
     private lateinit var cameraView: TextureView
     private var cameraDevice: CameraDevice? = null
@@ -26,6 +28,7 @@ class MainActivity : AppCompatActivity() {
     private val cameraManager by lazy {
         getSystemService(Context.CAMERA_SERVICE) as CameraManager
     }
+    private var switchCameraValue = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,6 +37,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         setSupportActionBar(toolbar)
         cameraView = binding.cameraTextureView
+        originalTextureViewParams = cameraView.layoutParams
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         if (allPermissionsGranted()) {
@@ -45,10 +49,28 @@ class MainActivity : AppCompatActivity() {
                 CAMERA_PERMISSION_REQUEST_CODE
             )
         }
+        binding.switchCamera.setOnClickListener {
+            changeSPCamera()
+        }
+    }
+
+    private fun resetViewSize(){
+        cameraView.layoutParams = originalTextureViewParams
+    }
+    private fun changeSPCamera() {
+        switchCameraValue = when (switchCameraValue) {
+            0 -> 1
+            1 -> 0
+            else -> {
+                return
+            }
+        }
+        openCamera()
+        resetViewSize()
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when(item.itemId){
+        when (item.itemId) {
             android.R.id.home -> {
                 backOpeningScreen()
                 return true
@@ -58,7 +80,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun backOpeningScreen() {
-        val intent = Intent(this,OpeningActivity::class.java)
+        val intent = Intent(this, OpeningActivity::class.java)
         startActivity(intent)
         finish()
     }
@@ -82,10 +104,8 @@ class MainActivity : AppCompatActivity() {
     private fun openCamera() {
         val backCameraId = getBackCameraId()
         val frontCameraId = getFrontCameraId()
-        if (backCameraId.isNullOrEmpty()) {
+        if (backCameraId.isNullOrEmpty() || frontCameraId.isNullOrEmpty()) {
             // Handle case where back camera is not available
-            return
-        } else if (frontCameraId.isNullOrEmpty()) {
             return
         }
         if (ActivityCompat.checkSelfPermission(
@@ -95,7 +115,14 @@ class MainActivity : AppCompatActivity() {
         ) {
             return
         }
-        cameraManager.openCamera(backCameraId, object : CameraDevice.StateCallback() {
+        var openCameraId = ""
+        when (switchCameraValue) {
+            0 -> openCameraId = backCameraId
+            1 -> openCameraId = frontCameraId
+        }
+        cameraDevice?.close()
+
+        cameraManager.openCamera(openCameraId, object : CameraDevice.StateCallback() {
             override fun onOpened(p0: CameraDevice) {
                 cameraDevice = p0
                 createCameraPreview()
@@ -124,6 +151,7 @@ class MainActivity : AppCompatActivity() {
         }
         return null
     }
+
     private fun getBackCameraId(): String? {
         val cameraIds = cameraManager.cameraIdList
         for (cameraId in cameraIds) {
@@ -181,3 +209,4 @@ class MainActivity : AppCompatActivity() {
         private const val CAMERA_PERMISSION_REQUEST_CODE = 1001
     }
 }
+
