@@ -2,6 +2,7 @@ package com.example.vtubercamera
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraCaptureSession
@@ -10,6 +11,7 @@ import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.MenuItem
 import android.view.Surface
 import android.view.TextureView
 import androidx.core.app.ActivityCompat
@@ -32,6 +34,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         setSupportActionBar(toolbar)
         cameraView = binding.cameraTextureView
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         if (allPermissionsGranted()) {
             startCamera()
@@ -42,6 +45,22 @@ class MainActivity : AppCompatActivity() {
                 CAMERA_PERMISSION_REQUEST_CODE
             )
         }
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when(item.itemId){
+            android.R.id.home -> {
+                backOpeningScreen()
+                return true
+            }
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+    private fun backOpeningScreen() {
+        val intent = Intent(this,OpeningActivity::class.java)
+        startActivity(intent)
+        finish()
     }
 
     private fun startCamera() {
