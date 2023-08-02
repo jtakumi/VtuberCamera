@@ -14,6 +14,7 @@ import android.view.Surface
 import android.view.TextureView
 import androidx.core.app.ActivityCompat
 import com.example.vtubercamera.databinding.ActivityMainBinding
+
 @Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -23,6 +24,7 @@ class MainActivity : AppCompatActivity() {
     private val cameraManager by lazy {
         getSystemService(Context.CAMERA_SERVICE) as CameraManager
     }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -34,7 +36,11 @@ class MainActivity : AppCompatActivity() {
         if (allPermissionsGranted()) {
             startCamera()
         } else {
-            ActivityCompat.requestPermissions(this, requiredPermissions, CAMERA_PERMISSION_REQUEST_CODE)
+            ActivityCompat.requestPermissions(
+                this,
+                requiredPermissions,
+                CAMERA_PERMISSION_REQUEST_CODE
+            )
         }
     }
 
@@ -56,8 +62,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun openCamera() {
         val backCameraId = getBackCameraId()
+        val frontCameraId = getFrontCameraId()
         if (backCameraId.isNullOrEmpty()) {
             // Handle case where back camera is not available
+            return
+        } else if (frontCameraId.isNullOrEmpty()) {
             return
         }
         if (ActivityCompat.checkSelfPermission(
@@ -85,6 +94,17 @@ class MainActivity : AppCompatActivity() {
         }, null)
     }
 
+    private fun getFrontCameraId(): String? {
+        val cameraIds = cameraManager.cameraIdList
+        for (cameraId in cameraIds) {
+            val characteristics = cameraManager.getCameraCharacteristics(cameraId)
+            val facing = characteristics.get(CameraCharacteristics.LENS_FACING)
+            if (facing == CameraCharacteristics.LENS_FACING_FRONT) {
+                return cameraId
+            }
+        }
+        return null
+    }
     private fun getBackCameraId(): String? {
         val cameraIds = cameraManager.cameraIdList
         for (cameraId in cameraIds) {
@@ -115,6 +135,7 @@ class MainActivity : AppCompatActivity() {
             }, null)
         }
     }
+
     private fun allPermissionsGranted() =
         requiredPermissions.all {
             ActivityCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
