@@ -20,7 +20,6 @@ import com.example.vtubercamera.databinding.ActivityMainBinding
 
 @Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity() {
-    private lateinit var originalTextureViewParams:ViewGroup.LayoutParams
     private lateinit var binding: ActivityMainBinding
     private lateinit var cameraView: TextureView
     private var cameraDevice: CameraDevice? = null
@@ -37,7 +36,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         setSupportActionBar(toolbar)
         cameraView = binding.cameraTextureView
-        originalTextureViewParams = cameraView.layoutParams
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         if (allPermissionsGranted()) {
@@ -54,9 +52,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun resetViewSize(){
-        cameraView.layoutParams = originalTextureViewParams
-    }
     private fun changeSPCamera() {
         switchCameraValue = when (switchCameraValue) {
             0 -> 1
@@ -66,7 +61,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
         openCamera()
-        resetViewSize()
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -167,6 +161,10 @@ class MainActivity : AppCompatActivity() {
     private fun createCameraPreview() {
         cameraDevice?.let {
             val texture = cameraView.surfaceTexture
+            val cameraCharacteristics = cameraManager.getCameraCharacteristics(it.id)
+            val streamConfigurationMap =
+                cameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+            val defaultPreviewSize = streamConfigurationMap?.getOutputSizes(SurfaceTexture::class.java)?.get(0)
             texture?.setDefaultBufferSize(640, 480)
             val surface = Surface(texture)
             val previewRequestBuilder =
