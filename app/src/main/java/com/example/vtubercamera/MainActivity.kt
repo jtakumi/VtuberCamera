@@ -9,12 +9,13 @@ import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.MenuItem
 import android.view.Surface
 import android.view.TextureView
-import android.view.ViewGroup
+import android.view.WindowManager
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.example.vtubercamera.databinding.ActivityMainBinding
 
@@ -164,20 +165,43 @@ class MainActivity : AppCompatActivity() {
             val cameraCharacteristics = cameraManager.getCameraCharacteristics(it.id)
             val streamConfigurationMap =
                 cameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-            val defaultPreviewSize = streamConfigurationMap?.getOutputSizes(SurfaceTexture::class.java)?.get(0)
-            texture?.setDefaultBufferSize(640, 480)
-            val surface = Surface(texture)
-            val previewRequestBuilder =
-                cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
-            previewRequestBuilder.addTarget(surface)
-            it.createCaptureSession(listOf(surface), object : CameraCaptureSession.StateCallback() {
-                override fun onConfigured(p0: CameraCaptureSession) {
-                    p0.setRepeatingRequest(previewRequestBuilder.build(), null, null)
+            val defaultPreviewSize =
+                streamConfigurationMap?.getOutputSizes(SurfaceTexture::class.java)?.get(0)
+            defaultPreviewSize?.let { size ->
+                val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+                val display =windowManager.defaultDisplay
+                val screenHeight = display.width
+                val screenWidth = display.height
+                val screenAspectRatio = screenHeight.toDouble() / screenWidth.toDouble()
+                val previewAspectRatio = size.width.toDouble() / size.height.toDouble()
+                val layoutParams = cameraView.layoutParams
+                if (previewAspectRatio > screenAspectRatio) {
+                    layoutParams.width = screenWidth
+                    layoutParams.height = (screenWidth / previewAspectRatio).toInt()
+                } else {
+                    layoutParams.height = screenHeight
+                    layoutParams.width = (screenHeight * previewAspectRatio).toInt()
                 }
+                cameraView.layoutParams = layoutParams
+                texture?.setDefaultBufferSize(layoutParams.width,layoutParams.height)
+                val surface = Surface(texture)
+                val previewRequestBuilder =
+                    cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+                previewRequestBuilder.addTarget(surface)
+                it.createCaptureSession(
+                    listOf(surface),
+                    object : CameraCaptureSession.StateCallback() {
+                        override fun onConfigured(p0: CameraCaptureSession) {
+                            p0.setRepeatingRequest(previewRequestBuilder.build(), null, null)
+                        }
 
-                override fun onConfigureFailed(p0: CameraCaptureSession) {
-                }
-            }, null)
+                        override fun onConfigureFailed(p0: CameraCaptureSession) {
+                        }
+                    },
+                    null
+                )
+
+            }
         }
     }
 
