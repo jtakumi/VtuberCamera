@@ -95,21 +95,6 @@ class MainActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun startCamera() {
-        if (cameraView.isAvailable) {
-            openCamera()
-        } else {
-            cameraView.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
-                override fun onSurfaceTextureAvailable(p0: SurfaceTexture, p1: Int, p2: Int) {
-                    openCamera()
-                }
-
-                override fun onSurfaceTextureSizeChanged(p0: SurfaceTexture, p1: Int, p2: Int) {}
-                override fun onSurfaceTextureUpdated(p0: SurfaceTexture) {}
-                override fun onSurfaceTextureDestroyed(p0: SurfaceTexture): Boolean = true
-            }
-        }
-    }
 
     private fun openCamera() {
         val backCameraId = getBackCameraId()
@@ -148,30 +133,39 @@ class MainActivity : AppCompatActivity() {
                 cameraDevice = null
             }
         }, null)
-        cameraIsOpen =true
+        cameraIsOpen = true
     }
-    private  fun closeCamera() {
+
+    private fun startCamera() {
+        if (cameraView.isAvailable) {
+            openCamera()
+        } else {
+            cameraView.surfaceTextureListener = surfaceTextureListener
+        }
+    }
+
+    private fun closeCamera() {
         cameraDevice?.close()
         cameraDevice = null
-        cameraIsOpen =false
+        cameraIsOpen = false
     }
-        private val surfaceTextureListener = object :TextureView.SurfaceTextureListener{
-            override fun onSurfaceTextureAvailable(p0: SurfaceTexture, p1: Int, p2: Int) {
 
-            }
+    private val surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+        override fun onSurfaceTextureAvailable(p0: SurfaceTexture, p1: Int, p2: Int) {
 
-            override fun onSurfaceTextureSizeChanged(p0: SurfaceTexture, p1: Int, p2: Int) {
-            }
-
-            override fun onSurfaceTextureDestroyed(p0: SurfaceTexture): Boolean {
-                return true
-            }
-
-            override fun onSurfaceTextureUpdated(p0: SurfaceTexture) {
-
-            }
         }
 
+        override fun onSurfaceTextureSizeChanged(p0: SurfaceTexture, p1: Int, p2: Int) {
+        }
+
+        override fun onSurfaceTextureDestroyed(p0: SurfaceTexture): Boolean {
+            return true
+        }
+
+        override fun onSurfaceTextureUpdated(p0: SurfaceTexture) {
+
+        }
+    }
 
 
     private fun getFrontCameraId(): String? {
@@ -201,12 +195,6 @@ class MainActivity : AppCompatActivity() {
     private fun createCameraPreview() {
         cameraDevice?.let {
             val texture = cameraView.surfaceTexture
-            val cameraCharacteristics = cameraManager.getCameraCharacteristics(it.id)
-            val streamConfigurationMap =
-                cameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-            val defaultPreviewSize =
-                streamConfigurationMap?.getOutputSizes(SurfaceTexture::class.java)?.get(0)
-            texture?.setDefaultBufferSize(640, 480)
             val surface = Surface(texture)
             val previewRequestBuilder =
                 cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
@@ -221,6 +209,7 @@ class MainActivity : AppCompatActivity() {
             }, null)
         }
     }
+
 
     private fun allPermissionsGranted() =
         requiredPermissions.all {
