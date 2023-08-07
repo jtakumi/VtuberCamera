@@ -183,7 +183,7 @@ class MainActivity : AppCompatActivity() {
                     layoutParams.width = (screenHeight * previewAspectRatio).toInt()
                 }
                 cameraView.layoutParams = layoutParams
-                texture?.setDefaultBufferSize(layoutParams.width,layoutParams.height)
+                texture?.setDefaultBufferSize(size.width,size.height)
                 val surface = Surface(texture)
                 val previewRequestBuilder =
                     cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
