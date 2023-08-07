@@ -14,7 +14,6 @@ import android.os.Bundle
 import android.view.MenuItem
 import android.view.Surface
 import android.view.TextureView
-import android.view.ViewGroup
 import androidx.core.app.ActivityCompat
 import com.example.vtubercamera.databinding.ActivityMainBinding
 
@@ -28,6 +27,7 @@ class MainActivity : AppCompatActivity() {
         getSystemService(Context.CAMERA_SERVICE) as CameraManager
     }
     private var switchCameraValue = 0
+    private var cameraIsOpen = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +50,22 @@ class MainActivity : AppCompatActivity() {
         binding.switchCamera.setOnClickListener {
             changeSPCamera()
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (!cameraIsOpen) {
+            if (cameraView.isAvailable) {
+                openCamera()
+            } else {
+                cameraView.surfaceTextureListener = surfaceTextureListener
+            }
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        closeCamera()
     }
 
     private fun changeSPCamera() {
@@ -132,7 +148,31 @@ class MainActivity : AppCompatActivity() {
                 cameraDevice = null
             }
         }, null)
+        cameraIsOpen =true
     }
+    private  fun closeCamera() {
+        cameraDevice?.close()
+        cameraDevice = null
+        cameraIsOpen =false
+    }
+        private val surfaceTextureListener = object :TextureView.SurfaceTextureListener{
+            override fun onSurfaceTextureAvailable(p0: SurfaceTexture, p1: Int, p2: Int) {
+
+            }
+
+            override fun onSurfaceTextureSizeChanged(p0: SurfaceTexture, p1: Int, p2: Int) {
+            }
+
+            override fun onSurfaceTextureDestroyed(p0: SurfaceTexture): Boolean {
+                return true
+            }
+
+            override fun onSurfaceTextureUpdated(p0: SurfaceTexture) {
+
+            }
+        }
+
+
 
     private fun getFrontCameraId(): String? {
         val cameraIds = cameraManager.cameraIdList
@@ -164,7 +204,8 @@ class MainActivity : AppCompatActivity() {
             val cameraCharacteristics = cameraManager.getCameraCharacteristics(it.id)
             val streamConfigurationMap =
                 cameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-            val defaultPreviewSize = streamConfigurationMap?.getOutputSizes(SurfaceTexture::class.java)?.get(0)
+            val defaultPreviewSize =
+                streamConfigurationMap?.getOutputSizes(SurfaceTexture::class.java)?.get(0)
             texture?.setDefaultBufferSize(640, 480)
             val surface = Surface(texture)
             val previewRequestBuilder =
