@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "483992849247",
+    "project_id": "vtubercamera",
+    "storage_bucket": "vtubercamera.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:483992849247:android:5dddcafbe1f915ce6fc4ea",
+        "android_client_info": {
+          "package_name": "com.example.vtubercamera"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "483992849247-p0pt61raekaiu2vfrrbj7qlj6ul8u526.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANEpC8m2FezRHHFQBUoLToE6L3oMCmPZI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "483992849247-p0pt61raekaiu2vfrrbj7qlj6ul8u526.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
