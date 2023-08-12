@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Point
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
@@ -17,7 +18,6 @@ import android.view.TextureView
 import androidx.core.app.ActivityCompat
 import com.example.vtubercamera.databinding.ActivityMainBinding
 
-@Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var cameraView: TextureView
@@ -194,7 +194,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun createCameraPreview() {
         cameraDevice?.let {
-            val texture = cameraView.surfaceTexture
+            val texture = cameraView.surfaceTexture ?: throw NullPointerException("texture has not found.")
+            val viewSize = Point(cameraView.width, cameraView.height)
+            texture.setDefaultBufferSize(viewSize.x,viewSize.y)
             val surface = Surface(texture)
             val previewRequestBuilder =
                 cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
@@ -225,8 +227,6 @@ class MainActivity : AppCompatActivity() {
             if (allPermissionsGranted()) {
                 startCamera()
             } else {
-                // Handle the case when camera permission is denied by the user.
-                // You might display a message or close the app gracefully.
             }
         } else {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults)
