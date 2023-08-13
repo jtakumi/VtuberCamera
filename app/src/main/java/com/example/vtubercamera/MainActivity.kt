@@ -10,6 +10,7 @@ import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
+import android.hardware.camera2.CaptureRequest
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.MenuItem
@@ -196,11 +197,13 @@ class MainActivity : AppCompatActivity() {
         cameraDevice?.let {
             val texture = cameraView.surfaceTexture ?: throw NullPointerException("texture has not found.")
             val viewSize = Point(cameraView.width, cameraView.height)
-            texture.setDefaultBufferSize(viewSize.x,viewSize.y)
+            texture.setDefaultBufferSize(viewSize.x, viewSize.y)
             val surface = Surface(texture)
+            val rotation=windowManager.defaultDisplay.rotation
             val previewRequestBuilder =
                 cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
             previewRequestBuilder.addTarget(surface)
+            previewRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION,getJpegOrientation(rotation))
             it.createCaptureSession(listOf(surface), object : CameraCaptureSession.StateCallback() {
                 override fun onConfigured(p0: CameraCaptureSession) {
                     p0.setRepeatingRequest(previewRequestBuilder.build(), null, null)
@@ -210,6 +213,30 @@ class MainActivity : AppCompatActivity() {
                 }
             }, null)
         }
+    }
+
+    private fun getJpegOrientation(rotation: Int): Int {
+        val sensorOrientation = getCameraSensorOrientation()
+        val isFrontFacing = switchCameraValue == 1
+
+        return if (isFrontFacing) {
+            (sensorOrientation + rotation) % 360
+        } else {
+            (sensorOrientation - rotation + 360) % 360
+        }
+    }
+
+    private fun getCameraSensorOrientation(): Int {
+        val cameraId = when (switchCameraValue) {
+            0 -> getBackCameraId()
+            1 -> getFrontCameraId()
+            else -> null
+        }
+        cameraId?.let {
+            val characteristics = cameraManager.getCameraCharacteristics(cameraId)
+            return characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 0
+        }
+        return 0
     }
 
 
