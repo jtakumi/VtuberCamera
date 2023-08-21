@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Point
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
@@ -14,12 +15,9 @@ import android.util.Log
 import android.view.MenuItem
 import android.view.Surface
 import android.view.TextureView
-import android.view.WindowManager
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.example.vtubercamera.databinding.ActivityMainBinding
 
-@Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var cameraView: TextureView
@@ -29,6 +27,7 @@ class MainActivity : AppCompatActivity() {
         getSystemService(Context.CAMERA_SERVICE) as CameraManager
     }
     private var switchCameraValue = 0
+    private var cameraIsOpen = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,6 +50,22 @@ class MainActivity : AppCompatActivity() {
         binding.switchCamera.setOnClickListener {
             changeSPCamera()
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (!cameraIsOpen) {
+            if (cameraView.isAvailable) {
+                openCamera()
+            } else {
+                cameraView.surfaceTextureListener = surfaceTextureListener
+            }
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        closeCamera()
     }
 
     private fun changeSPCamera() {
@@ -80,21 +95,6 @@ class MainActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun startCamera() {
-        if (cameraView.isAvailable) {
-            openCamera()
-        } else {
-            cameraView.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
-                override fun onSurfaceTextureAvailable(p0: SurfaceTexture, p1: Int, p2: Int) {
-                    openCamera()
-                }
-
-                override fun onSurfaceTextureSizeChanged(p0: SurfaceTexture, p1: Int, p2: Int) {}
-                override fun onSurfaceTextureUpdated(p0: SurfaceTexture) {}
-                override fun onSurfaceTextureDestroyed(p0: SurfaceTexture): Boolean = true
-            }
-        }
-    }
 
     private fun openCamera() {
         val backCameraId = getBackCameraId()
@@ -133,7 +133,40 @@ class MainActivity : AppCompatActivity() {
                 cameraDevice = null
             }
         }, null)
+        cameraIsOpen = true
     }
+
+    private fun startCamera() {
+        if (cameraView.isAvailable) {
+            openCamera()
+        } else {
+            cameraView.surfaceTextureListener = surfaceTextureListener
+        }
+    }
+
+    private fun closeCamera() {
+        cameraDevice?.close()
+        cameraDevice = null
+        cameraIsOpen = false
+    }
+
+    private val surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+        override fun onSurfaceTextureAvailable(p0: SurfaceTexture, p1: Int, p2: Int) {
+            openCamera()
+        }
+
+        override fun onSurfaceTextureSizeChanged(p0: SurfaceTexture, p1: Int, p2: Int) {
+        }
+
+        override fun onSurfaceTextureDestroyed(p0: SurfaceTexture): Boolean {
+            return true
+        }
+
+        override fun onSurfaceTextureUpdated(p0: SurfaceTexture) {
+
+        }
+    }
+
 
     private fun getFrontCameraId(): String? {
         val cameraIds = cameraManager.cameraIdList
@@ -161,26 +194,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun createCameraPreview() {
         cameraDevice?.let {
-            val texture = cameraView.surfaceTexture
-            val cameraCharacteristics = cameraManager.getCameraCharacteristics(it.id)
-            val streamConfigurationMap =
-                cameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-            val defaultPreviewSize =
-                streamConfigurationMap?.getOutputSizes(SurfaceTexture::class.java)?.get(0)
-            defaultPreviewSize?.let { size ->
-                val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-                val display =windowManager.defaultDisplay
-                val screenHeight = display.width
-                val screenWidth = display.height
-                val screenAspectRatio = screenHeight.toDouble() / screenWidth.toDouble()
-                val previewAspectRatio = size.width.toDouble() / size.height.toDouble()
-                val layoutParams = cameraView.layoutParams
-                if (previewAspectRatio > screenAspectRatio) {
-                    layoutParams.width = screenWidth
-                    layoutParams.height = (screenWidth / previewAspectRatio).toInt()
-                } else {
-                    layoutParams.height = screenHeight
-                    layoutParams.width = (screenHeight * previewAspectRatio).toInt()
+
+            val texture = cameraView.surfaceTexture ?: throw NullPointerException("texture has not found.")
+            val viewSize = Point(cameraView.width, cameraView.height)
+            texture.setDefaultBufferSize(viewSize.x, viewSize.y)
+            val surface = Surface(texture)
+            val rotation=windowManager.defaultDisplay.rotation
+            val previewRequestBuilder =
+                cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+            previewRequestBuilder.addTarget(surface)
+            previewRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION,getJpegOrientation(rotation))
+            it.createCaptureSession(listOf(surface), object : CameraCaptureSession.StateCallback() {
+                override fun onConfigured(p0: CameraCaptureSession) {
+                    p0.setRepeatingRequest(previewRequestBuilder.build(), null, null)
                 }
                 cameraView.layoutParams = layoutParams
                 texture?.setDefaultBufferSize(size.width,size.height)
@@ -205,6 +231,31 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun getJpegOrientation(rotation: Int): Int {
+        val sensorOrientation = getCameraSensorOrientation()
+        val isFrontFacing = switchCameraValue == 1
+
+        return if (isFrontFacing) {
+            (sensorOrientation + rotation) % 360
+        } else {
+            (sensorOrientation - rotation + 360) % 360
+        }
+    }
+
+    private fun getCameraSensorOrientation(): Int {
+        val cameraId = when (switchCameraValue) {
+            0 -> getBackCameraId()
+            1 -> getFrontCameraId()
+            else -> null
+        }
+        cameraId?.let {
+            val characteristics = cameraManager.getCameraCharacteristics(cameraId)
+            return characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 0
+        }
+        return 0
+    }
+
+
     private fun allPermissionsGranted() =
         requiredPermissions.all {
             ActivityCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
@@ -219,8 +270,6 @@ class MainActivity : AppCompatActivity() {
             if (allPermissionsGranted()) {
                 startCamera()
             } else {
-                // Handle the case when camera permission is denied by the user.
-                // You might display a message or close the app gracefully.
             }
         } else {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults)
