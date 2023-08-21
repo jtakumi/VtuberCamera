@@ -55,7 +55,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (!cameraIsOpen) {
+        if (cameraIsOpen.not()) {
             if (cameraView.isAvailable) {
                 openCamera()
             } else {
@@ -119,17 +119,17 @@ class MainActivity : AppCompatActivity() {
         cameraDevice?.close()
 
         cameraManager.openCamera(openCameraId, object : CameraDevice.StateCallback() {
-            override fun onOpened(p0: CameraDevice) {
-                cameraDevice = p0
+            override fun onOpened(CameraDevice: CameraDevice) {
+                cameraDevice = CameraDevice
                 createCameraPreview()
             }
 
-            override fun onDisconnected(p0: CameraDevice) {
+            override fun onDisconnected(CameraDevice: CameraDevice) {
                 cameraDevice?.close()
                 cameraDevice = null
             }
 
-            override fun onError(p0: CameraDevice, p1: Int) {
+            override fun onError(CameraDevice: CameraDevice, p1: Int) {
                 cameraDevice?.close()
                 cameraDevice = null
             }
