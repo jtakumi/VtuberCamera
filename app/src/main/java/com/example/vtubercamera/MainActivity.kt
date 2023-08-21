@@ -15,6 +15,7 @@ import android.util.Log
 import android.view.MenuItem
 import android.view.Surface
 import android.view.TextureView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.example.vtubercamera.databinding.ActivityMainBinding
 
