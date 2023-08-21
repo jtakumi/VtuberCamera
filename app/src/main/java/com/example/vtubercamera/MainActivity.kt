@@ -10,18 +10,20 @@ import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
+import android.hardware.camera2.CaptureRequest
+import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
 import android.view.MenuItem
 import android.view.Surface
 import android.view.TextureView
-import androidx.appcompat.app.AppCompatActivity
+import android.widget.ImageView
 import androidx.core.app.ActivityCompat
 import com.example.vtubercamera.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var cameraView: TextureView
+    private lateinit var shutter:ImageView
     private var cameraDevice: CameraDevice? = null
     private val requiredPermissions = arrayOf(Manifest.permission.CAMERA)
     private val cameraManager by lazy {
@@ -37,6 +39,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         setSupportActionBar(toolbar)
         cameraView = binding.cameraTextureView
+        shutter = binding.cameraButton
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         if (allPermissionsGranted()) {
@@ -124,15 +127,15 @@ class MainActivity : AppCompatActivity() {
                 createCameraPreview()
             }
 
-            override fun onDisconnected(CameraDevice: CameraDevice) {
-                cameraDevice?.close()
-                cameraDevice = null
-            }
+                override fun onDisconnected(CameraDevice: CameraDevice) {
+                    cameraDevice?.close()
+                    cameraDevice = null
+                }
 
-            override fun onError(CameraDevice: CameraDevice, p1: Int) {
-                cameraDevice?.close()
-                cameraDevice = null
-            }
+                    override fun onError(CameraDevice: CameraDevice, p1: Int) {
+                        cameraDevice?.close()
+                        cameraDevice = null
+                    }
         }, null)
         cameraIsOpen = true
     }
@@ -195,7 +198,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun createCameraPreview() {
         cameraDevice?.let {
-
             val texture = cameraView.surfaceTexture ?: throw NullPointerException("texture has not found.")
             val viewSize = Point(cameraView.width, cameraView.height)
             texture.setDefaultBufferSize(viewSize.x, viewSize.y)
@@ -209,26 +211,10 @@ class MainActivity : AppCompatActivity() {
                 override fun onConfigured(p0: CameraCaptureSession) {
                     p0.setRepeatingRequest(previewRequestBuilder.build(), null, null)
                 }
-                cameraView.layoutParams = layoutParams
-                texture?.setDefaultBufferSize(size.width,size.height)
-                val surface = Surface(texture)
-                val previewRequestBuilder =
-                    cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
-                previewRequestBuilder.addTarget(surface)
-                it.createCaptureSession(
-                    listOf(surface),
-                    object : CameraCaptureSession.StateCallback() {
-                        override fun onConfigured(p0: CameraCaptureSession) {
-                            p0.setRepeatingRequest(previewRequestBuilder.build(), null, null)
-                        }
 
-                        override fun onConfigureFailed(p0: CameraCaptureSession) {
-                        }
-                    },
-                    null
-                )
-
-            }
+                override fun onConfigureFailed(p0: CameraCaptureSession) {
+                }
+            }, null)
         }
     }
 
@@ -281,4 +267,3 @@ class MainActivity : AppCompatActivity() {
         private const val CAMERA_PERMISSION_REQUEST_CODE = 1001
     }
 }
-
