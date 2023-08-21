@@ -32,9 +32,8 @@
         android:layout_height="70dp"
         android:src="@drawable/white_button"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@id/switch_camera"
-        android:layout_marginStart="110dp"
-       />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <ImageView
         android:id="@+id/switch_camera"
