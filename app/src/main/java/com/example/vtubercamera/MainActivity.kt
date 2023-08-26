@@ -14,6 +14,7 @@ import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CaptureRequest
 import android.icu.text.SimpleDateFormat
 import android.media.ImageReader
+import android.media.MediaPlayer
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
@@ -65,6 +66,7 @@ class MainActivity : AppCompatActivity() {
 
         shutter.setOnClickListener {
             saveImage()
+            playSound()
         }
     }
 
@@ -76,33 +78,33 @@ class MainActivity : AppCompatActivity() {
             texture.setDefaultBufferSize(viewSize.x, viewSize.y)
             val surface = Surface(texture)
             val imageFile = createImageFile()
-            val imageReader = ImageReader.newInstance(viewSize.x,viewSize.y,ImageFormat.JPEG,1)
+            val imageReader = ImageReader.newInstance(viewSize.x, viewSize.y, ImageFormat.JPEG, 1)
             imageReader.setOnImageAvailableListener({ reader ->
                 val image = reader.acquireLatestImage()
-                val buffer=image.planes[0].buffer
+                val buffer = image.planes[0].buffer
                 val bytes = ByteArray(buffer.capacity())
                 buffer.get(bytes)
                 //save the captured image to the file
-                FileOutputStream(imageFile).use { output->
+                FileOutputStream(imageFile).use { output ->
                     output.write(bytes)
                 }
                 image.close()
-            },null)
+            }, null)
             saveRequestBuilder.addTarget(surface)
             saveRequestBuilder.addTarget(imageReader.surface)
             val rotation = windowManager.defaultDisplay.rotation
-            saveRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION,getJpegOrientation(rotation))
+            saveRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, getJpegOrientation(rotation))
             it.createCaptureSession(
-                listOf(surface,imageReader.surface),
-                object :CameraCaptureSession.StateCallback(){
+                listOf(surface, imageReader.surface),
+                object : CameraCaptureSession.StateCallback() {
                     override fun onConfigured(session: CameraCaptureSession) {
-                        session.capture(saveRequestBuilder.build(),null,null)
+                        session.capture(saveRequestBuilder.build(), null, null)
                     }
 
                     override fun onConfigureFailed(p0: CameraCaptureSession) {
 
                     }
-                },null
+                }, null
             )
         }
     }
@@ -110,7 +112,15 @@ class MainActivity : AppCompatActivity() {
     private fun createImageFile(): File {
         val timeStamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault()).format(Date())
         val filePath = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-        return File.createTempFile("IMG${timeStamp}","jpg",filePath)
+        return File.createTempFile("IMG${timeStamp}", "jpg", filePath)
+    }
+
+    private fun playSound() {
+        val mMediaPlayer = MediaPlayer.create(this,R.raw.camera_shutter)
+        mMediaPlayer.let {
+            it.isLooping =false
+            it.start()
+        }
     }
 
     override fun onResume() {
