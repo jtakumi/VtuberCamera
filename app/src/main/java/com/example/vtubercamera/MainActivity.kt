@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.ImageFormat
 import android.graphics.Point
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraCaptureSession
@@ -11,19 +12,26 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CaptureRequest
+import android.icu.text.SimpleDateFormat
+import android.media.ImageReader
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Environment
 import android.view.MenuItem
 import android.view.Surface
 import android.view.TextureView
 import android.widget.ImageView
 import androidx.core.app.ActivityCompat
 import com.example.vtubercamera.databinding.ActivityMainBinding
+import java.io.File
+import java.io.FileOutputStream
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var cameraView: TextureView
-    private lateinit var shutter:ImageView
+    private lateinit var shutter: ImageView
     private var cameraDevice: CameraDevice? = null
     private val requiredPermissions = arrayOf(Manifest.permission.CAMERA)
     private val cameraManager by lazy {
@@ -54,6 +62,55 @@ class MainActivity : AppCompatActivity() {
         binding.switchCamera.setOnClickListener {
             changeSPCamera()
         }
+
+        shutter.setOnClickListener {
+            saveImage()
+        }
+    }
+
+    private fun saveImage() {
+        cameraDevice?.let {
+            val saveRequestBuilder = it.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
+            val texture = cameraView.surfaceTexture ?: return
+            val viewSize = Point(cameraView.width, cameraView.height)
+            texture.setDefaultBufferSize(viewSize.x, viewSize.y)
+            val surface = Surface(texture)
+            val imageFile = createImageFile()
+            val imageReader = ImageReader.newInstance(viewSize.x,viewSize.y,ImageFormat.JPEG,1)
+            imageReader.setOnImageAvailableListener({ reader ->
+                val image = reader.acquireLatestImage()
+                val buffer=image.planes[0].buffer
+                val bytes = ByteArray(buffer.capacity())
+                buffer.get(bytes)
+                //save the captured image to the file
+                FileOutputStream(imageFile).use { output->
+                    output.write(bytes)
+                }
+                image.close()
+            },null)
+            saveRequestBuilder.addTarget(surface)
+            saveRequestBuilder.addTarget(imageReader.surface)
+            val rotation = windowManager.defaultDisplay.rotation
+            saveRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION,getJpegOrientation(rotation))
+            it.createCaptureSession(
+                listOf(surface,imageReader.surface),
+                object :CameraCaptureSession.StateCallback(){
+                    override fun onConfigured(session: CameraCaptureSession) {
+                        session.capture(saveRequestBuilder.build(),null,null)
+                    }
+
+                    override fun onConfigureFailed(p0: CameraCaptureSession) {
+
+                    }
+                },null
+            )
+        }
+    }
+
+    private fun createImageFile(): File {
+        val timeStamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault()).format(Date())
+        val filePath = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+        return File.createTempFile("IMG${timeStamp}","jpg",filePath)
     }
 
     override fun onResume() {
@@ -127,15 +184,15 @@ class MainActivity : AppCompatActivity() {
                 createCameraPreview()
             }
 
-                override fun onDisconnected(CameraDevice: CameraDevice) {
-                    cameraDevice?.close()
-                    cameraDevice = null
-                }
+            override fun onDisconnected(CameraDevice: CameraDevice) {
+                cameraDevice?.close()
+                cameraDevice = null
+            }
 
-                    override fun onError(CameraDevice: CameraDevice, p1: Int) {
-                        cameraDevice?.close()
-                        cameraDevice = null
-                    }
+            override fun onError(CameraDevice: CameraDevice, p1: Int) {
+                cameraDevice?.close()
+                cameraDevice = null
+            }
         }, null)
         cameraIsOpen = true
     }
@@ -198,15 +255,16 @@ class MainActivity : AppCompatActivity() {
 
     private fun createCameraPreview() {
         cameraDevice?.let {
-            val texture = cameraView.surfaceTexture ?: throw NullPointerException("texture has not found.")
+            val texture =
+                cameraView.surfaceTexture ?: throw NullPointerException("texture has not found.")
             val viewSize = Point(cameraView.width, cameraView.height)
             texture.setDefaultBufferSize(viewSize.x, viewSize.y)
             val surface = Surface(texture)
-            val rotation=windowManager.defaultDisplay.rotation
+            val rotation = windowManager.defaultDisplay.rotation
             val previewRequestBuilder =
                 cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
             previewRequestBuilder.addTarget(surface)
-            previewRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION,getJpegOrientation(rotation))
+            previewRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, getJpegOrientation(rotation))
             it.createCaptureSession(listOf(surface), object : CameraCaptureSession.StateCallback() {
                 override fun onConfigured(p0: CameraCaptureSession) {
                     p0.setRepeatingRequest(previewRequestBuilder.build(), null, null)
