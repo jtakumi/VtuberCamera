@@ -111,10 +111,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun createImageFile(): File {
         val timeStamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault()).format(Date())
-        val filePath = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+        val filePath = getExternalFilesDir(Environment.DIRECTORY_DCIM)
         return File.createTempFile("IMG${timeStamp}", "jpg", filePath)
     }
-
     private fun playSound() {
         val mMediaPlayer = MediaPlayer.create(this,R.raw.camera_shutter)
         mMediaPlayer.let {
