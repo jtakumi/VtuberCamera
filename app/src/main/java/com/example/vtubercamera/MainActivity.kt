@@ -41,6 +41,7 @@ class MainActivity : AppCompatActivity() {
     private var switchCameraValue = 0
     private var cameraIsOpen = false
 
+    //when start app
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -92,6 +93,7 @@ class MainActivity : AppCompatActivity() {
             }, null)
             saveRequestBuilder.addTarget(surface)
             saveRequestBuilder.addTarget(imageReader.surface)
+            //need converting to getCameraCharacteristics
             val rotation = windowManager.defaultDisplay.rotation
             saveRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, getJpegOrientation(rotation))
             it.createCaptureSession(
@@ -111,19 +113,24 @@ class MainActivity : AppCompatActivity() {
 
     private fun createImageFile(): File {
         val timeStamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault()).format(Date())
+        //missing taken photo but the path could get
+        //need to modifying path can view taken photos on android phone
         val filePath = getExternalFilesDir(Environment.DIRECTORY_DCIM)
         return File.createTempFile("IMG${timeStamp}", "jpg", filePath)
     }
+
     private fun playSound() {
-        val mMediaPlayer = MediaPlayer.create(this,R.raw.camera_shutter)
+        //mp3 shutter sound
+        val mMediaPlayer = MediaPlayer.create(this, R.raw.camera_shutter)
         mMediaPlayer.let {
-            it.isLooping =false
+            it.isLooping = false
             it.start()
         }
     }
 
     override fun onResume() {
         super.onResume()
+        //if camera is close
         if (cameraIsOpen.not()) {
             if (cameraView.isAvailable) {
                 openCamera()
@@ -133,12 +140,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    //this function run when move to other app or home screen.
     override fun onPause() {
         super.onPause()
         closeCamera()
     }
 
     private fun changeSPCamera() {
+        //0 is back camera
+        //1 is front camera
         switchCameraValue = when (switchCameraValue) {
             0 -> 1
             1 -> 0
@@ -149,6 +159,7 @@ class MainActivity : AppCompatActivity() {
         openCamera()
     }
 
+    //back button's function in toolbar.
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             android.R.id.home -> {
@@ -159,6 +170,7 @@ class MainActivity : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
+    //go back to openingActivity
     private fun backOpeningScreen() {
         val intent = Intent(this, OpeningActivity::class.java)
         startActivity(intent)
@@ -182,6 +194,7 @@ class MainActivity : AppCompatActivity() {
         }
         var openCameraId = ""
         when (switchCameraValue) {
+            //select use camera
             0 -> openCameraId = backCameraId
             1 -> openCameraId = frontCameraId
         }
@@ -193,6 +206,7 @@ class MainActivity : AppCompatActivity() {
                 createCameraPreview()
             }
 
+            //disconnect or error happen, close camera
             override fun onDisconnected(CameraDevice: CameraDevice) {
                 cameraDevice?.close()
                 cameraDevice = null
@@ -203,6 +217,7 @@ class MainActivity : AppCompatActivity() {
                 cameraDevice = null
             }
         }, null)
+        //isOpen flag turn into true
         cameraIsOpen = true
     }
 
@@ -233,11 +248,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onSurfaceTextureUpdated(p0: SurfaceTexture) {
-
+            openCamera()
         }
     }
 
 
+    //getFrontCameraId and getBackCameraId function get own camera's id.
     private fun getFrontCameraId(): String? {
         val cameraIds = cameraManager.cameraIdList
         for (cameraId in cameraIds) {
@@ -269,6 +285,7 @@ class MainActivity : AppCompatActivity() {
             val viewSize = Point(cameraView.width, cameraView.height)
             texture.setDefaultBufferSize(viewSize.x, viewSize.y)
             val surface = Surface(texture)
+            //need converting to getCameraCharacteristics
             val rotation = windowManager.defaultDisplay.rotation
             val previewRequestBuilder =
                 cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
@@ -310,11 +327,15 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    //verify permissions function
+    //all permission are true, the function will return value
     private fun allPermissionsGranted() =
         requiredPermissions.all {
             ActivityCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
         }
 
+    //request permission for system
+    //show popup menu
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
