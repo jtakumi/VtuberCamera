@@ -248,7 +248,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onSurfaceTextureUpdated(p0: SurfaceTexture) {
-            openCamera()
         }
     }
 
