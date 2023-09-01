@@ -15,6 +15,7 @@ import android.hardware.camera2.CaptureRequest
 import android.icu.text.SimpleDateFormat
 import android.media.ImageReader
 import android.media.MediaPlayer
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
@@ -22,12 +23,15 @@ import android.view.MenuItem
 import android.view.Surface
 import android.view.TextureView
 import android.widget.ImageView
+import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import com.example.vtubercamera.databinding.ActivityMainBinding
 import java.io.File
 import java.io.FileOutputStream
+import java.nio.file.Path
 import java.util.Date
 import java.util.Locale
+import kotlin.io.path.Path
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -78,7 +82,10 @@ class MainActivity : AppCompatActivity() {
             val viewSize = Point(cameraView.width, cameraView.height)
             texture.setDefaultBufferSize(viewSize.x, viewSize.y)
             val surface = Surface(texture)
-            val imageFile = createImageFile()
+            val timeStamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault()).format(Date())
+            //missing taken photo but the path could get
+            //need to modifying path can view taken photos on android phone
+            val imageFile =  Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
             val imageReader = ImageReader.newInstance(viewSize.x, viewSize.y, ImageFormat.JPEG, 1)
             imageReader.setOnImageAvailableListener({ reader ->
                 val image = reader.acquireLatestImage()
@@ -86,7 +93,7 @@ class MainActivity : AppCompatActivity() {
                 val bytes = ByteArray(buffer.capacity())
                 buffer.get(bytes)
                 //save the captured image to the file
-                FileOutputStream(imageFile).use { output ->
+                FileOutputStream(File.createTempFile("IMG${timeStamp}",".jpg",imageFile)).use { output ->
                     output.write(bytes)
                 }
                 image.close()
@@ -111,13 +118,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun createImageFile(): File {
-        val timeStamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault()).format(Date())
-        //missing taken photo but the path could get
-        //need to modifying path can view taken photos on android phone
-        val filePath = getExternalFilesDir(Environment.DIRECTORY_DCIM)
-        return File.createTempFile("IMG${timeStamp}", "jpg", filePath)
-    }
 
     private fun playSound() {
         //mp3 shutter sound
