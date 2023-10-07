@@ -83,17 +83,20 @@ class MainActivity : AppCompatActivity() {
             texture.setDefaultBufferSize(viewSize.x, viewSize.y)
             val surface = Surface(texture)
             val timeStamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault()).format(Date())
+            val fileName = "IMG${timeStamp}.jpg"
             //missing taken photo but the path could get
             //need to modifying path can view taken photos on android phone
             val imageFile =  Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
+            val filePath = imageFile.absolutePath + fileName
             val imageReader = ImageReader.newInstance(viewSize.x, viewSize.y, ImageFormat.JPEG, 1)
             imageReader.setOnImageAvailableListener({ reader ->
                 val image = reader.acquireLatestImage()
                 val buffer = image.planes[0].buffer
                 val bytes = ByteArray(buffer.capacity())
                 buffer.get(bytes)
+                val outputFile = File(filePath)
                 //save the captured image to the file
-                FileOutputStream(File.createTempFile("IMG${timeStamp}",".jpg",imageFile)).use { output ->
+                FileOutputStream(outputFile).use { output ->
                     output.write(bytes)
                 }
                 image.close()
@@ -122,9 +125,9 @@ class MainActivity : AppCompatActivity() {
     private fun playSound() {
         //mp3 shutter sound
         val mMediaPlayer = MediaPlayer.create(this, R.raw.camera_shutter)
-        mMediaPlayer.let {
-            it.isLooping = false
-            it.start()
+        mMediaPlayer.apply {
+            isLooping = false
+            start()
         }
     }
 
