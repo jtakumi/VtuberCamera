@@ -4,6 +4,7 @@
     <color name="white">#FFFFFFFF</color>
     <color name="toolbar_main">#97FFFF</color>
     <color name="toolbar_main_font">#0080FF</color>
+    <color name="toolbar_setting">#81D8D0</color>
     <color name="opening_title">#70DBC6</color>
     <color name="annouce_enter_tap">#F3A5DE</color>
     <color name="arrowsBackGround">#DCDCDC</color>
