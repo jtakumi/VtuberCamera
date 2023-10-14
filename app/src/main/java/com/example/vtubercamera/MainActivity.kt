@@ -15,8 +15,6 @@ import android.hardware.camera2.CaptureRequest
 import android.icu.text.SimpleDateFormat
 import android.media.ImageReader
 import android.media.MediaPlayer
-import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
 import android.view.MenuItem
@@ -24,20 +22,23 @@ import android.view.Surface
 import android.view.TextureView
 import android.view.View
 import android.widget.ImageView
-import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.example.vtubercamera.databinding.ActivityMainBinding
+import com.example.vtubercamera.databinding.ActivitySettingBinding
 import java.io.File
 import java.io.FileOutputStream
-import java.nio.file.Path
 import java.util.Date
 import java.util.Locale
-import kotlin.io.path.Path
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {
+    companion object {
+        private const val CAMERA_PERMISSION_REQUEST_CODE = 1001
+    }
     private lateinit var binding: ActivityMainBinding
     private lateinit var cameraView: TextureView
     private lateinit var shutter: ImageView
+    private lateinit var settingIcon:ImageView
     private var cameraDevice: CameraDevice? = null
     private val requiredPermissions = arrayOf(Manifest.permission.CAMERA)
     private val cameraManager by lazy {
@@ -55,6 +56,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         setSupportActionBar(toolbar)
         cameraView = binding.cameraTextureView
         shutter = binding.cameraButton
+        settingIcon = binding.settingIcon
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         if (allPermissionsGranted()) {
@@ -67,8 +69,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             )
         }
         binding.switchCamera.setOnClickListener(this)
-
         shutter.setOnClickListener(this)
+        settingIcon.setOnClickListener(this)
 
     }
 
@@ -81,7 +83,31 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 saveImage()
                 playSound()
             }
+            binding.settingIcon -> {
+                goToSettingActivity()
+            }
         }
+    }
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            android.R.id.home -> {
+                backOpeningScreen()
+                return true
+            }
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+    //go back to openingActivity
+    private fun backOpeningScreen() {
+        val intent = Intent(this, OpeningActivity::class.java)
+        startActivity(intent)
+        finish()
+    }
+    private fun goToSettingActivity(){
+        val intent = Intent(this,SettingActivity::class.java)
+        startActivity(intent)
+        finish()
     }
 
 private fun saveImage() {
@@ -94,7 +120,10 @@ private fun saveImage() {
         val timeStamp = SimpleDateFormat("yyyyMMddHHmmss",Locale.JAPAN).format(Date())
         //missing taken photo but the path could get
         //need to modifying path can view taken photos on android phone
-        val imageFile = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
+
+        val imageDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
+        imageDir?.mkdir()
+        val imageFile = File(imageDir,"IMG$timeStamp.jpg")
         val imageReader = ImageReader.newInstance(viewSize.x, viewSize.y, ImageFormat.JPEG, 1)
         imageReader.setOnImageAvailableListener({ reader ->
             val image = reader.acquireLatestImage()
@@ -102,13 +131,7 @@ private fun saveImage() {
             val bytes = ByteArray(buffer.capacity())
             buffer.get(bytes)
             //save the captured image to the file
-            FileOutputStream(
-                File.createTempFile(
-                    "IMG${timeStamp}",
-                    ".jpg",
-                    imageFile
-                )
-            ).use { output ->
+            FileOutputStream(imageFile).use { output ->
                 output.write(bytes)
             }
             image.close()
@@ -175,22 +198,7 @@ private fun changeSPCamera() {
 }
 
 //back button's function in toolbar.
-override fun onOptionsItemSelected(item: MenuItem): Boolean {
-    when (item.itemId) {
-        android.R.id.home -> {
-            backOpeningScreen()
-            return true
-        }
-    }
-    return super.onOptionsItemSelected(item)
-}
 
-//go back to openingActivity
-private fun backOpeningScreen() {
-    val intent = Intent(this, OpeningActivity::class.java)
-    startActivity(intent)
-    finish()
-}
 
 
 private fun openCamera() {
@@ -365,7 +373,5 @@ override fun onRequestPermissionsResult(
     }
 }
 
-companion object {
-    private const val CAMERA_PERMISSION_REQUEST_CODE = 1001
-}
+
 }
