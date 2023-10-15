@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
 import com.example.vtubercamera.databinding.ActivityOpeningBinding
+import com.example.vtubercamera.extentions.playSound
 
 class OpeningActivity : AppCompatActivity(),View.OnClickListener {
     private lateinit var binding: ActivityOpeningBinding
@@ -20,14 +21,9 @@ class OpeningActivity : AppCompatActivity(),View.OnClickListener {
     override fun onClick(view: View) {
         val intent = Intent(this, MainActivity::class.java)
         startActivity(intent)
-        playSound()
+        playSound(MediaPlayer.create(this, R.raw.enter_app))
         finish()
     }
 
-    private fun playSound() {
-        val mediaPlayer = MediaPlayer.create(this, R.raw.enter_app).apply {
-            isLooping = false
-            start()
-        }
-    }
+
 }

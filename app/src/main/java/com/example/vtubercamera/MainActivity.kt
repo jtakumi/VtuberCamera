@@ -27,6 +27,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.example.vtubercamera.databinding.ActivityMainBinding
 import com.example.vtubercamera.databinding.ActivitySettingBinding
+import com.example.vtubercamera.extentions.playSound
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Date
@@ -86,7 +87,7 @@ class MainActivity<T : Any?> : AppCompatActivity(), View.OnClickListener {
 
             binding.cameraButton -> {
                 saveImage()
-                playSound()
+                playSound(MediaPlayer.create(this, R.raw.camera_shutter))
             }
 
             binding.settingIcon -> {
@@ -154,16 +155,6 @@ class MainActivity<T : Any?> : AppCompatActivity(), View.OnClickListener {
                     }
                 }, null
             )
-        }
-    }
-
-
-    private fun playSound() {
-        //mp3 shutter sound
-        val mMediaPlayer = MediaPlayer.create(this, R.raw.camera_shutter)
-        mMediaPlayer.let {
-            it.isLooping = false
-            it.start()
         }
     }
 
