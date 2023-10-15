@@ -193,8 +193,8 @@ class MainActivity<T : Any?> : AppCompatActivity(), View.OnClickListener {
 
 
     private fun openCamera() {
-        val backCameraId = getBackCameraId()
-        val frontCameraId = getFrontCameraId()
+        val backCameraId = getCameraId(0)
+        val frontCameraId = getCameraId(1)
         if (backCameraId.isNullOrEmpty() || frontCameraId.isNullOrEmpty()) {
             // Handle case where back camera is not available
             return
@@ -250,42 +250,39 @@ class MainActivity<T : Any?> : AppCompatActivity(), View.OnClickListener {
     }
 
     private val surfaceTextureListener = object : TextureView.SurfaceTextureListener {
-        override fun onSurfaceTextureAvailable(p0: SurfaceTexture, p1: Int, p2: Int) {
+        override fun onSurfaceTextureAvailable(surefaceTexture: SurfaceTexture, width: Int, height: Int) {
             openCamera()
         }
 
-        override fun onSurfaceTextureSizeChanged(p0: SurfaceTexture, p1: Int, p2: Int) {
+        override fun onSurfaceTextureSizeChanged(surefaceTexture: SurfaceTexture, width: Int, height: Int) {
         }
 
-        override fun onSurfaceTextureDestroyed(p0: SurfaceTexture): Boolean {
+        override fun onSurfaceTextureDestroyed(surefaceTexture: SurfaceTexture): Boolean {
             return true
         }
 
-        override fun onSurfaceTextureUpdated(p0: SurfaceTexture) {
+        override fun onSurfaceTextureUpdated(surefaceTexure: SurfaceTexture) {
         }
     }
 
 
     //getFrontCameraId and getBackCameraId function get own camera's id.
-    private fun getFrontCameraId(): String? {
+    private fun getCameraId(wannaId:Int): String? {
         val cameraIds = cameraManager.cameraIdList
         for (cameraId in cameraIds) {
             val characteristics = cameraManager.getCameraCharacteristics(cameraId)
             val facing = characteristics.get(CameraCharacteristics.LENS_FACING)
-            if (facing == CameraCharacteristics.LENS_FACING_FRONT) {
-                return cameraId
-            }
-        }
-        return null
-    }
-
-    private fun getBackCameraId(): String? {
-        val cameraIds = cameraManager.cameraIdList
-        for (cameraId in cameraIds) {
-            val characteristics = cameraManager.getCameraCharacteristics(cameraId)
-            val facing = characteristics.get(CameraCharacteristics.LENS_FACING)
-            if (facing == CameraCharacteristics.LENS_FACING_BACK) {
-                return cameraId
+            when(wannaId){
+                0 -> {
+                    if (facing == CameraCharacteristics.LENS_FACING_BACK) {
+                        return cameraId
+                    }
+                }
+                1 -> {
+                    if (facing == CameraCharacteristics.LENS_FACING_FRONT) {
+                        return cameraId
+                    }
+                }
             }
         }
         return null
@@ -328,8 +325,8 @@ class MainActivity<T : Any?> : AppCompatActivity(), View.OnClickListener {
 
     private fun getCameraSensorOrientation(): Int {
         val cameraId = when (switchCameraValue) {
-            0 -> getBackCameraId()
-            1 -> getFrontCameraId()
+            0 -> getCameraId(0)
+            1 -> getCameraId(1)
             else -> null
         }
         cameraId?.apply {
