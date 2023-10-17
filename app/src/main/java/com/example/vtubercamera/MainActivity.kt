@@ -11,6 +11,8 @@ import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
+import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.TotalCaptureResult
 import android.icu.text.SimpleDateFormat
 import android.media.ImageReader
 import android.media.MediaPlayer
@@ -33,7 +35,7 @@ import java.io.FileOutputStream
 import java.util.Date
 import java.util.Locale
 
-class MainActivity<T : Any?> : AppCompatActivity(), View.OnClickListener {
+class MainActivity : AppCompatActivity(), View.OnClickListener {
     companion object {
         private const val CAMERA_PERMISSION_REQUEST_CODE = 1001
     }
@@ -42,8 +44,10 @@ class MainActivity<T : Any?> : AppCompatActivity(), View.OnClickListener {
     private lateinit var cameraView: TextureView
     private lateinit var shutter: ImageView
     private lateinit var settingIcon: ImageView
+    private lateinit var imageReader: ImageReader
     private lateinit var handlerThread: HandlerThread
     private lateinit var handler: Handler
+    private lateinit var cameraCaptureSession: CameraCaptureSession
     private var switchCameraValue = 0
     private var cameraIsOpen = false
     private var cameraDevice: CameraDevice? = null
@@ -124,9 +128,30 @@ class MainActivity<T : Any?> : AppCompatActivity(), View.OnClickListener {
                 CAMERA_PERMISSION_REQUEST_CODE
             )
         }
+        imageReader = ImageReader.newInstance(
+            getString(R.string.image_view_width).toInt(),
+            getString(R.string.image_view_height).toInt(),
+            ImageFormat.JPEG, 1
+        )
         binding.switchCamera.setOnClickListener(this)
-        shutter.setOnClickListener(this)
         settingIcon.setOnClickListener(this)
+        shutter.setOnClickListener {
+            val capReq = cameraDevice?.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
+            capReq?.addTarget(imageReader.surface)
+            cameraCaptureSession.capture(
+                capReq!!.build(),
+                object : CameraCaptureSession.CaptureCallback() {
+                    override fun onCaptureCompleted(
+                        session: CameraCaptureSession,
+                        request: CaptureRequest,
+                        result: TotalCaptureResult
+                    ) {
+                        super.onCaptureCompleted(session, request, result)
+                        saveImage()
+                    }
+                }, handler
+            )
+        }
 
     }
 
@@ -136,12 +161,12 @@ class MainActivity<T : Any?> : AppCompatActivity(), View.OnClickListener {
                 changeSPCamera()
             }
 
-            binding.cameraButton -> {
+            shutter -> {
                 saveImage()
                 playSound(MediaPlayer.create(this, R.raw.camera_shutter))
             }
 
-            binding.settingIcon -> {
+            settingIcon -> {
                 moveActivities(SettingActivity::class.java)
             }
         }
@@ -276,102 +301,58 @@ class MainActivity<T : Any?> : AppCompatActivity(), View.OnClickListener {
     }
 
     private fun createCameraPreview() {
-        cameraDevice?.let {
-            val texture =
-                cameraView.surfaceTexture ?: throw NullPointerException("texture has not found.")
-            val viewSize = Point(
-                getString(R.string.image_view_width).toInt(),
-                getString(R.string.image_view_height).toInt()
-            )
-            texture.setDefaultBufferSize(viewSize.x, viewSize.y)
-            val surface = Surface(texture)
-            //need converting to getCameraCharacteristics
-            val previewRequestBuilder =
-                cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
-            previewRequestBuilder.addTarget(surface)
-            it.createCaptureSession(listOf(surface), object : CameraCaptureSession.StateCallback() {
-                override fun onConfigured(cameraCaptureSession: CameraCaptureSession) {
-                    cameraCaptureSession.setRepeatingRequest(
-                        previewRequestBuilder.build(),
-                        null,
-                        null
-                    )
-                }
 
-                override fun onConfigureFailed(cameraCaptureSession: CameraCaptureSession) {
-                }
-            }, null)
+        val texture =
+            cameraView.surfaceTexture ?: throw NullPointerException("texture has not found.")
+        val viewSize = Point(
+            getString(R.string.image_view_width).toInt(),
+            getString(R.string.image_view_height).toInt()
+        )
+        texture.setDefaultBufferSize(viewSize.x, viewSize.y)
+        val surface = Surface(texture)
+        //need converting to getCameraCharacteristics
+        cameraDevice?.let {
+            val previewRequestBuilder =
+                it.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+            previewRequestBuilder.addTarget(surface)
+            it.createCaptureSession(
+                listOf(surface, imageReader.surface),
+                object : CameraCaptureSession.StateCallback() {
+                    override fun onConfigured(cameraCaptureSessionP0: CameraCaptureSession) {
+                        cameraCaptureSession = cameraCaptureSessionP0
+                        cameraCaptureSession.setRepeatingRequest(
+                            previewRequestBuilder.build(),
+                            null,
+                            null
+                        )
+                    }
+
+                    override fun onConfigureFailed(cameraCaptureSession: CameraCaptureSession) {
+                    }
+                },
+                null
+            )
         }
     }
 
     private fun saveImage() {
-        cameraDevice?.let {
-            val saveRequestBuilder = it.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
-            val texture = cameraView.surfaceTexture ?: return
-            val viewSize = Point(
-                getString(R.string.image_view_width).toInt(),
-                getString(R.string.image_view_height).toInt()
-            )
-            texture.setDefaultBufferSize(viewSize.x, viewSize.y)
-            val surface = Surface(texture)
-            val timeStamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.JAPAN).format(Date())
-            //missing taken photo but the path could get
-            //need to modifying path can view taken photos on android phone
-            val imageReader = ImageReader.newInstance(viewSize.x, viewSize.y, ImageFormat.JPEG, 1)
-            saveRequestBuilder.addTarget(surface)
-            saveRequestBuilder.addTarget(imageReader.surface)
-            val imageDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
-            imageDir?.mkdir()
-            val imageFile = File(imageDir, "IMG$timeStamp.jpg")
-            imageReader.setOnImageAvailableListener({ reader ->
-                val image = reader.acquireLatestImage()
-                val buffer = image.planes[0].buffer
+        val timeStamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.JAPAN).format(Date())
+        val fileName = "$timeStamp.jpg"
+        val file = File(getExternalFilesDir(Environment.DIRECTORY_DCIM), fileName)
+        val opStream = FileOutputStream(file)
+        imageReader.setOnImageAvailableListener(object : ImageReader.OnImageAvailableListener {
+            override fun onImageAvailable(p0: ImageReader?) {
+                val image = p0?.acquireLatestImage()
+                val buffer = image!!.planes[0].buffer
                 val bytes = ByteArray(buffer.remaining())
                 buffer.get(bytes)
-                val fileStream = FileOutputStream(imageFile)
-                //save the captured image to the file
-                fileStream.write(bytes)
-                fileStream.close()
+                opStream.write(bytes)
+                opStream.close()
                 image.close()
-                Toast.makeText(this, "image captured", Toast.LENGTH_SHORT).show()
-            }, handler)
-            //need converting to getCameraCharacteristics
-            it.createCaptureSession(
-                listOf(surface, imageReader.surface),
-                object : CameraCaptureSession.StateCallback() {
-                    override fun onConfigured(session: CameraCaptureSession) {
-                        session.capture(saveRequestBuilder.build(), null, null)
-                    }
-
-                    override fun onConfigureFailed(session: CameraCaptureSession) {
-
-                    }
-                }, handler
-            )
-        }
+                Toast.makeText(this@MainActivity, "Image captured", Toast.LENGTH_SHORT)
+                    .show()
+            }
+        }, handler)
     }
 
-    private fun getJpegOrientation(rotation: Int): Int {
-        val sensorOrientation = getCameraSensorOrientation()
-        val isFrontFacing = switchCameraValue == 1
-
-        return if (isFrontFacing) {
-            (sensorOrientation + rotation) % 360
-        } else {
-            (sensorOrientation - rotation + 360) % 360
-        }
-    }
-
-    private fun getCameraSensorOrientation(): Int {
-        val cameraId = when (switchCameraValue) {
-            0 -> getCameraId(0)
-            1 -> getCameraId(1)
-            else -> null
-        }
-        cameraId?.apply {
-            val characteristics = cameraManager.getCameraCharacteristics(cameraId)
-            return characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 0
-        }
-        return 0
-    }
 }
