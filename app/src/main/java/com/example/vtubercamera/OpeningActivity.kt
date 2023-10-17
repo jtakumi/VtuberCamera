@@ -2,13 +2,13 @@ package com.example.vtubercamera
 
 import android.content.Intent
 import android.media.MediaPlayer
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
+import androidx.appcompat.app.AppCompatActivity
 import com.example.vtubercamera.databinding.ActivityOpeningBinding
 import com.example.vtubercamera.extentions.playSound
 
-class OpeningActivity : AppCompatActivity(),View.OnClickListener {
+class OpeningActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var binding: ActivityOpeningBinding
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
