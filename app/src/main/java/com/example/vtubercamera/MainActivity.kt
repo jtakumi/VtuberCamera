@@ -1,7 +1,6 @@
 package com.example.vtubercamera
 
 import android.Manifest
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -13,27 +12,30 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.TotalCaptureResult
 import android.icu.text.SimpleDateFormat
 import android.media.ImageReader
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.Environment
+import android.os.Handler
+import android.os.HandlerThread
 import android.view.MenuItem
 import android.view.Surface
 import android.view.TextureView
 import android.view.View
 import android.widget.ImageView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.example.vtubercamera.databinding.ActivityMainBinding
-import com.example.vtubercamera.databinding.ActivitySettingBinding
 import com.example.vtubercamera.extentions.playSound
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Date
 import java.util.Locale
 
-class MainActivity<T : Any?> : AppCompatActivity(), View.OnClickListener {
+class MainActivity : AppCompatActivity(), View.OnClickListener {
     companion object {
         private const val CAMERA_PERMISSION_REQUEST_CODE = 1001
     }
@@ -42,12 +44,62 @@ class MainActivity<T : Any?> : AppCompatActivity(), View.OnClickListener {
     private lateinit var cameraView: TextureView
     private lateinit var shutter: ImageView
     private lateinit var settingIcon: ImageView
+    private lateinit var imageReader: ImageReader
+    private lateinit var handlerThread: HandlerThread
+    private lateinit var handler: Handler
+    private lateinit var cameraCaptureSession: CameraCaptureSession
     private var switchCameraValue = 0
     private var cameraIsOpen = false
     private var cameraDevice: CameraDevice? = null
     private val requiredPermissions = arrayOf(Manifest.permission.CAMERA)
     private val cameraManager by lazy {
         getSystemService(Context.CAMERA_SERVICE) as CameraManager
+    }
+    private val surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+        override fun onSurfaceTextureAvailable(
+            surefaceTexture: SurfaceTexture,
+            width: Int,
+            height: Int
+        ) {
+            openCamera()
+        }
+
+        override fun onSurfaceTextureSizeChanged(
+            surefaceTexture: SurfaceTexture,
+            width: Int,
+            height: Int
+        ) {
+        }
+
+        override fun onSurfaceTextureDestroyed(surefaceTexture: SurfaceTexture): Boolean {
+            return false
+        }
+
+        override fun onSurfaceTextureUpdated(surefaceTexure: SurfaceTexture) {
+        }
+    }
+
+    //verify permissions function
+//all permission are true, the function will return value
+    private fun allPermissionsGranted() =
+        requiredPermissions.all {
+            ActivityCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
+        }
+
+    //request permission for system
+//show popup menu
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
+            if (allPermissionsGranted()) {
+                startCamera()
+            }
+        } else {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        }
     }
 
 
@@ -61,6 +113,9 @@ class MainActivity<T : Any?> : AppCompatActivity(), View.OnClickListener {
         cameraView = binding.cameraTextureView
         shutter = binding.cameraButton
         settingIcon = binding.settingIcon
+        handlerThread = HandlerThread("videoThread")
+        handlerThread.start()
+        handler = Handler(handlerThread.looper)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         //起動時に権限の確認を行い、付与されなければリクエストを送る
@@ -73,9 +128,30 @@ class MainActivity<T : Any?> : AppCompatActivity(), View.OnClickListener {
                 CAMERA_PERMISSION_REQUEST_CODE
             )
         }
+        imageReader = ImageReader.newInstance(
+            getString(R.string.image_view_width).toInt(),
+            getString(R.string.image_view_height).toInt(),
+            ImageFormat.JPEG, 1
+        )
         binding.switchCamera.setOnClickListener(this)
-        shutter.setOnClickListener(this)
         settingIcon.setOnClickListener(this)
+        shutter.setOnClickListener {
+            val capReq = cameraDevice?.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
+            capReq?.addTarget(imageReader.surface)
+            cameraCaptureSession.capture(
+                capReq!!.build(),
+                object : CameraCaptureSession.CaptureCallback() {
+                    override fun onCaptureCompleted(
+                        session: CameraCaptureSession,
+                        request: CaptureRequest,
+                        result: TotalCaptureResult
+                    ) {
+                        super.onCaptureCompleted(session, request, result)
+                        saveImage()
+                    }
+                }, handler
+            )
+        }
 
     }
 
@@ -85,21 +161,22 @@ class MainActivity<T : Any?> : AppCompatActivity(), View.OnClickListener {
                 changeSPCamera()
             }
 
-            binding.cameraButton -> {
+            shutter -> {
                 saveImage()
                 playSound(MediaPlayer.create(this, R.raw.camera_shutter))
             }
 
-            binding.settingIcon -> {
+            settingIcon -> {
                 moveActivities(SettingActivity::class.java)
             }
         }
     }
 
+    //back button's function in toolbar.
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             android.R.id.home -> {
-               moveActivities(OpeningActivity::class.java)
+                moveActivities(OpeningActivity::class.java)
                 return true
             }
         }
@@ -112,50 +189,31 @@ class MainActivity<T : Any?> : AppCompatActivity(), View.OnClickListener {
         finish()
     }
 
-    private fun saveImage() {
-        cameraDevice?.let {
-            val saveRequestBuilder = it.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
-            val texture = cameraView.surfaceTexture ?: return
-            val viewSize = Point(cameraView.width, cameraView.height)
-            texture.setDefaultBufferSize(viewSize.x, viewSize.y)
-            val surface = Surface(texture)
-            val timeStamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.JAPAN).format(Date())
-            //missing taken photo but the path could get
-            //need to modifying path can view taken photos on android phone
-
-            val imageDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
-            imageDir?.mkdir()
-            val imageFile = File(imageDir, "IMG$timeStamp.jpg")
-            val imageReader = ImageReader.newInstance(viewSize.x, viewSize.y, ImageFormat.JPEG, 1)
-            imageReader.setOnImageAvailableListener({ reader ->
-                val image = reader.acquireLatestImage()
-                val buffer = image.planes[0].buffer
-                val bytes = ByteArray(buffer.capacity())
-                buffer.get(bytes)
-                //save the captured image to the file
-                FileOutputStream(imageFile).use { output ->
-                    output.write(bytes)
-                }
-                image.close()
-            }, null)
-            saveRequestBuilder.addTarget(surface)
-            saveRequestBuilder.addTarget(imageReader.surface)
-            //need converting to getCameraCharacteristics
-            val rotation = windowManager.defaultDisplay.rotation
-            saveRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, getJpegOrientation(rotation))
-            it.createCaptureSession(
-                listOf(surface, imageReader.surface),
-                object : CameraCaptureSession.StateCallback() {
-                    override fun onConfigured(session: CameraCaptureSession) {
-                        session.capture(saveRequestBuilder.build(), null, null)
-                    }
-
-                    override fun onConfigureFailed(session: CameraCaptureSession) {
-
-                    }
-                }, null
-            )
+    private fun changeSPCamera() {
+        //0 is back camera
+        //1 is front camera
+        switchCameraValue = when (switchCameraValue) {
+            0 -> 1
+            1 -> 0
+            else -> {
+                return
+            }
         }
+        openCamera()
+    }
+
+    private fun startCamera() {
+        if (cameraView.isAvailable) {
+            openCamera()
+        } else {
+            cameraView.surfaceTextureListener = surfaceTextureListener
+        }
+    }
+
+    private fun closeCamera() {
+        cameraDevice?.close()
+        cameraDevice = null
+        cameraIsOpen = false
     }
 
     override fun onResume() {
@@ -176,25 +234,32 @@ class MainActivity<T : Any?> : AppCompatActivity(), View.OnClickListener {
         closeCamera()
     }
 
-    private fun changeSPCamera() {
-        //0 is back camera
-        //1 is front camera
-        switchCameraValue = when (switchCameraValue) {
-            0 -> 1
-            1 -> 0
-            else -> {
-                return
+    //getFrontCameraId and getBackCameraId function get own camera's id.
+    private fun getCameraId(wannaId: Int): String? {
+        val cameraIds = cameraManager.cameraIdList
+        for (cameraId in cameraIds) {
+            val characteristics = cameraManager.getCameraCharacteristics(cameraId)
+            val facing = characteristics.get(CameraCharacteristics.LENS_FACING)
+            when (wannaId) {
+                0 -> {
+                    if (facing == CameraCharacteristics.LENS_FACING_BACK) {
+                        return cameraId
+                    }
+                }
+
+                1 -> {
+                    if (facing == CameraCharacteristics.LENS_FACING_FRONT) {
+                        return cameraId
+                    }
+                }
             }
         }
-        openCamera()
+        return null
     }
 
-//back button's function in toolbar.
-
-
     private fun openCamera() {
-        val backCameraId = getBackCameraId()
-        val frontCameraId = getFrontCameraId()
+        val backCameraId = getCameraId(0)
+        val frontCameraId = getCameraId(1)
         if (backCameraId.isNullOrEmpty() || frontCameraId.isNullOrEmpty()) {
             // Handle case where back camera is not available
             return
@@ -230,137 +295,64 @@ class MainActivity<T : Any?> : AppCompatActivity(), View.OnClickListener {
                 cameraDevice?.close()
                 cameraDevice = null
             }
-        }, null)
+        }, handler)
         //isOpen flag turn into true
         cameraIsOpen = true
     }
 
-    private fun startCamera() {
-        if (cameraView.isAvailable) {
-            openCamera()
-        } else {
-            cameraView.surfaceTextureListener = surfaceTextureListener
-        }
-    }
-
-    private fun closeCamera() {
-        cameraDevice?.close()
-        cameraDevice = null
-        cameraIsOpen = false
-    }
-
-    private val surfaceTextureListener = object : TextureView.SurfaceTextureListener {
-        override fun onSurfaceTextureAvailable(p0: SurfaceTexture, p1: Int, p2: Int) {
-            openCamera()
-        }
-
-        override fun onSurfaceTextureSizeChanged(p0: SurfaceTexture, p1: Int, p2: Int) {
-        }
-
-        override fun onSurfaceTextureDestroyed(p0: SurfaceTexture): Boolean {
-            return true
-        }
-
-        override fun onSurfaceTextureUpdated(p0: SurfaceTexture) {
-        }
-    }
-
-
-    //getFrontCameraId and getBackCameraId function get own camera's id.
-    private fun getFrontCameraId(): String? {
-        val cameraIds = cameraManager.cameraIdList
-        for (cameraId in cameraIds) {
-            val characteristics = cameraManager.getCameraCharacteristics(cameraId)
-            val facing = characteristics.get(CameraCharacteristics.LENS_FACING)
-            if (facing == CameraCharacteristics.LENS_FACING_FRONT) {
-                return cameraId
-            }
-        }
-        return null
-    }
-
-    private fun getBackCameraId(): String? {
-        val cameraIds = cameraManager.cameraIdList
-        for (cameraId in cameraIds) {
-            val characteristics = cameraManager.getCameraCharacteristics(cameraId)
-            val facing = characteristics.get(CameraCharacteristics.LENS_FACING)
-            if (facing == CameraCharacteristics.LENS_FACING_BACK) {
-                return cameraId
-            }
-        }
-        return null
-    }
-
     private fun createCameraPreview() {
+
+        val texture =
+            cameraView.surfaceTexture ?: throw NullPointerException("texture has not found.")
+        val viewSize = Point(
+            getString(R.string.image_view_width).toInt(),
+            getString(R.string.image_view_height).toInt()
+        )
+        texture.setDefaultBufferSize(viewSize.x, viewSize.y)
+        val surface = Surface(texture)
+        //need converting to getCameraCharacteristics
         cameraDevice?.let {
-            val texture =
-                cameraView.surfaceTexture ?: throw NullPointerException("texture has not found.")
-            val viewSize = Point(cameraView.width, cameraView.height)
-            texture.setDefaultBufferSize(viewSize.x, viewSize.y)
-            val surface = Surface(texture)
-            //need converting to getCameraCharacteristics
-            val rotation = windowManager.defaultDisplay.rotation
             val previewRequestBuilder =
-                cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+                it.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
             previewRequestBuilder.addTarget(surface)
-            previewRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, getJpegOrientation(rotation))
-            it.createCaptureSession(listOf(surface), object : CameraCaptureSession.StateCallback() {
-                override fun onConfigured(p0: CameraCaptureSession) {
-                    p0.setRepeatingRequest(previewRequestBuilder.build(), null, null)
-                }
+            it.createCaptureSession(
+                listOf(surface, imageReader.surface),
+                object : CameraCaptureSession.StateCallback() {
+                    override fun onConfigured(cameraCaptureSessionP0: CameraCaptureSession) {
+                        cameraCaptureSession = cameraCaptureSessionP0
+                        cameraCaptureSession.setRepeatingRequest(
+                            previewRequestBuilder.build(),
+                            null,
+                            null
+                        )
+                    }
 
-                override fun onConfigureFailed(p0: CameraCaptureSession) {
-                }
-            }, null)
+                    override fun onConfigureFailed(cameraCaptureSession: CameraCaptureSession) {
+                    }
+                },
+                null
+            )
         }
     }
 
-    private fun getJpegOrientation(rotation: Int): Int {
-        val sensorOrientation = getCameraSensorOrientation()
-        val isFrontFacing = switchCameraValue == 1
-
-        return if (isFrontFacing) {
-            (sensorOrientation + rotation) % 360
-        } else {
-            (sensorOrientation - rotation + 360) % 360
-        }
-    }
-
-    private fun getCameraSensorOrientation(): Int {
-        val cameraId = when (switchCameraValue) {
-            0 -> getBackCameraId()
-            1 -> getFrontCameraId()
-            else -> null
-        }
-        cameraId?.apply {
-            val characteristics = cameraManager.getCameraCharacteristics(cameraId)
-            return characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 0
-        }
-        return 0
-    }
-
-
-    //verify permissions function
-//all permission are true, the function will return value
-    private fun allPermissionsGranted() =
-        requiredPermissions.all {
-            ActivityCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
-        }
-
-    //request permission for system
-//show popup menu
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
-            if (allPermissionsGranted()) {
-                startCamera()
-            } else {
+    private fun saveImage() {
+        val timeStamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.JAPAN).format(Date())
+        val fileName = "$timeStamp.jpg"
+        val file = File(getExternalFilesDir(Environment.DIRECTORY_DCIM), fileName)
+        val opStream = FileOutputStream(file)
+        imageReader.setOnImageAvailableListener(object : ImageReader.OnImageAvailableListener {
+            override fun onImageAvailable(p0: ImageReader?) {
+                val image = p0?.acquireLatestImage()
+                val buffer = image!!.planes[0].buffer
+                val bytes = ByteArray(buffer.remaining())
+                buffer.get(bytes)
+                opStream.write(bytes)
+                opStream.close()
+                image.close()
+                Toast.makeText(this@MainActivity, "Image captured", Toast.LENGTH_SHORT)
+                    .show()
             }
-        } else {
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        }
+        }, handler)
     }
+
 }

@@ -4,4 +4,6 @@
     <string name="enter">Enter</string>
     <string name="announce_enter_tap">Tap this door</string>
     <string name="setting_menu">setting menu</string>
+    <string name="image_view_width">1080</string>
+    <string name="image_view_height">1920</string>
 </resources>
