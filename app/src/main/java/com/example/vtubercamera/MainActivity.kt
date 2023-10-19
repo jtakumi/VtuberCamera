@@ -337,11 +337,18 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     private fun saveImage() {
         val timeStamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.JAPAN).format(Date())
-        val fileName = "$timeStamp.jpg"
-        val file = File(getExternalFilesDir(Environment.DIRECTORY_DCIM), fileName)
-        val opStream = FileOutputStream(file)
+        val fileName = "IMG$timeStamp.jpg"
+        val file = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
+            "VtuberCameraApp"
+        )
+        if (file.exists().not()) {
+            file.mkdir()
+        }
+        val mediaFile = File(file.path + File.separator + fileName)
         imageReader.setOnImageAvailableListener(object : ImageReader.OnImageAvailableListener {
             override fun onImageAvailable(p0: ImageReader?) {
+                val opStream = FileOutputStream(mediaFile)
                 val image = p0?.acquireLatestImage()
                 val buffer = image!!.planes[0].buffer
                 val bytes = ByteArray(buffer.remaining())
