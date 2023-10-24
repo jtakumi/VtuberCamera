@@ -20,6 +20,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
 import android.os.HandlerThread
+import android.util.Log
 import android.view.MenuItem
 import android.view.Surface
 import android.view.TextureView
@@ -162,8 +163,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             }
 
             shutter -> {
-                saveImage()
                 playSound(MediaPlayer.create(this, R.raw.camera_shutter))
+                saveImage()
             }
 
             settingIcon -> {
@@ -335,6 +336,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         }
     }
 
+
     private fun saveImage() {
         val timeStamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.JAPAN).format(Date())
         val fileName = "IMG$timeStamp.jpg"
@@ -347,13 +349,14 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         }
         val mediaFile = File(file.path + File.separator + fileName)
         imageReader.setOnImageAvailableListener(object : ImageReader.OnImageAvailableListener {
-            override fun onImageAvailable(p0: ImageReader?) {
+            override fun onImageAvailable(imageReader: ImageReader) {
                 val opStream = FileOutputStream(mediaFile)
-                val image = p0?.acquireLatestImage()
+                val image = imageReader.acquireLatestImage()
                 val buffer = image!!.planes[0].buffer
                 val bytes = ByteArray(buffer.remaining())
                 buffer.get(bytes)
                 opStream.write(bytes)
+                Log.d("FileSaved", "$file saved")
                 opStream.close()
                 image.close()
                 Toast.makeText(this@MainActivity, "Image captured", Toast.LENGTH_SHORT)
