@@ -1,14 +1,13 @@
 package com.example.vtubercamera.multiFragment
 
-import android.os.Binder
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import com.example.vtubercamera.R
 import com.example.vtubercamera.databinding.FragmentRecyclerItemBinding
 import com.example.vtubercamera.multiFragment.placeholder.PlaceholderContent
@@ -20,6 +19,21 @@ class recyclerItemFragment : Fragment() {
 
     private var columnCount = 1
     private lateinit var binding: FragmentRecyclerItemBinding
+
+    companion object {
+
+        // TODO: Customize parameter argument names
+        const val ARG_COLUMN_COUNT = "column-count"
+
+        // TODO: Customize parameter initialization
+        @JvmStatic
+        fun newInstance(columnCount: Int) =
+            recyclerItemFragment().apply {
+                arguments = Bundle().apply {
+                    putInt(ARG_COLUMN_COUNT, columnCount)
+                }
+            }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,18 +63,12 @@ class recyclerItemFragment : Fragment() {
         return view
     }
 
-    companion object {
 
-        // TODO: Customize parameter argument names
-        const val ARG_COLUMN_COUNT = "column-count"
 
-        // TODO: Customize parameter initialization
-        @JvmStatic
-        fun newInstance(columnCount: Int) =
-            recyclerItemFragment().apply {
-                arguments = Bundle().apply {
-                    putInt(ARG_COLUMN_COUNT, columnCount)
-                }
-            }
+     fun pullToCount(){
+        val pullcount=0
+    }
+     fun refreshAuto(){
+
     }
 }
