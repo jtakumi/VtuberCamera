@@ -1,10 +1,10 @@
 package com.example.vtubercamera.multiFragment
 
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.Fragment
 import com.example.vtubercamera.R
 
 // TODO: Rename parameter arguments, choose names that match
@@ -56,5 +56,8 @@ class secondFragment : Fragment() {
                     putString(ARG_PARAM2, param2)
                 }
             }
+    }
+    private fun showCurrentTimeClock(){
+
     }
 }
