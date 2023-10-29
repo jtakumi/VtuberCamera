@@ -14,7 +14,11 @@ import com.example.vtubercamera.multiFragment.placeholder.PlaceholderContent.Pla
 class MyItemRecyclerViewAdapter(
     private val values: List<PlaceholderItem>
 ) : RecyclerView.Adapter<MyItemRecyclerViewAdapter.ViewHolder>() {
+    private lateinit var listener:onClickRecyclerItemListener
 
+    interface onClickRecyclerItemListener{
+        fun onItemClick(item:PlaceholderItem)
+    }
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
 
         return ViewHolder(
@@ -27,10 +31,17 @@ class MyItemRecyclerViewAdapter(
 
     }
 
+    fun setOnItemClickListener(listener:onClickRecyclerItemListener){
+        this.listener = listener
+    }
+
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = values[position]
         holder.idView.text = item.id
         holder.contentView.text = item.content
+        holder.itemView.setOnClickListener{
+            listener.onItemClick(item)
+        }
     }
 
     override fun getItemCount(): Int = values.size
