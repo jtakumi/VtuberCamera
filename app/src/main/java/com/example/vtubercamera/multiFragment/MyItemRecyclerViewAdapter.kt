@@ -12,13 +12,14 @@ import com.example.vtubercamera.multiFragment.placeholder.PlaceholderContent.Pla
  * TODO: Replace the implementation with code for your data type.
  */
 class MyItemRecyclerViewAdapter(
-    private val values: List<PlaceholderItem>
+    private val values: MutableList<PlaceholderItem>
 ) : RecyclerView.Adapter<MyItemRecyclerViewAdapter.ViewHolder>() {
-    private lateinit var listener:onClickRecyclerItemListener
+    private lateinit var listener: onClickRecyclerItemListener
 
-    interface onClickRecyclerItemListener{
-        fun onItemClick(item:PlaceholderItem)
+    interface onClickRecyclerItemListener {
+        fun onItemClick(item: PlaceholderItem)
     }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
 
         return ViewHolder(
@@ -31,7 +32,7 @@ class MyItemRecyclerViewAdapter(
 
     }
 
-    fun setOnItemClickListener(listener:onClickRecyclerItemListener){
+    fun setOnItemClickListener(listener: onClickRecyclerItemListener) {
         this.listener = listener
     }
 
@@ -39,7 +40,7 @@ class MyItemRecyclerViewAdapter(
         val item = values[position]
         holder.idView.text = item.id
         holder.contentView.text = item.content
-        holder.itemView.setOnClickListener{
+        holder.itemView.setOnClickListener {
             listener.onItemClick(item)
         }
     }
