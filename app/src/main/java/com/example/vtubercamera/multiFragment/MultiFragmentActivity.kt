@@ -1,34 +1,45 @@
 package com.example.vtubercamera.multiFragment
 
+import android.content.Intent
 import android.os.Bundle
-import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
+import com.example.vtubercamera.MainActivity
 import com.example.vtubercamera.R
 import com.example.vtubercamera.databinding.ActivityMultiFragmentBinding
 
 class multiFragmentActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMultiFragmentBinding
+    private val presenter = MultiFragmentPresenter()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding= ActivityMultiFragmentBinding.inflate(layoutInflater)
+        binding = ActivityMultiFragmentBinding.inflate(layoutInflater)
+        val toolbar = binding.multiFragmentToolbar
         setContentView(binding.root)
-        val toolbar =binding.multiFragmentToolbar
         setSupportActionBar(toolbar)
-        val fragmentManager =supportFragmentManager
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        val fragmentManager = supportFragmentManager
         val initFragment = recyclerItemFragment()
-        fragmentManager.beginTransaction().replace(R.id.multi_fragment_container,initFragment).commit()
+        fragmentManager.beginTransaction().replace(R.id.multi_fragment_container, initFragment)
+            .commit()
+        toolbar.setNavigationOnClickListener {
+            checkPriviousFragment()
+        }
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when(item.itemId){
-            androidx.appcompat.R.id.home->{
-                val fragmentManager =supportFragmentManager
-                val goBackToFragment = recyclerItemFragment()
-                fragmentManager.beginTransaction().replace(R.id.multi_fragment_container,goBackToFragment).commit()
-                goBackToFragment.refreshAuto()
-                return true
-            }
+    private fun checkPriviousFragment() {
+        val previousActivity = NavigationTracker.getPreviousActivity()
+        if (previousActivity == MainActivity::class.java) {
+            moveActivities(MainActivity::class.java)
+        } else {
+            presenter.onBackButtonPressed()
         }
-        return super.onOptionsItemSelected(item)
+
+    }
+
+
+    private fun moveActivities(calledActivity: Class<*>) {
+        val intent = Intent(this, calledActivity)
+        startActivity(intent)
+        finish()
     }
 }
