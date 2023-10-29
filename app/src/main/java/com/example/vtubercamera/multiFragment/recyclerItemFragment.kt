@@ -15,7 +15,7 @@ import com.example.vtubercamera.multiFragment.placeholder.PlaceholderContent
 /**
  * A fragment representing a list of Items.
  */
-class recyclerItemFragment : Fragment() {
+class recyclerItemFragment : Fragment(), BackButtonCallBack {
 
     private var columnCount = 1
     private lateinit var binding: FragmentRecyclerItemBinding
@@ -37,8 +37,7 @@ class recyclerItemFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-
+        binding = FragmentRecyclerItemBinding.inflate(layoutInflater)
         arguments?.let {
             columnCount = it.getInt(ARG_COLUMN_COUNT)
         }
@@ -62,13 +61,17 @@ class recyclerItemFragment : Fragment() {
         }
         return view
     }
+    
 
-
-
-     fun pullToCount(){
-        val pullcount=0
+    fun pullToCount() {
+        val pullcount = 0
     }
-     fun refreshAuto(){
 
+    override fun onBackButtonPressed() {
+        refreshAuto()
+    }
+
+    private fun refreshAuto() {
+        binding.recyclerItemRefresh.text = getString(R.string.isRefresh)
     }
 }
