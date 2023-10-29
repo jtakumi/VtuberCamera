@@ -28,10 +28,14 @@ class multiFragmentActivity : AppCompatActivity() {
 
     private fun checkPriviousFragment() {
         val previousActivity = NavigationTracker.getPreviousActivity()
-        if (previousActivity == MainActivity::class.java) {
-            moveActivities(MainActivity::class.java)
-        } else {
+        if (previousActivity == secondFragment::class.java) {
+            val goBackFragment = recyclerItemFragment()
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.multi_fragment_container, goBackFragment).addToBackStack(null)
+                .commit()
             presenter.onBackButtonPressed()
+        } else {
+            moveActivities(MainActivity::class.java)
         }
 
     }
