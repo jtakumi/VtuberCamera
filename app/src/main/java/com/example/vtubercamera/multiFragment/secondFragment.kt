@@ -17,7 +17,7 @@ private const val ARG_PARAM2 = "param2"
  * Use the [secondFragment.newInstance] factory method to
  * create an instance of this fragment.
  */
-class secondFragment : Fragment() {
+class secondFragment : Fragment(), BackButtonCallBack {
     // TODO: Rename and change types of parameters
     private var param1: String? = null
     private var param2: String? = null
@@ -57,7 +57,17 @@ class secondFragment : Fragment() {
                 }
             }
     }
-    private fun showCurrentTimeClock(){
+
+    private fun showCurrentTimeClock() {
 
     }
+
+    override fun onBackButtonPressed() {
+        val fragmentManager = requireActivity().supportFragmentManager
+        val goBackToFragment = recyclerItemFragment()
+        fragmentManager.beginTransaction()
+            .replace(R.id.multi_fragment_container, goBackToFragment).commit()
+        goBackToFragment.onBackButtonPressed()
+    }
+
 }
