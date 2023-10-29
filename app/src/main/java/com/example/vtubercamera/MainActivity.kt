@@ -31,6 +31,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.example.vtubercamera.databinding.ActivityMainBinding
 import com.example.vtubercamera.extentions.playSound
+import com.example.vtubercamera.multiFragment.NavigationTracker
+import com.example.vtubercamera.multiFragment.multiFragmentActivity
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Date
@@ -45,6 +47,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var cameraView: TextureView
     private lateinit var shutter: ImageView
     private lateinit var settingIcon: ImageView
+    private lateinit var fragmentPractice: ImageView
     private lateinit var imageReader: ImageReader
     private lateinit var handlerThread: HandlerThread
     private lateinit var handler: Handler
@@ -114,10 +117,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         cameraView = binding.cameraTextureView
         shutter = binding.cameraButton
         settingIcon = binding.settingIcon
+        fragmentPractice = binding.lastPic
         handlerThread = HandlerThread("videoThread")
         handlerThread.start()
         handler = Handler(handlerThread.looper)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        NavigationTracker.setPreviousActivity(this.javaClass)
 
         //起動時に権限の確認を行い、付与されなければリクエストを送る
         if (allPermissionsGranted()) {
@@ -136,6 +141,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         )
         binding.switchCamera.setOnClickListener(this)
         settingIcon.setOnClickListener(this)
+        fragmentPractice.setOnClickListener(this)
         shutter.setOnClickListener {
             val capReq = cameraDevice?.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
             capReq?.addTarget(imageReader.surface)
@@ -170,6 +176,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             settingIcon -> {
                 moveActivities(SettingActivity::class.java)
             }
+
+            fragmentPractice -> moveActivities(multiFragmentActivity::class.java)
         }
     }
 
