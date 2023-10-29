@@ -21,6 +21,7 @@ class secondFragment : Fragment(), BackButtonCallBack {
     // TODO: Rename and change types of parameters
     private var param1: String? = null
     private var param2: String? = null
+    private val presenter = MultiFragmentPresenter()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
