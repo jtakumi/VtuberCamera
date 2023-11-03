@@ -33,6 +33,7 @@ import com.example.vtubercamera.databinding.ActivityMainBinding
 import com.example.vtubercamera.extentions.playSound
 import com.example.vtubercamera.multiFragment.NavigationTracker
 import com.example.vtubercamera.multiFragment.multiFragmentActivity
+import com.example.vtubercamera.opening.OpeningActivity
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Date

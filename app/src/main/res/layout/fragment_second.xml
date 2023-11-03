@@ -6,9 +6,16 @@
     tools:context=".multiFragment.secondFragment">
 
     <TextView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:text="@string/hello_blank_fragment"
-        android:textColor="@color/toolbar_multi_fragment"/>
+        android:textColor="@color/toolbar_multi_fragment"
+        android:layout_marginTop="16dp"/>
+    <TextClock
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="@string/currently_time"
+        android:textSize="48sp"/>
 
 </FrameLayout>
