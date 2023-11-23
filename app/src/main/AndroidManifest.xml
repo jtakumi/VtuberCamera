@@ -21,10 +21,15 @@
         android:theme="@style/Theme.VtuberCamera"
         tools:targetApi="31">
         <activity
+            android:name=".cameraView.CameraViewActivity"
+            android:exported="false"
+            android:label="@string/title_activity_camera_view"
+            android:theme="@style/Theme.VtuberCamera.NoActionBar" />
+        <activity
             android:name=".multiFragment.multiFragmentActivity"
             android:exported="false" />
         <activity
-            android:name=".OpeningActivity"
+            android:name=".opening.OpeningActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

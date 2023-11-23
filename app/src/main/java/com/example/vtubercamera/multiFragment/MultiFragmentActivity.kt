@@ -46,4 +46,5 @@ class multiFragmentActivity : AppCompatActivity() {
         startActivity(intent)
         finish()
     }
+
 }
