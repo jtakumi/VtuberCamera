@@ -1,10 +1,12 @@
-package com.example.vtubercamera
+package com.example.vtubercamera.opening
 
 import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import com.example.vtubercamera.MainActivity
+import com.example.vtubercamera.R
 import com.example.vtubercamera.databinding.ActivityOpeningBinding
 import com.example.vtubercamera.extentions.playSound
 

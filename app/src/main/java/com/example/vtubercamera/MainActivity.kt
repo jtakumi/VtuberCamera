@@ -20,6 +20,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
 import android.os.HandlerThread
+import android.util.Log
 import android.view.MenuItem
 import android.view.Surface
 import android.view.TextureView
@@ -30,6 +31,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.example.vtubercamera.databinding.ActivityMainBinding
 import com.example.vtubercamera.extentions.playSound
+import com.example.vtubercamera.multiFragment.NavigationTracker
+import com.example.vtubercamera.multiFragment.multiFragmentActivity
+import com.example.vtubercamera.opening.OpeningActivity
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Date
@@ -44,6 +48,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var cameraView: TextureView
     private lateinit var shutter: ImageView
     private lateinit var settingIcon: ImageView
+    private lateinit var fragmentPractice: ImageView
     private lateinit var imageReader: ImageReader
     private lateinit var handlerThread: HandlerThread
     private lateinit var handler: Handler
@@ -113,10 +118,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         cameraView = binding.cameraTextureView
         shutter = binding.cameraButton
         settingIcon = binding.settingIcon
+        fragmentPractice = binding.lastPic
         handlerThread = HandlerThread("videoThread")
         handlerThread.start()
         handler = Handler(handlerThread.looper)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        NavigationTracker.setPreviousActivity(this.javaClass)
 
         //起動時に権限の確認を行い、付与されなければリクエストを送る
         if (allPermissionsGranted()) {
@@ -135,22 +142,25 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         )
         binding.switchCamera.setOnClickListener(this)
         settingIcon.setOnClickListener(this)
+        fragmentPractice.setOnClickListener(this)
         shutter.setOnClickListener {
             val capReq = cameraDevice?.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
             capReq?.addTarget(imageReader.surface)
-            cameraCaptureSession.capture(
-                capReq!!.build(),
-                object : CameraCaptureSession.CaptureCallback() {
-                    override fun onCaptureCompleted(
-                        session: CameraCaptureSession,
-                        request: CaptureRequest,
-                        result: TotalCaptureResult
-                    ) {
-                        super.onCaptureCompleted(session, request, result)
-                        saveImage()
-                    }
-                }, handler
-            )
+            capReq?.let { cap ->
+                cameraCaptureSession.capture(
+                    cap.build(),
+                    object : CameraCaptureSession.CaptureCallback() {
+                        override fun onCaptureCompleted(
+                            session: CameraCaptureSession,
+                            request: CaptureRequest,
+                            result: TotalCaptureResult
+                        ) {
+                            super.onCaptureCompleted(session, request, result)
+                            saveImage()
+                        }
+                    }, handler
+                )
+            }
         }
 
     }
@@ -162,13 +172,15 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             }
 
             shutter -> {
-                saveImage()
                 playSound(MediaPlayer.create(this, R.raw.camera_shutter))
+                saveImage()
             }
 
             settingIcon -> {
                 moveActivities(SettingActivity::class.java)
             }
+
+            fragmentPractice -> moveActivities(multiFragmentActivity::class.java)
         }
     }
 
@@ -310,6 +322,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         )
         texture.setDefaultBufferSize(viewSize.x, viewSize.y)
         val surface = Surface(texture)
+        val rotation = CameraCharacteristics.SENSOR_ORIENTATION
         //need converting to getCameraCharacteristics
         cameraDevice?.let {
             val previewRequestBuilder =
@@ -335,18 +348,27 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         }
     }
 
+
     private fun saveImage() {
         val timeStamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.JAPAN).format(Date())
-        val fileName = "$timeStamp.jpg"
-        val file = File(getExternalFilesDir(Environment.DIRECTORY_DCIM), fileName)
-        val opStream = FileOutputStream(file)
+        val fileName = "IMG$timeStamp.jpg"
+        val file = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
+            "VtuberCameraApp"
+        )
+        if (file.exists().not()) {
+            file.mkdir()
+        }
+        val mediaFile = File(file.path + File.separator + fileName)
         imageReader.setOnImageAvailableListener(object : ImageReader.OnImageAvailableListener {
-            override fun onImageAvailable(p0: ImageReader?) {
-                val image = p0?.acquireLatestImage()
-                val buffer = image!!.planes[0].buffer
-                val bytes = ByteArray(buffer.remaining())
-                buffer.get(bytes)
+            override fun onImageAvailable(imageReader: ImageReader) {
+                val opStream = FileOutputStream(mediaFile)
+                val image = imageReader.acquireLatestImage()
+                val buffer = image?.planes?.get(0)?.buffer
+                val bytes = buffer?.let { ByteArray(it.remaining()) }
+                buffer?.get(bytes)
                 opStream.write(bytes)
+                Log.d("FileSaved", "$file saved")
                 opStream.close()
                 image.close()
                 Toast.makeText(this@MainActivity, "Image captured", Toast.LENGTH_SHORT)
