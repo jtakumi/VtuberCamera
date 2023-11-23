@@ -145,19 +145,21 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         shutter.setOnClickListener {
             val capReq = cameraDevice?.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
             capReq?.addTarget(imageReader.surface)
-            cameraCaptureSession.capture(
-                capReq!!.build(),
-                object : CameraCaptureSession.CaptureCallback() {
-                    override fun onCaptureCompleted(
-                        session: CameraCaptureSession,
-                        request: CaptureRequest,
-                        result: TotalCaptureResult
-                    ) {
-                        super.onCaptureCompleted(session, request, result)
-                        saveImage()
-                    }
-                }, handler
-            )
+            capReq?.let { cap ->
+                cameraCaptureSession.capture(
+                    cap.build(),
+                    object : CameraCaptureSession.CaptureCallback() {
+                        override fun onCaptureCompleted(
+                            session: CameraCaptureSession,
+                            request: CaptureRequest,
+                            result: TotalCaptureResult
+                        ) {
+                            super.onCaptureCompleted(session, request, result)
+                            saveImage()
+                        }
+                    }, handler
+                )
+            }
         }
 
     }
@@ -319,6 +321,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         )
         texture.setDefaultBufferSize(viewSize.x, viewSize.y)
         val surface = Surface(texture)
+        val rotation = CameraCharacteristics.SENSOR_ORIENTATION
         //need converting to getCameraCharacteristics
         cameraDevice?.let {
             val previewRequestBuilder =
@@ -360,9 +363,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             override fun onImageAvailable(imageReader: ImageReader) {
                 val opStream = FileOutputStream(mediaFile)
                 val image = imageReader.acquireLatestImage()
-                val buffer = image!!.planes[0].buffer
-                val bytes = ByteArray(buffer.remaining())
-                buffer.get(bytes)
+                val buffer = image?.planes?.get(0)?.buffer
+                val bytes = buffer?.let { ByteArray(it.remaining()) }
+                buffer?.get(bytes)
                 opStream.write(bytes)
                 Log.d("FileSaved", "$file saved")
                 opStream.close()
