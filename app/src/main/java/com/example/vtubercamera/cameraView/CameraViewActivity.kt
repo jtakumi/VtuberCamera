@@ -11,6 +11,7 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.appcompat.app.AppCompatActivity
+import com.example.vtubercamera.R
 import com.example.vtubercamera.databinding.ActivityCameraViewBinding
 
 class CameraViewActivity : AppCompatActivity() {
