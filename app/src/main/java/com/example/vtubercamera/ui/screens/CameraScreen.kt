@@ -2,6 +2,7 @@ package com.example.vtubercamera.ui.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -34,9 +35,13 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 
 @Composable
-fun CameraScreen() {
+fun CameraScreen(
+    viewModel: CameraViewModel = viewModel()
+) {
     val context = LocalContext.current
     LocalLifecycleOwner.current
 
@@ -62,9 +67,15 @@ fun CameraScreen() {
         }
     }
 
+    val imageCapture = remember { ImageCapture.Builder().build() }
+    val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
     Box(modifier = Modifier.fillMaxSize()) {
         if (hasCameraPermission) {
-            CameraPreview()
+            CameraPreview(
+                imageCapture = imageCapture,
+                cameraSelector = cameraSelector
+            )
         }
 
         Row(
@@ -82,7 +93,20 @@ fun CameraScreen() {
                 )
             }
 
-            IconButton(onClick = { /* TODO: 写真撮影 */ }) {
+            IconButton(
+                onClick = {
+                    viewModel.takePhoto(
+                        imageCapture = imageCapture,
+                        context = context,
+                        onPhotoSaved = { msg ->
+                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                        },
+                        onError = { msg ->
+                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                }
+            ) {
                 Icon(
                     imageVector = Icons.Default.Camera,
                     contentDescription = "撮影",
@@ -94,14 +118,15 @@ fun CameraScreen() {
 }
 
 @Composable
-fun CameraPreview() {
+fun CameraPreview(
+    imageCapture: ImageCapture,
+    cameraSelector: CameraSelector
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val preview = Preview.Builder().build()
     val previewView = remember { PreviewView(context) }
-    val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-    val imageCapture = remember { ImageCapture.Builder().build() }
 
     LaunchedEffect(previewView) {
         val cameraProvider = ProcessCameraProvider.getInstance(context).get()
@@ -119,4 +144,4 @@ fun CameraPreview() {
         factory = { previewView },
         modifier = Modifier.fillMaxSize()
     )
-} 
+}
