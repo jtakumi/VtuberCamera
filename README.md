@@ -1,13 +1,53 @@
-# VtuberCamera
-camera with face tracking
+# VTuber Camera
 
-by android camera2 API
+Android向けのVTuber用カメラアプリケーションです。
 
-app lifecycle
-1. initialize button function
-2. verify permissions for camera
-3. open camera
-4. search back camera id and front camera id
-5. show camera view
-6. when click shutter button, take and save a image
-7. close camera terminate app
+## 機能
+
+- リアルタイムカメラプレビュー
+- 写真撮影機能
+- フロント/バックカメラ切り替え
+- 設定画面
+- マルチフラグメント機能
+- オープニング画面
+
+## 技術スタック
+
+- Kotlin
+- Android Camera2 API
+- ViewBinding
+- MediaPlayer
+- Fragment
+
+## 主な機能の説明
+
+### カメラ機能
+- Camera2 APIを使用した高品質なカメラプレビュー
+- JPEG形式での写真撮影
+- カメラの切り替え機能（フロント/バック）
+
+### 設定機能
+- アプリケーションの各種設定を管理
+- カスタマイズ可能な設定オプション
+
+### マルチフラグメント機能
+- 複数の画面を効率的に管理
+- スムーズな画面遷移
+
+## 使用方法
+
+1. アプリを起動
+2. カメラの使用許可を承認
+3. カメラプレビューが表示されます
+4. シャッターボタンで写真を撮影
+5. 設定アイコンから各種設定を変更可能
+
+## 開発環境
+
+- Android Studio
+- Kotlin
+- Gradle
+
+## ライセンス
+
+このプロジェクトはMITライセンスの下で公開されています。
