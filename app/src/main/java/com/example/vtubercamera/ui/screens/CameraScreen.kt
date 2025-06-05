@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.util.Log
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -55,6 +56,7 @@ fun CameraScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraSelector = viewModel.cameraSelector.collectAsState().value
+    var imageCapture: ImageCapture? by remember { mutableStateOf(null) }
     var hasCameraPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -113,7 +115,10 @@ fun CameraScreen(
                                 lifecycleOwner = lifecycleOwner,
                                 cameraProvider = cameraProviderFuture.get(),
                                 previewView = previewView,
-                                cameraSelector = cameraSelector
+                                cameraSelector = cameraSelector,
+                                onImageCaptureCreated = { capture ->
+                                    imageCapture = capture
+                                }
                             )
                         }, ContextCompat.getMainExecutor(ctx))
 
@@ -123,7 +128,20 @@ fun CameraScreen(
                 )
 
                 FloatingActionButton(
-                    onClick = { /* TODO: 写真撮影機能を実装 */ },
+                    onClick = {
+                        imageCapture?.let { capture ->
+                            viewModel.takePhoto(
+                                imageCapture = capture,
+                                context = context,
+                                onPhotoSaved = { msg ->
+                                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                },
+                                onError = { msg ->
+                                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        }
+                    },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 16.dp)
@@ -156,7 +174,8 @@ private fun bindCameraUseCase(
     lifecycleOwner: LifecycleOwner,
     cameraProvider: ProcessCameraProvider,
     previewView: PreviewView,
-    cameraSelector: CameraSelector
+    cameraSelector: CameraSelector,
+    onImageCaptureCreated: (ImageCapture) -> Unit
 ) {
     val preview = Preview.Builder().build().also {
         it.setSurfaceProvider(previewView.surfaceProvider)
@@ -174,6 +193,7 @@ private fun bindCameraUseCase(
             preview,
             imageCapture
         )
+        onImageCaptureCreated(imageCapture)
     } catch (e: Exception) {
         Log.e("Camera", "カメラのバインドに失敗しました", e)
     }
