@@ -5,15 +5,29 @@ import android.content.Context
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
+import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.text.SimpleDateFormat
 import java.util.*
 
 class CameraViewModel : ViewModel() {
-    
+    private val _cameraSelector = MutableStateFlow(CameraSelector.DEFAULT_BACK_CAMERA)
+    val cameraSelector: StateFlow<CameraSelector> = _cameraSelector.asStateFlow()
+
+    fun switchCamera() {
+        _cameraSelector.value = when (_cameraSelector.value) {
+            CameraSelector.DEFAULT_BACK_CAMERA -> CameraSelector.DEFAULT_FRONT_CAMERA
+            CameraSelector.DEFAULT_FRONT_CAMERA -> CameraSelector.DEFAULT_BACK_CAMERA
+            else -> CameraSelector.DEFAULT_BACK_CAMERA
+        }
+    }
+
     fun takePhoto(
         imageCapture: ImageCapture,
         context: Context,
@@ -22,7 +36,7 @@ class CameraViewModel : ViewModel() {
     ) {
         val name = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.JAPAN)
             .format(System.currentTimeMillis())
-        
+
         val contentValues = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, name)
             put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
