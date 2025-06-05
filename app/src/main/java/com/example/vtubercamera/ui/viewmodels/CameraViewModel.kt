@@ -2,6 +2,7 @@ package com.example.vtubercamera.ui.viewmodels
 
 import android.content.ContentValues
 import android.content.Context
+import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
@@ -19,6 +20,12 @@ import java.util.*
 class CameraViewModel : ViewModel() {
     private val _cameraSelector = MutableStateFlow(CameraSelector.DEFAULT_BACK_CAMERA)
     val cameraSelector: StateFlow<CameraSelector> = _cameraSelector.asStateFlow()
+
+    private val _lastCapturedImageUri = MutableStateFlow<Uri?>(null)
+    val lastCapturedImageUri: StateFlow<Uri?> = _lastCapturedImageUri.asStateFlow()
+
+    private val _isPreviewMode = MutableStateFlow(false)
+    val isPreviewMode: StateFlow<Boolean> = _isPreviewMode.asStateFlow()
 
     fun switchCamera() {
         _cameraSelector.value = when (_cameraSelector.value) {
@@ -60,6 +67,7 @@ class CameraViewModel : ViewModel() {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                     val msg = "写真を保存しました: ${output.savedUri}"
                     Log.d("Camera", msg)
+                    _lastCapturedImageUri.value = output.savedUri
                     onPhotoSaved(msg)
                 }
 
@@ -70,5 +78,18 @@ class CameraViewModel : ViewModel() {
                 }
             }
         )
+    }
+
+    fun enterPreviewMode() {
+        _isPreviewMode.value = true
+    }
+
+    fun exitPreviewMode() {
+        _isPreviewMode.value = false
+    }
+
+    fun clearLastCapturedImage() {
+        _lastCapturedImageUri.value = null
+        _isPreviewMode.value = false
     }
 } 
