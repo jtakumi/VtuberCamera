@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -15,7 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Locale
 
 class CameraViewModel : ViewModel() {
     private val _cameraSelector = MutableStateFlow(CameraSelector.DEFAULT_BACK_CAMERA)
@@ -27,12 +28,38 @@ class CameraViewModel : ViewModel() {
     private val _isPreviewMode = MutableStateFlow(false)
     val isPreviewMode: StateFlow<Boolean> = _isPreviewMode.asStateFlow()
 
+    private val _flashMode = MutableStateFlow(ImageCapture.FLASH_MODE_OFF)
+    val flashMode: StateFlow<Int> = _flashMode.asStateFlow()
+
+    private val _zoomRatio = MutableStateFlow(1.0f)
+    val zoomRatio: StateFlow<Float> = _zoomRatio.asStateFlow()
+
+    private var _camera: Camera? = null
+
+    fun setCamera(camera: Camera?) {
+        _camera = camera
+    }
+
     fun switchCamera() {
         _cameraSelector.value = when (_cameraSelector.value) {
             CameraSelector.DEFAULT_BACK_CAMERA -> CameraSelector.DEFAULT_FRONT_CAMERA
             CameraSelector.DEFAULT_FRONT_CAMERA -> CameraSelector.DEFAULT_BACK_CAMERA
             else -> CameraSelector.DEFAULT_BACK_CAMERA
         }
+    }
+
+    fun toggleFlash() {
+        _flashMode.value = when (_flashMode.value) {
+            ImageCapture.FLASH_MODE_ON -> ImageCapture.FLASH_MODE_AUTO
+            ImageCapture.FLASH_MODE_AUTO -> ImageCapture.FLASH_MODE_OFF
+            else -> ImageCapture.FLASH_MODE_ON
+        }
+    }
+
+    fun setZoom(zoom: Float) {
+        _zoomRatio.value =
+            zoom.coerceIn(1.0f, _camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 1.0f)
+        _camera?.cameraControl?.setZoomRatio(_zoomRatio.value)
     }
 
     fun takePhoto(

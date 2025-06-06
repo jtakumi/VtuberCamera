@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.Preview
@@ -26,6 +27,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.Cameraswitch
+import androidx.compose.material.icons.filled.FlashAuto
+import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.ZoomIn
+import androidx.compose.material.icons.filled.ZoomOut
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,7 +44,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vtubercamera.ui.components.AsyncImage
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
@@ -63,9 +69,11 @@ fun CameraScreen(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-    val cameraSelector = viewModel.cameraSelector.collectAsState().value
-    val lastCapturedImageUri = viewModel.lastCapturedImageUri.collectAsState().value
-    val isPreviewMode = viewModel.isPreviewMode.collectAsState().value
+    val cameraSelector by viewModel.cameraSelector.collectAsStateWithLifecycle()
+    val lastCapturedImageUri by viewModel.lastCapturedImageUri.collectAsStateWithLifecycle()
+    val isPreviewMode by viewModel.isPreviewMode.collectAsStateWithLifecycle()
+    val flashMode by viewModel.flashMode.collectAsStateWithLifecycle()
+    val zoomRatio by viewModel.zoomRatio.collectAsStateWithLifecycle()
     var imageCapture: ImageCapture? by remember { mutableStateOf(null) }
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -94,6 +102,16 @@ fun CameraScreen(
             TopAppBar(
                 title = { Text("カメラ") },
                 actions = {
+                    IconButton(onClick = { viewModel.toggleFlash() }) {
+                        Icon(
+                            imageVector = when (flashMode) {
+                                ImageCapture.FLASH_MODE_ON -> Icons.Default.FlashOn
+                                ImageCapture.FLASH_MODE_AUTO -> Icons.Default.FlashAuto
+                                else -> Icons.Default.FlashOff
+                            },
+                            contentDescription = "フラッシュモード切り替え"
+                        )
+                    }
                     IconButton(onClick = { viewModel.switchCamera() }) {
                         Icon(
                             imageVector = Icons.Default.Cameraswitch,
@@ -111,10 +129,9 @@ fun CameraScreen(
         ) {
             if (hasCameraPermission) {
                 if (isPreviewMode && lastCapturedImageUri != null) {
-                    // フルスクリーンプレビュー表示
                     Box(modifier = Modifier.fillMaxSize()) {
                         AsyncImage(
-                            model = lastCapturedImageUri,
+                            model = lastCapturedImageUri!!,
                             contentDescription = "撮影した写真",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit
@@ -141,7 +158,6 @@ fun CameraScreen(
                         }
                     }
                 } else {
-                    // カメラプレビュー表示
                     AndroidView(
                         factory = { ctx ->
                             val previewView = PreviewView(ctx).apply {
@@ -153,15 +169,17 @@ fun CameraScreen(
 
                             val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
                             cameraProviderFuture.addListener({
-                                bindCameraUseCase(
+                                val cameraProvider = cameraProviderFuture.get()
+                                val camera = bindCameraUseCase(
                                     lifecycleOwner = lifecycleOwner,
-                                    cameraProvider = cameraProviderFuture.get(),
+                                    cameraProvider = cameraProvider,
                                     previewView = previewView,
                                     cameraSelector = cameraSelector,
                                     onImageCaptureCreated = { capture ->
                                         imageCapture = capture
                                     }
                                 )
+                                viewModel.setCamera(camera)
                             }, ContextCompat.getMainExecutor(ctx))
 
                             previewView
@@ -169,7 +187,30 @@ fun CameraScreen(
                         modifier = Modifier.fillMaxSize()
                     )
 
-                    // 撮影ボタン
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        IconButton(
+                            onClick = { viewModel.setZoom(zoomRatio - 0.5f) }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ZoomOut,
+                                contentDescription = "ズームアウト"
+                            )
+                        }
+                        IconButton(
+                            onClick = { viewModel.setZoom(zoomRatio + 0.5f) }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ZoomIn,
+                                contentDescription = "ズームイン"
+                            )
+                        }
+                    }
+
                     FloatingActionButton(
                         onClick = {
                             imageCapture?.let { capture ->
@@ -195,7 +236,6 @@ fun CameraScreen(
                         )
                     }
 
-                    // サムネイルプレビュー
                     lastCapturedImageUri?.let { uri ->
                         Box(
                             modifier = Modifier
@@ -239,9 +279,9 @@ private fun bindCameraUseCase(
     previewView: PreviewView,
     cameraSelector: CameraSelector,
     onImageCaptureCreated: (ImageCapture) -> Unit
-) {
+): Camera {
     val preview = Preview.Builder().build().also {
-        it.setSurfaceProvider(previewView.surfaceProvider)
+        it.surfaceProvider = previewView.surfaceProvider
     }
 
     val imageCapture = ImageCapture.Builder()
@@ -250,14 +290,16 @@ private fun bindCameraUseCase(
 
     try {
         cameraProvider.unbindAll()
-        cameraProvider.bindToLifecycle(
+        return cameraProvider.bindToLifecycle(
             lifecycleOwner,
             cameraSelector,
             preview,
             imageCapture
-        )
-        onImageCaptureCreated(imageCapture)
+        ).also {
+            onImageCaptureCreated(imageCapture)
+        }
     } catch (e: Exception) {
         Log.e("Camera", "カメラのバインドに失敗しました", e)
+        throw e
     }
 }
