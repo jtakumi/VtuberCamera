@@ -79,6 +79,8 @@ fun CameraScreen(
     var imageCapture: ImageCapture? by remember { mutableStateOf(null) }
     var camera: Camera? by remember { mutableStateOf(null) }
     var cameraProvider: ProcessCameraProvider? by remember { mutableStateOf(null) }
+    var previewView: PreviewView? by remember { mutableStateOf(null) }
+    var preview: Preview? by remember { mutableStateOf(null) }
     
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -163,51 +165,58 @@ fun CameraScreen(
                         }
                     }
                 } else {
-                    // 改善されたカメラプレビュー
+                    // AndroidViewの改善
                     AndroidView(
                         factory = { ctx ->
-                            val previewView = PreviewView(ctx).apply {
+                            PreviewView(ctx).apply {
                                 layoutParams = ViewGroup.LayoutParams(
                                     ViewGroup.LayoutParams.MATCH_PARENT,
                                     ViewGroup.LayoutParams.MATCH_PARENT
                                 )
+                                previewView = this // PreviewViewの参照を保存
                             }
-                            previewView
                         },
-                        modifier = Modifier.fillMaxSize(),
-                        update = { previewView ->
-                            // カメラプロバイダーの初期化（一度だけ）
-                            if (cameraProvider == null) {
-                                val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-                                cameraProviderFuture.addListener({
-                                    cameraProvider = cameraProviderFuture.get()
-                                    // 初回バインド
-                                    bindCamera(
-                                        lifecycleOwner = lifecycleOwner,
-                                        cameraProvider = cameraProvider!!,
-                                        previewView = previewView,
-                                        cameraSelector = cameraSelector,
-                                        flashMode = flashMode,
-                                        onImageCaptureCreated = { capture ->
-                                            imageCapture = capture
-                                        },
-                                        onCameraCreated = { cam ->
-                                            camera = cam
-                                            viewModel.setCamera(cam)
-                                        }
-                                    )
-                                }, ContextCompat.getMainExecutor(context))
-                            }
+                        modifier = Modifier.fillMaxSize()
+                    ) { view ->
+                        // 初回のみカメラプロバイダーを初期化
+                        if (cameraProvider == null) {
+                            val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+                            cameraProviderFuture.addListener({
+                                cameraProvider = cameraProviderFuture.get()
+                                
+                                // プレビューを一度だけ作成してSurfaceProviderを設定
+                                preview = Preview.Builder().build().also {
+                                    it.setSurfaceProvider(view.surfaceProvider)
+                                }
+                                
+                                // 初回バインド
+                                bindCameraWithPreview(
+                                    lifecycleOwner = lifecycleOwner,
+                                    cameraProvider = cameraProvider!!,
+                                    preview = preview!!,
+                                    cameraSelector = cameraSelector,
+                                    flashMode = flashMode,
+                                    onImageCaptureCreated = { capture ->
+                                        imageCapture = capture
+                                    },
+                                    onCameraCreated = { cam ->
+                                        camera = cam
+                                        viewModel.setCamera(cam)
+                                    }
+                                )
+                            }, ContextCompat.getMainExecutor(context))
                         }
-                    )
+                    }
 
-                    // 状態変更の監視と再バインド
+                    // 状態変更の監視と賢い再バインド
                     LaunchedEffect(cameraSelector, flashMode) {
-                        cameraProvider?.let { provider ->
-                            bindCamera(
+                        // カメラプロバイダーとプレビューが準備できている場合のみ再バインド
+                        if (cameraProvider != null && preview != null) {
+                            Log.d("CameraScreen", "Rebinding camera due to state change")
+                            bindCameraWithPreview(
                                 lifecycleOwner = lifecycleOwner,
-                                cameraProvider = provider,
-                                previewView = null,
+                                cameraProvider = cameraProvider!!,
+                                preview = preview!!, // 既存のプレビューを再利用
                                 cameraSelector = cameraSelector,
                                 flashMode = flashMode,
                                 onImageCaptureCreated = { capture ->
@@ -307,26 +316,20 @@ fun CameraScreen(
     }
 }
 
-// 改善されたカメラバインド関数
-private fun bindCamera(
+// 既存のPreviewを再利用するバインド関数
+private fun bindCameraWithPreview(
     lifecycleOwner: LifecycleOwner,
     cameraProvider: ProcessCameraProvider,
-    previewView: PreviewView?,
+    preview: Preview, // 既存のPreviewを受け取る
     cameraSelector: CameraSelector,
     flashMode: Int,
     onImageCaptureCreated: (ImageCapture) -> Unit,
     onCameraCreated: (Camera) -> Unit
 ): Camera? {
     return try {
-        // プレビューの設定
-        val preview = Preview.Builder().build()
-        
-        // プレビューViewが提供された場合のみSurfaceProviderを設定
-        previewView?.let { 
-            preview.setSurfaceProvider(it.surfaceProvider)
-        }
+        Log.d("CameraBinding", "Binding camera with flash mode: $flashMode, camera: ${if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) "BACK" else "FRONT"}")
 
-        // フラッシュモードを動的に設定
+        // ImageCaptureのみ新しく作成（フラッシュモードを反映）
         val imageCapture = ImageCapture.Builder()
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
             .setFlashMode(flashMode)
@@ -335,18 +338,18 @@ private fun bindCamera(
         // 既存のバインディングを解除
         cameraProvider.unbindAll()
         
-        // 新しいバインディングを作成
+        // 既存のPreviewと新しいImageCaptureでバインド
         val camera = cameraProvider.bindToLifecycle(
             lifecycleOwner,
             cameraSelector,
-            preview,
+            preview, // 既存のPreviewを再利用
             imageCapture
         )
 
         onImageCaptureCreated(imageCapture)
         onCameraCreated(camera)
         
-        Log.d("CameraBinding", "Camera bound successfully with flash mode: $flashMode")
+        Log.d("CameraBinding", "Camera bound successfully")
         
         camera
     } catch (e: Exception) {
