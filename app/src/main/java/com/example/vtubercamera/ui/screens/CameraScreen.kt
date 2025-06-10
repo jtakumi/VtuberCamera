@@ -260,9 +260,7 @@ fun CameraScreen(
                                 viewModel.takePhoto(
                                     imageCapture = capture,
                                     context = context,
-                                    onPhotoSaved = { msg ->
-                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                                    },
+                                    onPhotoSaved = { /* トーストメッセージを削除 */ },
                                     onError = { msg ->
                                         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                                     }
