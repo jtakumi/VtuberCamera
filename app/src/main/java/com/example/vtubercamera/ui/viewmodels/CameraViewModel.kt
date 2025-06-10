@@ -113,6 +113,7 @@ class CameraViewModel : ViewModel() {
 
     fun exitPreviewMode() {
         _isPreviewMode.value = false
+        _cameraSelector.value = _cameraSelector.value
     }
 
     fun clearLastCapturedImage() {
