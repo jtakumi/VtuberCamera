@@ -3,11 +3,18 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" 
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
 
     <uses-feature
         android:name="android.hardware.camera"
+        android:required="true" />
+    <uses-feature
+        android:name="android.hardware.camera.autofocus"
         android:required="false" />
 
     <application
@@ -23,26 +30,26 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.VtuberCamera">
+            android:theme="@style/Theme.VtuberCamera"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
         <activity
-            android:name=".cameraView.CameraViewActivity"
-            android:exported="false"
-            android:label="@string/title_activity_camera_view"
-            android:theme="@style/Theme.VtuberCamera.NoActionBar" />
-        <activity
-            android:name=".multiFragment.multiFragmentActivity"
-            android:exported="false" />
-        <activity
             android:name=".opening.OpeningActivity"
-            android:exported="false" />
-        <activity
-            android:name=".SettingActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

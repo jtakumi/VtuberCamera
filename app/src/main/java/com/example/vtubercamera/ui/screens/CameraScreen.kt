@@ -209,7 +209,7 @@ fun CameraScreen(
                     }
 
                     // 状態変更の監視と賢い再バインド
-                    LaunchedEffect(cameraSelector, flashMode) {
+                    LaunchedEffect(cameraSelector, flashMode, isPreviewMode) {
                         // カメラプロバイダーとプレビューが準備できている場合のみ再バインド
                         if (cameraProvider != null && preview != null) {
                             Log.d("CameraScreen", "Rebinding camera due to state change")
@@ -260,9 +260,7 @@ fun CameraScreen(
                                 viewModel.takePhoto(
                                     imageCapture = capture,
                                     context = context,
-                                    onPhotoSaved = { msg ->
-                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                                    },
+                                    onPhotoSaved = { /* トーストメッセージを削除 */ },
                                     onError = { msg ->
                                         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                                     }
