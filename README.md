@@ -8,6 +8,7 @@
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue.svg)](https://kotlinlang.org)
 [![Compose](https://img.shields.io/badge/UI-Jetpack%20Compose-orange.svg)](https://developer.android.com/jetpack/compose)
 [![CameraX](https://img.shields.io/badge/Camera-CameraX-red.svg)](https://developer.android.com/camerax)
+[![Material3](https://img.shields.io/badge/Design-Material3-purple.svg)](https://m3.material.io)
 
 </div>
 
@@ -25,18 +26,20 @@
 ## ✨ 主な機能
 
 ### 📱 カメラ機能
-- 🎥 **リアルタイムプレビュー** - CameraXによる高品質なカメラプレビュー
-- 📷 **高品質撮影** - JPEG形式での写真撮影・自動保存
+- 🎥 **リアルタイムプレビュー** - CameraX 1.4.0による高品質なカメラプレビュー
+- 📷 **高品質撮影** - JPEG形式での写真撮影・自動保存（Pictures/VTuberCameraフォルダ）
 - 🔄 **カメラ切り替え** - フロント/バックカメラのシームレス切り替え
 - ⚡ **フラッシュ制御** - ON/OFF/AUTO の3モード対応
 - 🔍 **ズーム機能** - ピンチジェスチャー・ボタンでのズーム操作
 - 🖼️ **プレビューモード** - 撮影写真の即座確認・削除機能
+- 📐 **回転対応** - デバイス回転時の自動調整
 
 ### 🎨 UI/UX
 - 🌟 **Material Design 3** - 最新のデザインシステム採用
 - 🌙 **ダークモード対応** - システム設定に連動
 - 🎨 **Dynamic Color** - Android 12+の動的テーマ対応
 - 📱 **宣言的UI** - Jetpack Composeによる直感的なインターフェース
+- ⚡ **高速レスポンス** - 起動時間2秒以下、撮影レスポンス200ms以下
 
 ## 🏗️ 技術スタック
 
@@ -46,12 +49,14 @@
 - **Camera**: CameraX 1.4.0
 - **Architecture**: MVVM + StateFlow
 - **Design**: Material Design 3
+- **画像処理**: Coil 2.5.0
 
 ### 開発環境
-- **Android Studio**: Latest
+- **Android Studio**: Electric Eel以上推奨
+- **Gradle**: 8.7.0
 - **Min SDK**: 24 (Android 7.0+)
 - **Target SDK**: 34 (Android 14)
-- **Compile SDK**: 35 (Android 15)
+- **Compile SDK**: 35 (Android 15対応)
 
 ## 🚀 使用方法
 
@@ -63,7 +68,7 @@
 
 ### 高度な機能
 - **カメラ切り替え**: 右上の切り替えアイコンをタップ
-- **フラッシュ制御**: 右上のフラッシュアイコンで設定変更
+- **フラッシュ制御**: 右上のフラッシュアイコンで設定変更（OFF→ON→AUTO→OFF）
 - **ズーム操作**: 
   - ピンチイン/アウトジェスチャー
   - 左下の+/-ボタン
@@ -74,8 +79,8 @@
 ```
 📦 VtuberCamera
 ├── 📱 MainActivity.kt                    # メインエントリーポイント
-├── 🎥 ui/screens/CameraScreen.kt         # カメラ画面実装
-├── 🏗️ ui/viewmodels/CameraViewModel.kt   # 状態管理
+├── 🎥 ui/screens/CameraScreen.kt         # カメラ画面実装（Compose）
+├── 🏗️ ui/viewmodels/CameraViewModel.kt   # 状態管理（MVVM）
 ├── 🎨 ui/components/AsyncImage.kt        # UI コンポーネント
 ├── 🎨 ui/theme/                          # テーマシステム
 │   ├── Theme.kt                         # Material Design 3
@@ -85,7 +90,8 @@
     ├── images/                          # スクリーンショット
     │   ├── camera_preview.png           # カメラプレビュー画面
     │   └── photo_preview.png            # 写真プレビュー画面
-    └── *.md                            # 技術ドキュメント
+    ├── VtuberCamera実装分析と改善提案.md    # 技術分析ドキュメント
+    └── vtuberCamera_changelog_*.md      # 変更履歴
 ```
 
 ## 🔧 セットアップ
@@ -129,6 +135,8 @@
 implementation "androidx.camera:camera-core:1.4.0"
 implementation "androidx.camera:camera-camera2:1.4.0"
 implementation "androidx.camera:camera-lifecycle:1.4.0"
+implementation "androidx.camera:camera-view:1.4.0"
+implementation "androidx.camera:camera-extensions:1.4.0"
 
 // Jetpack Compose
 implementation "androidx.compose.ui:ui:1.5.4"
@@ -137,6 +145,9 @@ implementation "androidx.activity:activity-compose:1.8.2"
 
 // ViewModel & StateFlow
 implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0"
+
+// 画像処理
+implementation "io.coil-kt:coil-compose:2.5.0"
 ```
 
 ## 📈 パフォーマンス
@@ -146,12 +157,34 @@ implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0"
 - ✅ **効率的な状態管理**: StateFlowによるメモリ効率
 - ✅ **Compose最適化**: Recomposition最小化
 - ✅ **バッテリー効率**: 適切なライフサイクル管理
+- ✅ **プレビュー安定性**: 画面遷移時の安定したカメラプレビュー
 
 ### ベンチマーク結果
 - **起動時間**: < 2秒
 - **撮影レスポンス**: < 200ms
 - **メモリ使用量**: < 200MB
 - **バッテリー効率**: 標準カメラアプリ比較で95%
+
+## 🔄 最新の改善点
+
+### v2.0.0 (2025/06/10)
+- 🎉 **Jetpack Compose完全移行** - Fragment/XMLからの全面移行
+- 🚀 **CameraX 1.4.0導入** - Camera2からの移行完了
+- 🎨 **Material Design 3対応** - 最新デザインシステム採用
+- ⚡ **パフォーマンス向上** - 起動時間50%短縮
+- 🧹 **コードクリーンアップ** - 未使用ファイル削除、構造最適化
+
+### 最近の機能改善（2025/06/06-08）
+- ✨ **フラッシュ機能の完全実装** - OFF/ON/AUTO モード対応
+- 🔄 **カメラ切り替え機能の改善** - フロント/バック切り替えの安定化
+- 🔍 **ズーム機能の実装** - ピンチ操作とボタン操作の両対応
+- 🖼️ **プレビューモードの安定性向上** - 画面遷移時のカメラプレビュー問題を修正
+- 🎨 **UI/UXの改善** - Material3デザインの適用と操作性向上
+
+### 技術的改善
+- **状態管理の最適化**: プレビューモード変更時のカメラ再バインド処理改善
+- **エラーハンドリング強化**: カメラ初期化とパーミッション管理の改善
+- **メモリ効率化**: 不要なプレビュー再作成防止とメモリリークの対策
 
 ## 🤝 コントリビューション
 
@@ -166,11 +199,31 @@ implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0"
 - [Issues](../../issues) から新しいissueを作成
 - バグ報告、機能要望、質問などお気軽に
 
+## 📋 TODO / 今後の予定
+
+### 短期的な改善
+- [ ] タップフォーカス機能の実装
+- [ ] より詳細なエラーハンドリング
+- [ ] パフォーマンス最適化の継続
+- [ ] アクセシビリティ機能の向上
+
+### 中期的な機能追加
+- [ ] 動画撮影機能
+- [ ] カメラフィルター・エフェクト機能
+- [ ] ギャラリー機能の拡張
+- [ ] クラウド連携機能
+
+### 長期的な目標
+- [ ] AI機能の統合（フェイストラッキング）
+- [ ] より高度な画像編集機能
+- [ ] リアルタイムエフェクト処理
+- [ ] VTuber特化機能の実装
+
 ## 📄 ライセンス
 
 このプロジェクトは [MIT License](LICENSE) の下で公開されています。
 
-## 🔄 更新履歴
+## 🔄 完整な更新履歴
 
 ### v2.0.0 (2025/06/10)
 - 🎉 **Jetpack Compose完全移行** - Fragment/XMLからの全面移行
@@ -179,11 +232,26 @@ implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0"
 - ⚡ **パフォーマンス向上** - 起動時間50%短縮
 - 🧹 **コードクリーンアップ** - 未使用ファイル削除、構造最適化
 
+### v1.3.0 (2025/06/08)
+- 🔧 **プレビュー安定性向上** - プレビューモードからの復帰時の問題修正
+- 🎨 **UI改善** - 不要なトーストメッセージ削除
+- 🔄 **カメラ再バインド処理の最適化**
+
+### v1.2.0 (2025/06/07)
+- ⚡ **フラッシュ機能の改善** - 切り替え機能の安定化
+- 🔄 **カメラ切り替え改善** - プレビュー更新問題の修正
+- 🏗️ **状態管理の改善** - カメラ関連状態の最適化
+
+### v1.1.0 (2025/06/06)
+- ✨ **フラッシュ機能実装** - OFF/ON/AUTO モード
+- 🔍 **ズーム機能実装** - ピンチ操作対応
+- 🎨 **UI/UX改善** - Material3デザイン適用
+
 ### v1.0.0 (2025/06/04-05)
 - 📱 **基本カメラ機能実装** - 撮影、プレビュー、保存
 - 🔄 **カメラ切り替え機能** - フロント/バック対応
-- ⚡ **フラッシュ制御** - ON/OFF/AUTO
 - 🎨 **Material3デザイン** - モダンUI実装
+- 🚀 **CameraX導入** - 高品質カメラ機能
 
 ---
 
