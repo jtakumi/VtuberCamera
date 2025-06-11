@@ -34,6 +34,10 @@ class CameraViewModel : ViewModel() {
     private val _zoomRatio = MutableStateFlow(1.0f)
     val zoomRatio: StateFlow<Float> = _zoomRatio.asStateFlow()
 
+    // カメラ再初期化トリガー用の状態を追加
+    private val _cameraRebindTrigger = MutableStateFlow(0)
+    val cameraRebindTrigger: StateFlow<Int> = _cameraRebindTrigger.asStateFlow()
+
     private var _camera: Camera? = null
 
     fun setCamera(camera: Camera?) {
@@ -113,11 +117,15 @@ class CameraViewModel : ViewModel() {
 
     fun exitPreviewMode() {
         _isPreviewMode.value = false
-        _cameraSelector.value = _cameraSelector.value
+        // カメラ再バインドを強制的にトリガー
+        _cameraRebindTrigger.value = _cameraRebindTrigger.value + 1
+        Log.d("CameraViewModel", "Exiting preview mode, triggering camera rebind")
     }
 
     fun clearLastCapturedImage() {
         _lastCapturedImageUri.value = null
         _isPreviewMode.value = false
+        // カメラ再バインドを強制的にトリガー
+        _cameraRebindTrigger.value = _cameraRebindTrigger.value + 1
     }
-} 
+}
