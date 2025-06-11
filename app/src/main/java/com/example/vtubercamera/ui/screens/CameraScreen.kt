@@ -43,7 +43,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,6 +56,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vtubercamera.ui.components.AsyncImage
@@ -74,13 +74,14 @@ fun CameraScreen(
     val isPreviewMode by viewModel.isPreviewMode.collectAsStateWithLifecycle()
     val flashMode by viewModel.flashMode.collectAsStateWithLifecycle()
     val zoomRatio by viewModel.zoomRatio.collectAsStateWithLifecycle()
-    val cameraRebindTrigger by viewModel.cameraRebindTrigger.collectAsStateWithLifecycle()
+    val needsCameraRebind by viewModel.needsCameraRebind.collectAsStateWithLifecycle()
 
-    // カメラ状態管理
+    // カメラ状態管理の改善
     var imageCapture: ImageCapture? by remember { mutableStateOf(null) }
     var camera: Camera? by remember { mutableStateOf(null) }
     var cameraProvider: ProcessCameraProvider? by remember { mutableStateOf(null) }
     var previewView: PreviewView? by remember { mutableStateOf(null) }
+    var preview: Preview? by remember { mutableStateOf(null) }
 
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -101,64 +102,6 @@ fun CameraScreen(
     LaunchedEffect(Unit) {
         if (!hasCameraPermission) {
             launcher.launch(Manifest.permission.CAMERA)
-        }
-    }
-
-    // カメラプロバイダーの初期化
-    LaunchedEffect(Unit) {
-        if (hasCameraPermission) {
-            val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-            cameraProviderFuture.addListener({
-                cameraProvider = cameraProviderFuture.get()
-            }, ContextCompat.getMainExecutor(context))
-        }
-    }
-
-    // カメラの再バインド処理（プレビューモードからの復帰時も含む）
-    LaunchedEffect(cameraSelector, flashMode, cameraRebindTrigger) {
-        if (cameraProvider != null && previewView != null && !isPreviewMode) {
-            Log.d(
-                "CameraScreen",
-                "Rebinding camera - Selector: ${if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) "BACK" else "FRONT"}, Flash: $flashMode, Trigger: $cameraRebindTrigger"
-            )
-
-            try {
-                // 既存のバインディングを解除
-                cameraProvider!!.unbindAll()
-
-                // 新しいプレビューとImageCaptureを作成
-                val preview = Preview.Builder().build()
-                val newImageCapture = ImageCapture.Builder()
-                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
-                    .setFlashMode(flashMode)
-                    .build()
-
-                // SurfaceProviderを設定
-                preview.surfaceProvider = previewView!!.surfaceProvider
-
-                // カメラをバインド
-                val newCamera = cameraProvider!!.bindToLifecycle(
-                    lifecycleOwner,
-                    cameraSelector,
-                    preview,
-                    newImageCapture
-                )
-
-                imageCapture = newImageCapture
-                camera = newCamera
-                viewModel.setCamera(newCamera)
-
-                Log.d("CameraScreen", "Camera rebound successfully")
-            } catch (e: Exception) {
-                Log.e("CameraScreen", "Failed to rebind camera", e)
-            }
-        }
-    }
-
-    // クリーンアップ
-    DisposableEffect(Unit) {
-        onDispose {
-            cameraProvider?.unbindAll()
         }
     }
 
@@ -194,7 +137,6 @@ fun CameraScreen(
         ) {
             if (hasCameraPermission) {
                 if (isPreviewMode && lastCapturedImageUri != null) {
-                    // 写真プレビューモード
                     Box(modifier = Modifier.fillMaxSize()) {
                         AsyncImage(
                             model = lastCapturedImageUri!!,
@@ -224,7 +166,7 @@ fun CameraScreen(
                         }
                     }
                 } else {
-                    // カメラプレビューモード
+                    // AndroidViewの改善（元のコードの構造を保持）
                     AndroidView(
                         factory = { ctx ->
                             PreviewView(ctx).apply {
@@ -232,14 +174,73 @@ fun CameraScreen(
                                     ViewGroup.LayoutParams.MATCH_PARENT,
                                     ViewGroup.LayoutParams.MATCH_PARENT
                                 )
-                                previewView = this
-                                Log.d("CameraScreen", "PreviewView created")
+                                previewView = this // PreviewViewの参照を保存
                             }
                         },
                         modifier = Modifier.fillMaxSize()
-                    )
+                    ) { view ->
+                        // 初回のみカメラプロバイダーを初期化
+                        if (cameraProvider == null) {
+                            val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+                            cameraProviderFuture.addListener({
+                                cameraProvider = cameraProviderFuture.get()
 
-                    // コントロールUI
+                                // プレビューを一度だけ作成してSurfaceProviderを設定
+                                preview = Preview.Builder().build().also {
+                                    it.setSurfaceProvider(view.surfaceProvider)
+                                }
+
+                                // 初回バインド
+                                bindCameraWithPreview(
+                                    lifecycleOwner = lifecycleOwner,
+                                    cameraProvider = cameraProvider!!,
+                                    preview = preview!!,
+                                    cameraSelector = cameraSelector,
+                                    flashMode = flashMode,
+                                    onImageCaptureCreated = { capture ->
+                                        imageCapture = capture
+                                    },
+                                    onCameraCreated = { cam ->
+                                        camera = cam
+                                        viewModel.setCamera(cam)
+                                    }
+                                )
+                            }, ContextCompat.getMainExecutor(context))
+                        }
+                    }
+
+                    // 状態変更の監視と賢い再バインド
+                    LaunchedEffect(cameraSelector, flashMode, needsCameraRebind) {
+                        // カメラプロバイダーとプレビューが準備できている場合のみ再バインド
+                        if (cameraProvider != null && preview != null) {
+                            Log.d("CameraScreen", "Rebinding camera - Selector: ${if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) "BACK" else "FRONT"}, Flash: $flashMode, NeedsRebind: $needsCameraRebind")
+
+                            // needsCameraRebindがtrueの場合は、新しいPreviewを作成
+                            if (needsCameraRebind && previewView != null) {
+                                Log.d("CameraScreen", "Creating new Preview for rebind")
+                                preview = Preview.Builder().build().also {
+                                    it.setSurfaceProvider(previewView!!.surfaceProvider)
+                                }
+                                viewModel.onCameraRebound() // フラグをリセット
+                            }
+
+                            bindCameraWithPreview(
+                                lifecycleOwner = lifecycleOwner,
+                                cameraProvider = cameraProvider!!,
+                                preview = preview!!, // 新しいまたは既存のプレビューを使用
+                                cameraSelector = cameraSelector,
+                                flashMode = flashMode,
+                                onImageCaptureCreated = { capture ->
+                                    imageCapture = capture
+                                },
+                                onCameraCreated = { cam ->
+                                    camera = cam
+                                    viewModel.setCamera(cam)
+                                }
+                            )
+                        }
+                    }
+
                     Row(
                         modifier = Modifier
                             .align(Alignment.BottomStart)
@@ -321,5 +322,47 @@ fun CameraScreen(
                 }
             }
         }
+    }
+}
+
+// 既存のPreviewを再利用するバインド関数
+private fun bindCameraWithPreview(
+    lifecycleOwner: LifecycleOwner,
+    cameraProvider: ProcessCameraProvider,
+    preview: Preview, // 既存のPreviewを受け取る
+    cameraSelector: CameraSelector,
+    flashMode: Int,
+    onImageCaptureCreated: (ImageCapture) -> Unit,
+    onCameraCreated: (Camera) -> Unit
+): Camera? {
+    return try {
+        Log.d("CameraBinding", "Binding camera with flash mode: $flashMode, camera: ${if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) "BACK" else "FRONT"}")
+
+        // ImageCaptureのみ新しく作成（フラッシュモードを反映）
+        val imageCapture = ImageCapture.Builder()
+            .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+            .setFlashMode(flashMode)
+            .build()
+
+        // 既存のバインディングを解除
+        cameraProvider.unbindAll()
+
+        // 既存のPreviewと新しいImageCaptureでバインド
+        val camera = cameraProvider.bindToLifecycle(
+            lifecycleOwner,
+            cameraSelector,
+            preview, // 既存のPreviewを再利用
+            imageCapture
+        )
+
+        onImageCaptureCreated(imageCapture)
+        onCameraCreated(camera)
+
+        Log.d("CameraBinding", "Camera bound successfully")
+
+        camera
+    } catch (e: Exception) {
+        Log.e("CameraBinding", "カメラのバインドに失敗しました", e)
+        null
     }
 }
