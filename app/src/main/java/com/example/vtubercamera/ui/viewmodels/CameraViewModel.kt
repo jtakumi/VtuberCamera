@@ -34,6 +34,10 @@ class CameraViewModel : ViewModel() {
     private val _zoomRatio = MutableStateFlow(1.0f)
     val zoomRatio: StateFlow<Float> = _zoomRatio.asStateFlow()
 
+    // カメラ再初期化フラグを追加
+    private val _needsCameraRebind = MutableStateFlow(false)
+    val needsCameraRebind: StateFlow<Boolean> = _needsCameraRebind.asStateFlow()
+
     private var _camera: Camera? = null
 
     fun setCamera(camera: Camera?) {
@@ -113,11 +117,20 @@ class CameraViewModel : ViewModel() {
 
     fun exitPreviewMode() {
         _isPreviewMode.value = false
-        _cameraSelector.value = _cameraSelector.value
+        // カメラ再バインドフラグを設定
+        _needsCameraRebind.value = true
+        Log.d("CameraViewModel", "Exiting preview mode, requesting camera rebind")
     }
 
     fun clearLastCapturedImage() {
         _lastCapturedImageUri.value = null
         _isPreviewMode.value = false
+        // カメラ再バインドフラグを設定
+        _needsCameraRebind.value = true
     }
-} 
+
+    fun onCameraRebound() {
+        // カメラが再バインドされたらフラグをリセット
+        _needsCameraRebind.value = false
+    }
+}

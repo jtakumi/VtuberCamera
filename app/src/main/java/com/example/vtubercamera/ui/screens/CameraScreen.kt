@@ -74,14 +74,15 @@ fun CameraScreen(
     val isPreviewMode by viewModel.isPreviewMode.collectAsStateWithLifecycle()
     val flashMode by viewModel.flashMode.collectAsStateWithLifecycle()
     val zoomRatio by viewModel.zoomRatio.collectAsStateWithLifecycle()
-    
+    val needsCameraRebind by viewModel.needsCameraRebind.collectAsStateWithLifecycle()
+
     // カメラ状態管理の改善
     var imageCapture: ImageCapture? by remember { mutableStateOf(null) }
     var camera: Camera? by remember { mutableStateOf(null) }
     var cameraProvider: ProcessCameraProvider? by remember { mutableStateOf(null) }
     var previewView: PreviewView? by remember { mutableStateOf(null) }
     var preview: Preview? by remember { mutableStateOf(null) }
-    
+
     var hasCameraPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -165,7 +166,7 @@ fun CameraScreen(
                         }
                     }
                 } else {
-                    // AndroidViewの改善
+                    // AndroidViewの改善（元のコードの構造を保持）
                     AndroidView(
                         factory = { ctx ->
                             PreviewView(ctx).apply {
@@ -183,12 +184,12 @@ fun CameraScreen(
                             val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
                             cameraProviderFuture.addListener({
                                 cameraProvider = cameraProviderFuture.get()
-                                
+
                                 // プレビューを一度だけ作成してSurfaceProviderを設定
                                 preview = Preview.Builder().build().also {
                                     it.setSurfaceProvider(view.surfaceProvider)
                                 }
-                                
+
                                 // 初回バインド
                                 bindCameraWithPreview(
                                     lifecycleOwner = lifecycleOwner,
@@ -209,14 +210,24 @@ fun CameraScreen(
                     }
 
                     // 状態変更の監視と賢い再バインド
-                    LaunchedEffect(cameraSelector, flashMode, isPreviewMode) {
+                    LaunchedEffect(cameraSelector, flashMode, needsCameraRebind) {
                         // カメラプロバイダーとプレビューが準備できている場合のみ再バインド
                         if (cameraProvider != null && preview != null) {
-                            Log.d("CameraScreen", "Rebinding camera due to state change")
+                            Log.d("CameraScreen", "Rebinding camera - Selector: ${if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) "BACK" else "FRONT"}, Flash: $flashMode, NeedsRebind: $needsCameraRebind")
+
+                            // needsCameraRebindがtrueの場合は、新しいPreviewを作成
+                            if (needsCameraRebind && previewView != null) {
+                                Log.d("CameraScreen", "Creating new Preview for rebind")
+                                preview = Preview.Builder().build().also {
+                                    it.setSurfaceProvider(previewView!!.surfaceProvider)
+                                }
+                                viewModel.onCameraRebound() // フラグをリセット
+                            }
+
                             bindCameraWithPreview(
                                 lifecycleOwner = lifecycleOwner,
                                 cameraProvider = cameraProvider!!,
-                                preview = preview!!, // 既存のプレビューを再利用
+                                preview = preview!!, // 新しいまたは既存のプレビューを使用
                                 cameraSelector = cameraSelector,
                                 flashMode = flashMode,
                                 onImageCaptureCreated = { capture ->
@@ -335,7 +346,7 @@ private fun bindCameraWithPreview(
 
         // 既存のバインディングを解除
         cameraProvider.unbindAll()
-        
+
         // 既存のPreviewと新しいImageCaptureでバインド
         val camera = cameraProvider.bindToLifecycle(
             lifecycleOwner,
@@ -346,9 +357,9 @@ private fun bindCameraWithPreview(
 
         onImageCaptureCreated(imageCapture)
         onCameraCreated(camera)
-        
+
         Log.d("CameraBinding", "Camera bound successfully")
-        
+
         camera
     } catch (e: Exception) {
         Log.e("CameraBinding", "カメラのバインドに失敗しました", e)
