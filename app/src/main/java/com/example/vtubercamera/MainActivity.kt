@@ -9,10 +9,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.example.vtubercamera.ui.screens.CameraScreen
 import com.example.vtubercamera.ui.theme.VTuberCameraTheme
+import com.example.vtubercamera.utils.initializeAndroid15
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Android15の機能が使えるかどうか初期チェック
+        initializeAndroid15()
         setContent {
             VTuberCameraTheme {
                 Surface(
