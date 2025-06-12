@@ -45,17 +45,17 @@
 
 ### コア技術
 - **Language**: Kotlin
-- **UI Framework**: Jetpack Compose 1.5.4
+- **UI Framework**: Jetpack Compose 1.7.1
 - **Camera**: CameraX 1.4.0
 - **Architecture**: MVVM + StateFlow
 - **Design**: Material Design 3
-- **画像処理**: Coil 2.5.0
+- **画像処理**: Coil 2.6.0
 
 ### 開発環境
 - **Android Studio**: Electric Eel以上推奨
 - **Gradle**: 8.7.0
 - **Min SDK**: 24 (Android 7.0+)
-- **Target SDK**: 34 (Android 14)
+- **Target SDK**: 35 (Android 15)
 - **Compile SDK**: 35 (Android 15対応)
 
 ## 🚀 使用方法
@@ -171,13 +171,14 @@ implementation "io.coil-kt:coil-compose:2.5.0"
 
 **詳細な開発履歴と技術的な変更点については、[CHANGE_LOG.md](docs/CHANGE_LOG.md) をご覧ください。**
 
-### 最新バージョン: v2.0.0 (2025/06/11)
-- 🎉 **Jetpack Compose完全移行** - Fragment/XMLからの全面移行
-- 🚀 **CameraX 1.4.0導入** - Camera2からの移行完了  
-- 🎨 **Material Design 3対応** - 最新デザインシステム採用
-- ⚡ **パフォーマンス向上** - 起動時間50%短縮
-- 🖼️ **プレビューモードの安定性向上** - 黒画面問題の完全修正
-- 🧹 **コードクリーンアップ** - 未使用ファイル削除、構造最適化
+### 最新バージョン: v3.0.0 (2025/06/12)
+- 🎯 **Android 15 完全対応** - targetSDK 35への包括的アップデート
+- 🔐 **新権限モデル対応** - パーシャルフォトアクセス機能の実装
+- 🛡️ **セキュリティ強化** - Private Space対応準備とアプリ分離強化
+- ⚡ **ProGuard最適化** - コード難読化とビルドサイズ削減
+- 📚 **依存関係最新化** - 全ライブラリをAndroid 15対応版に更新
+- 🎨 **権限UI改善** - 段階的権限許可フローの導入
+- 🧹 **ファイル構造最適化** - 適切な場所への設定ファイル配置
 
 ### 主要なマイルストーン
 - ✅ **基本カメラ機能** - 撮影、プレビュー、保存機能の実装
