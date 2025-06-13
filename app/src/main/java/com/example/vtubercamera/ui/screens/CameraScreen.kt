@@ -58,12 +58,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.vtubercamera.R
 import com.example.vtubercamera.ui.components.AsyncImage
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 import com.example.vtubercamera.utils.PermissionUtils
@@ -138,8 +140,8 @@ fun CameraScreen(
     if (showPartialAccessDialog) {
         AlertDialog(
             onDismissRequest = { showPartialAccessDialog = false },
-            title = { Text("写真へのアクセス") },
-            text = { Text("一部の写真のみへのアクセスが許可されています。すべての写真にアクセスするには、設定で「すべての写真」を選択してください。") },
+            title = { Text(stringResource(R.string.photo_access)) },
+            text = { Text(stringResource(R.string.partial_access_message)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -151,12 +153,12 @@ fun CameraScreen(
                         context.startActivity(intent)
                     }
                 ) {
-                    Text("設定を開く")
+                    Text(stringResource(R.string.open_settings))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showPartialAccessDialog = false }) {
-                    Text("後で")
+                    Text(stringResource(R.string.later))
                 }
             }
         )
@@ -166,7 +168,7 @@ fun CameraScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("カメラ") },
+                title = { Text(stringResource(R.string.camera_title)) },
                 actions = {
                     IconButton(onClick = { viewModel.toggleFlash() }) {
                         Icon(
@@ -175,13 +177,13 @@ fun CameraScreen(
                                 ImageCapture.FLASH_MODE_AUTO -> Icons.Default.FlashAuto
                                 else -> Icons.Default.FlashOff
                             },
-                            contentDescription = "フラッシュモード切り替え"
+                            contentDescription = stringResource(R.string.flash_mode_toggle)
                         )
                     }
                     IconButton(onClick = { viewModel.switchCamera() }) {
                         Icon(
                             imageVector = Icons.Default.Cameraswitch,
-                            contentDescription = "カメラ切り替え"
+                            contentDescription = stringResource(R.string.switch_camera)
                         )
                     }
                 }
@@ -202,10 +204,10 @@ fun CameraScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text("カメラの使用許可が必要です")
+                        Text(stringResource(R.string.camera_permission_required))
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) }) {
-                            Text("カメラ権限を許可")
+                            Text(stringResource(R.string.grant_camera_permission))
                         }
                     }
                 }
@@ -218,12 +220,12 @@ fun CameraScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text("写真保存のためのストレージアクセス許可が必要です")
+                        Text(stringResource(R.string.storage_permission_required))
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(onClick = {
                             mediaPermissionsLauncher.launch(PermissionUtils.getRequiredMediaPermissions())
                         }) {
-                            Text("ストレージ権限を許可")
+                            Text(stringResource(R.string.grant_storage_permission))
                         }
                     }
                 }
@@ -233,7 +235,7 @@ fun CameraScreen(
                         Box(modifier = Modifier.fillMaxSize()) {
                             AsyncImage(
                                 model = lastCapturedImageUri!!,
-                                contentDescription = "撮影した写真",
+                                contentDescription = stringResource(R.string.captured_photo),
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Fit
                             )
@@ -249,12 +251,12 @@ fun CameraScreen(
                                         containerColor = MaterialTheme.colorScheme.error
                                     )
                                 ) {
-                                    Text("削除")
+                                    Text(stringResource(R.string.delete))
                                 }
                                 Button(
                                     onClick = { viewModel.exitPreviewMode() }
                                 ) {
-                                    Text("戻る")
+                                    Text(stringResource(R.string.back))
                                 }
                             }
                         }
@@ -349,7 +351,7 @@ fun CameraScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.ZoomOut,
-                                    contentDescription = "ズームアウト"
+                                    contentDescription = stringResource(R.string.zoom_out)
                                 )
                             }
                             IconButton(
@@ -357,7 +359,7 @@ fun CameraScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.ZoomIn,
-                                    contentDescription = "ズームイン"
+                                    contentDescription = stringResource(R.string.zoom_in)
                                 )
                             }
                         }
@@ -382,7 +384,7 @@ fun CameraScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Camera,
-                                contentDescription = "写真を撮影"
+                                contentDescription = stringResource(R.string.take_photo)
                             )
                         }
 
@@ -397,7 +399,7 @@ fun CameraScreen(
                             ) {
                                 AsyncImage(
                                     model = uri,
-                                    contentDescription = "最後に撮影した写真",
+                                    contentDescription = stringResource(R.string.last_captured_photo),
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
                                 )
