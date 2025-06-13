@@ -16,10 +16,17 @@
 
 <div align="center">
 
+### 日本語UI
 | カメラプレビュー | 写真プレビュー |
 |:---:|:---:|
-| <img src="docs/images/camera_preview.png" width="300" alt="Camera Preview"> | <img src="docs/images/photo_preview.png" width="300" alt="Photo Preview"> |
+| <img src="docs/images/camera_preview.png" width="300" alt="Camera Preview (Japanese)"> | <img src="docs/images/photo_preview.png" width="300" alt="Photo Preview (Japanese)"> |
 | リアルタイムカメラプレビュー表示 | 撮影した写真の確認・削除機能 |
+
+### 英語UI
+| Camera Preview | Photo Preview |
+|:---:|:---:|
+| <img src="docs/images/camera_preview_en.png" width="300" alt="Camera Preview (English)"> | <img src="docs/images/photo_preview_en.png" width="300" alt="Photo Preview (English)"> |
+| Real-time camera preview display | Photo confirmation and delete function |
 
 </div>
 
@@ -171,7 +178,9 @@ implementation "io.coil-kt:coil-compose:2.5.0"
 
 **詳細な開発履歴と技術的な変更点については、[CHANGE_LOG.md](docs/CHANGE_LOG.md) をご覧ください。**
 
-### 最新バージョン: v3.0.0 (2025/06/12)
+### 最近の変更
+
+- 🔤 **多言語リソース実装** - ハードコーディング文字列の完全置き換え
 - 🎯 **Android 15 完全対応** - targetSDK 35への包括的アップデート
 - 🔐 **新権限モデル対応** - パーシャルフォトアクセス機能の実装
 - 🛡️ **セキュリティ強化** - Private Space対応準備とアプリ分離強化
@@ -190,7 +199,7 @@ implementation "io.coil-kt:coil-compose:2.5.0"
 ## 🤝 コントリビューション
 
 ### 開発に参加
-1. このリポジトリをフォーク
+1. このリポジトリをクローン
 2. 機能ブランチを作成 (`git checkout -b feature/amazing-feature`)
 3. 変更をコミット (`git commit -m 'Add some amazing feature'`)
 4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
