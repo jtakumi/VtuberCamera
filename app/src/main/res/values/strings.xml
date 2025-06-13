@@ -20,4 +20,23 @@
     <string name="menu_home">Home</string>
     <string name="menu_gallery">Gallery</string>
     <string name="menu_slideshow">Slideshow</string>
+
+    <string name="camera_title">Camera</string>
+    <string name="flash_mode_toggle">Toggle flash mode</string>
+    <string name="switch_camera">Switch camera</string>
+    <string name="camera_permission_required">Camera permission is required</string>
+    <string name="grant_camera_permission">Grant Camera Permission</string>
+    <string name="storage_permission_required">Storage access permission is required to save photos</string>
+    <string name="grant_storage_permission">Grant Storage Permission</string>
+    <string name="captured_photo">Captured photo</string>
+    <string name="photo_access">Photo Access</string>
+    <string name="partial_access_message">You have access to only some photos. To access all photos, please select \"All Photos\" in settings.</string>
+    <string name="open_settings">Open Settings</string>
+    <string name="later">Later</string>
+    <string name="delete">Delete</string>
+    <string name="back">Back</string>
+    <string name="zoom_out">Zoom out</string>
+    <string name="zoom_in">Zoom in</string>
+    <string name="take_photo">Take photo</string>
+    <string name="last_captured_photo">Last captured photo</string>
 </resources>
