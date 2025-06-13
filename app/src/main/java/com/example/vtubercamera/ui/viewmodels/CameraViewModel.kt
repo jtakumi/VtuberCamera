@@ -72,7 +72,7 @@ class CameraViewModel : ViewModel() {
         onPhotoSaved: (String) -> Unit = {},
         onError: (String) -> Unit = {}
     ) {
-        val name = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.JAPAN)
+        val name = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.getDefault())
             .format(System.currentTimeMillis())
 
         val contentValues = ContentValues().apply {
