@@ -1,0 +1,104 @@
+version: 2
+updates:
+  # Gradle依存関係の更新
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+
+    # 依存関係のグループ化（関連するライブラリをまとめて更新）
+    groups:
+      # AndroidXライブラリ群
+      androidx:
+        patterns:
+          - "androidx.*"
+        exclude-patterns:
+          - "androidx.compose.*"  # Composeは別グループで管理
+
+      # Compose関連ライブラリ群
+      compose:
+        patterns:
+          - "androidx.compose.*"
+          - "*compose*"
+
+      # CameraX関連ライブラリ群
+      camerax:
+        patterns:
+          - "androidx.camera:*"
+          - "*camera*"
+
+      # Navigation関連ライブラリ群
+      navigation:
+        patterns:
+          - "androidx.navigation:*"
+
+      # Kotlin関連ライブラリ群
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin*"
+          - "*kotlin*"
+
+      # Material Design関連
+      material:
+        patterns:
+          - "com.google.android.material:*"
+          - "*material*"
+
+    # 無視する更新（慎重に扱いたいもの）
+    ignore:
+      # Android Gradle Pluginのメジャーバージョンアップは手動で確認
+      - dependency-name: "com.android.tools.build:gradle"
+        update-types: ["version-update:semver-major"]
+
+      # Kotlin Compiler Extensionのバージョンは慎重に扱う
+      - dependency-name: "androidx.compose.compiler:compiler"
+        update-types: ["version-update:semver-major"]
+
+      # minSdkやtargetSdkに影響する可能性があるもの
+      - dependency-name: "androidx.core:core-ktx"
+        update-types: ["version-update:semver-major"]
+
+    # プルリクエストの設定
+    open-pull-requests-limit: 8
+
+    # ラベルとアサイン
+    labels:
+      - "dependencies"
+      - "android"
+      - "vtuberCamera"
+    assignees:
+      - "jtakumi"  # GitHubユーザー名に変更してください
+
+    # コミットメッセージのカスタマイズ
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+
+    # レビュアーの設定（必要に応じて）
+    reviewers:
+      - "jtakumi"  # GitHubユーザー名に変更してください
+
+  # GitHub Actionsの更新
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "10:00"
+      timezone: "Asia/Tokyo"
+
+    labels:
+      - "github-actions"
+      - "ci-cd"
+    assignees:
+      - ""  # GitHubユーザー名に変更してください
+
+    open-pull-requests-limit: 3
+
+    commit-message:
+      prefix: "ci"
+      include: "scope"
