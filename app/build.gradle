@@ -2,6 +2,8 @@ plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
     id("com.google.gms.google-services")
+    // Compose Compiler Plugin を適用（Kotlin 2.0以降必須）
+    id 'org.jetbrains.kotlin.plugin.compose'
 }
 
 android {
@@ -43,9 +45,6 @@ android {
     buildFeatures {
         viewBinding true
         compose true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion '1.5.1'
     }
     packaging {
         resources {
