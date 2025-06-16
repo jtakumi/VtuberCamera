@@ -21,11 +21,6 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 class CameraViewModel : ViewModel() {
-    private var context: Context? = null
-
-    fun setContext(context: Context) {
-        this.context = context
-    }
 
     private val _cameraSelector = MutableStateFlow(CameraSelector.DEFAULT_BACK_CAMERA)
     val cameraSelector: StateFlow<CameraSelector> = _cameraSelector.asStateFlow()
@@ -130,9 +125,9 @@ class CameraViewModel : ViewModel() {
         Log.d("CameraViewModel", "Exiting preview mode, requesting camera rebind")
     }
 
-    fun clearLastCapturedImage() {
+    fun clearLastCapturedImage(context: Context) {
         _lastCapturedImageUri.value?.let { uri ->
-            context?.let { ctx ->
+            context.let { ctx ->
                 try {
                     ctx.contentResolver.delete(uri, null, null)
                     Log.d("CameraViewModel", "写真を削除しました: $uri")
