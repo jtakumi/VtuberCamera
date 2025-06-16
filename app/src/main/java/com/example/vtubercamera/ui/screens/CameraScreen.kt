@@ -77,6 +77,12 @@ fun CameraScreen(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+
+    // contextをViewModelに設定
+    LaunchedEffect(Unit) {
+        viewModel.setContext(context)
+    }
+
     val cameraSelector by viewModel.cameraSelector.collectAsStateWithLifecycle()
     val lastCapturedImageUri by viewModel.lastCapturedImageUri.collectAsStateWithLifecycle()
     val isPreviewMode by viewModel.isPreviewMode.collectAsStateWithLifecycle()

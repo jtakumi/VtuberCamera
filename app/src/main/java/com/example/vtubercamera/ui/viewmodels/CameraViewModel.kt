@@ -12,13 +12,21 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 class CameraViewModel : ViewModel() {
+    private var context: Context? = null
+
+    fun setContext(context: Context) {
+        this.context = context
+    }
+
     private val _cameraSelector = MutableStateFlow(CameraSelector.DEFAULT_BACK_CAMERA)
     val cameraSelector: StateFlow<CameraSelector> = _cameraSelector.asStateFlow()
 
@@ -123,6 +131,16 @@ class CameraViewModel : ViewModel() {
     }
 
     fun clearLastCapturedImage() {
+        _lastCapturedImageUri.value?.let { uri ->
+            context?.let { ctx ->
+                try {
+                    ctx.contentResolver.delete(uri, null, null)
+                    Log.d("CameraViewModel", "写真を削除しました: $uri")
+                } catch (e: Exception) {
+                    Log.e("CameraViewModel", "写真の削除に失敗しました", e)
+                }
+            }
+        }
         _lastCapturedImageUri.value = null
         _isPreviewMode.value = false
         // カメラ再バインドフラグを設定
