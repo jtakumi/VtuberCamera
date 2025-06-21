@@ -22,6 +22,18 @@ android {
             useSupportLibrary true
         }
     }
+    
+    // JUnit 5を有効にする設定を追加
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+            // JUnit 5を使用する設定
+            all {
+                useJUnitPlatform()
+            }
+        }
+    }
+    
     viewBinding {
         enabled = true
     }
@@ -101,25 +113,31 @@ dependencies {
     implementation "androidx.camera:camera-view:${camerax_version}"
     implementation "androidx.camera:camera-extensions:${camerax_version}"
     
-    // Testing
-    testImplementation 'junit:junit:4.13.2'
+    // JUnit 5 Testing Dependencies
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.10.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.1'
+    
+    // Mockito with JUnit 5 support
+    testImplementation 'org.mockito:mockito-core:5.1.1'
+    testImplementation 'org.mockito:mockito-inline:5.1.1'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.1.1'
+    testImplementation 'org.mockito.kotlin:mockito-kotlin:4.1.0'
+    
+    // AndroidX Test Core - LiveData testing
+    testImplementation 'androidx.arch.core:core-testing:2.2.0'
+    
+    // Coroutines Testing
+    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3'
+    
+    // StateFlow testing
+    testImplementation 'app.cash.turbine:turbine:1.0.0'
+    
+    // Android testing dependencies
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
     androidTestImplementation "androidx.compose.ui:ui-test-junit4:$compose_version"
-    // Local Unit Tests用の依存関係
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.8.1'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
-    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
-    // AndroidX Test Core - LiveData testing
-    testImplementation 'androidx.arch.core:core-testing:2.2.0'
-    // Mockito - モッキングフレームワーク
-    testImplementation 'org.mockito:mockito-core:5.1.1'
-    testImplementation 'org.mockito:mockito-inline:5.1.1'
-    testImplementation 'org.mockito.kotlin:mockito-kotlin:4.1.0'
-    // Coroutines Testing - コルーチンのテスト用
-    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2'
-    testImplementation 'app.cash.turbine:turbine:0.13.0'
-    testImplementation 'androidx.arch.core:core-testing:2.2.0'
 
     debugImplementation "androidx.compose.ui:ui-tooling:$compose_version"
     debugImplementation 'androidx.compose.ui:ui-test-manifest'

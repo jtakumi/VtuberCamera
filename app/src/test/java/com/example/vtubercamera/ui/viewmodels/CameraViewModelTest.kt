@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraControl
+import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ZoomState
 import kotlinx.coroutines.Dispatchers
@@ -14,11 +15,15 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.Rule
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.junit.rules.TestWatcher
 import org.junit.runner.Description
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
-
+import org.mockito.kotlin.whenever
 
 class CameraViewModelTest {
 
@@ -49,75 +54,85 @@ class CameraViewModelTest {
     private lateinit var cameraViewModel: CameraViewModel
     private lateinit var closeable: AutoCloseable
 
-    @org.junit.jupiter.api.BeforeEach
+    @BeforeEach
     fun setUp() {
         closeable = MockitoAnnotations.openMocks(this)
         cameraViewModel = CameraViewModel()
         cameraViewModel.setCamera(mockCamera)
     }
 
-    @org.junit.jupiter.api.AfterEach
+    @AfterEach
     fun tearDown() {
         closeable.close()
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun getCameraSelector() {
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
+    fun switchCamera_DEFAULT_BACK_CAMERA_to_DEFAULT_FRONT_CAMERA() {
+        whenever(cameraViewModel.cameraSelector.value).thenReturn(CameraSelector.DEFAULT_BACK_CAMERA)
+        cameraViewModel.switchCamera()
+        Assertions.assertEquals(
+            CameraSelector.DEFAULT_FRONT_CAMERA,
+            cameraViewModel.cameraSelector.value
+        )
+    }
+
+    @Test
     fun getLastCapturedImageUri() {
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun isPreviewMode() {
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun getFlashMode() {
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun getZoomRatio() {
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun getNeedsCameraRebind() {
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun setCamera() {
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun switchCamera() {
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun toggleFlash() {
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun setZoom() {
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun takePhoto() {
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun enterPreviewMode() {
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun exitPreviewMode() {
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun clearLastCapturedImage() {
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun onCameraRebound() {
     }
 
