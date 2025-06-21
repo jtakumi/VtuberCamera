@@ -2,17 +2,31 @@ package com.example.vtubercamera.ui.viewmodels
 
 import android.content.ContentResolver
 import android.content.Context
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraControl
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ZoomState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.TestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.Rule
+import org.junit.rules.TestWatcher
+import org.junit.runner.Description
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 
+
 class CameraViewModelTest {
 
-    @get:org.junit.Rule
-    val instantExecutorRule = androidx.arch.core.executor.testing.InstantTaskExecutorRule()
+    @get:Rule
+    val instantExecutorRule = InstantTaskExecutorRule()
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     @Mock
     private lateinit var mockContext: Context
@@ -107,4 +121,18 @@ class CameraViewModelTest {
     fun onCameraRebound() {
     }
 
+}
+
+class MainDispatcherRule @OptIn(ExperimentalCoroutinesApi::class) constructor(
+    private val testDispatcher: TestDispatcher = UnconfinedTestDispatcher()
+) : TestWatcher() {
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun starting(description: Description?) {
+        Dispatchers.setMain(testDispatcher)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun finished(description: Description?) {
+        Dispatchers.resetMain()
+    }
 }
