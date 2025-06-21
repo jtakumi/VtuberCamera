@@ -1,6 +1,7 @@
 # VTuberCamera 変更履歴
 
 ## 目次
+- [2025-06-21: CameraViewModelテスト実装とJUnit 5対応](#2025-06-21-cameraviewmodelテスト実装とjunit-5対応)
 - [2025-06-16: UI改善とAndroid 15対応](#2025-06-16-ui改善とandroid-15対応)
 - [2025-06-15: Kotlin 2.0移行とDependabot導入](#2025-06-15-kotlin-20移行とdependabot導入)
 - [2025-06-13: ハードコーディング文字列の多言語リソース化](#2025-06-13-ハードコーディング文字列の多言語リソース化)
@@ -9,6 +10,87 @@
 - [2025-06-07: カメラ機能改善](#2025-06-07-カメラ機能改善)
 - [2025-06-06: CameraXの実装と改善](#2025-06-06-cameraxの実装と改善)
 - [2025-06-04-05: プロジェクト基盤構築](#2025-06-04-05-プロジェクト基盤構築)
+
+---
+
+## 2025-06-21: CameraViewModelテスト実装とJUnit 5対応
+
+### 🧪 テスト関連の改善
+#### **新規追加**
+- **CameraViewModelテスト計画**の策定
+  - 包括的なテスト戦略文書を作成
+  - 優先度付きテストケースの定義
+  - JUnit 5対応のテスト設計パターン
+  - StateFlowテスト手法の確立
+- **CameraViewModelJUnit5Test.kt**の実装
+  - JUnit 5対応の完全なテストスイート
+  - Mockitoを使用したモックベーステスト
+  - StateFlowのTurbineライブラリ対応
+  - Android依存を最小化した設計
+#### **テスト対象機能**
+- ✅ **カメラセレクター管理**
+  - 初期値検証（`DEFAULT_BACK_CAMERA`）
+  - `switchCamera()`による前後カメラ切り替え
+  - 複数回切り替えの動作確認
+- ✅ **フラッシュ機能**
+  - 初期状態（OFF）の確認
+  - OFF → ON → AUTO → OFF サイクルの検証
+- ✅ **ズーム機能**
+  - 初期値（1.0f）の確認
+  - 正常値設定と境界値制限の検証
+  - カメラnull時の例外処理
+- ✅ **プレビューモード制御**
+  - 入出力時の状態変化確認
+  - 再バインドフラグの管理
+- ✅ **画像管理**
+  - URI初期状態の確認
+  - 画像削除時の状態リセット
+### 🔧 技術的改善
+#### **build.gradle更新**
+```groovy
+// JUnit 5対応の依存関係追加
+testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
+testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.1'
+// Java 21対応のMockito更新
+testImplementation 'org.mockito:mockito-core:5.8.0'
+testImplementation 'org.mockito:mockito-junit-jupiter:5.8.0'
+testImplementation 'org.mockito.kotlin:mockito-kotlin:5.2.1'
+// StateFlowテスト用ライブラリ
+testImplementation 'app.cash.turbine:turbine:1.0.0'
+```
+#### **JUnit 5設定**
+- `useJUnitPlatform()`でJUnit 5テストランナーを有効化
+- `testOptions`でユニットテスト環境を最適化
+### 🐛 問題解決
+#### **Java 21互換性問題**
+- **問題**: Mockito古バージョンとJava 21のByte Buddy非互換
+- **解決**: Mockito 5.8.0への更新でJava 21サポート
+#### **JUnit 5 Extension API問題**
+- **問題**: JUnit 4ルール（`InstantTaskExecutorRule`）のJUnit 5非対応
+- **解決**: 手動ライフサイクル管理への変更
+```kotlin
+@BeforeEach
+fun setUp() {
+    instantExecutorRule.starting(null)
+    Dispatchers.setMain(testDispatcher)
+}
+```
+#### **Androidクラスモックエラー**
+- **問題**: `Context`等AndroidクラスのunitTestでのモック失敗
+- **解決**: 遅延初期化とシンプルなモック設計
+```kotlin
+private val mockContext: Context by lazy { 
+    mock<Context> {
+        on { contentResolver } doReturn mock<ContentResolver>()
+    }
+}
+```
+### 📊 テストカバレッジ
+#### **実装済みテスト**
+- **基本機能**: 15テストケース
+- **StateFlow**: Turbineライブラリでリアクティブテスト
+- **パラメータ化テスト**: 複数の入力値での動作確認
+- **ネストテスト**: 関連機能のグループ化
 
 ---
 
