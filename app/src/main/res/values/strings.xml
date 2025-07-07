@@ -39,4 +39,6 @@
     <string name="zoom_in">Zoom in</string>
     <string name="take_photo">Take photo</string>
     <string name="last_captured_photo">Last captured photo</string>
+    <string name="camera_preview_title">Camera Preview</string>
+    <string name="camera_preview_description">Actual camera functionality will be displayed here</string>
 </resources>
