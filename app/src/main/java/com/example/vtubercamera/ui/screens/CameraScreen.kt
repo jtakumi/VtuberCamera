@@ -523,6 +523,8 @@ private fun CameraScreenPreview() {
         }
         
         // トップバーのモック
+        //height = 64
+        //title font size = 22sp
         TopAppBar(
             title = { Text(stringResource(R.string.camera_title)) },
             actions = {
