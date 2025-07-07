@@ -39,4 +39,6 @@
     <string name="zoom_in">ズームイン</string>
     <string name="take_photo">写真を撮影</string>
     <string name="last_captured_photo">最後に撮影した写真</string>
+    <string name="camera_preview_title">カメラプレビュー</string>
+    <string name="camera_preview_description">実際のカメラ機能はここに表示されます</string>
 </resources> 
