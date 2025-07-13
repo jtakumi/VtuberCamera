@@ -96,6 +96,7 @@ fun CameraScreen(
     var previewView: PreviewView? by remember { mutableStateOf(null) }
     var preview: Preview? by remember { mutableStateOf(null) }
     var showPartialAccessDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -164,6 +165,30 @@ fun CameraScreen(
             dismissButton = {
                 TextButton(onClick = { showPartialAccessDialog = false }) {
                     Text(stringResource(R.string.later))
+                }
+            }
+        )
+    }
+
+    // 削除確認ダイアログ
+    if (showDeleteConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmDialog = false },
+            title = { Text(stringResource(R.string.delete_photo_title)) },
+            text = { Text(stringResource(R.string.delete_photo_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirmDialog = false
+                        viewModel.clearLastCapturedImage(context)
+                    }
+                ) {
+                    Text(stringResource(R.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmDialog = false }) {
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -251,7 +276,7 @@ fun CameraScreen(
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
                                 Button(
-                                    onClick = { viewModel.clearLastCapturedImage(context) },
+                                    onClick = { showDeleteConfirmDialog = true },
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.error
                                     )
