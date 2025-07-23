@@ -32,7 +32,7 @@ jobs:
       - name: Install reviewdog
         uses: reviewdog/action-setup@v1
         with:
-          reviewdog_version: latest
+          reviewdog_version:  v0.17.7 
 
       - name: Report lint results with reviewdog
         if: always()  # lint が失敗しても実行
