@@ -1,0 +1,89 @@
+name: Android Lint Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run Android Lint
+        run: ./gradlew lintDebug || true
+
+      - name: Install reviewdog
+        uses: reviewdog/action-setup@v1
+        with:
+          reviewdog_version: latest
+
+      - name: Convert Android Lint XML to efm lines
+        if: always()
+        run: |
+          set -euo pipefail
+          python3 <<'PY' > lint.out
+          import glob, xml.etree.ElementTree as ET, sys
+          files = glob.glob("**/lint-results-*.xml", recursive=True)
+          if not files:
+            sys.exit(0)
+          sev_map = {"Error":"e", "Fatal":"e", "Warning":"w", "Information":"i", "Informational":"i", "Ignore":"i"}
+          for xml_path in files:
+            try:
+              root = ET.parse(xml_path).getroot()
+            except Exception as e:
+              print(f"# failed to parse {xml_path}: {e}", file=sys.stderr)
+              continue
+            for issue in root.findall("issue"):
+              iid   = issue.get("id","UNKNOWN")
+              msg   = issue.get("message","").replace("\n"," ").strip()
+              sev   = sev_map.get(issue.get("severity","Warning"), "w")
+              locs  = issue.findall("location")
+              if not locs:
+                # some older formats put file/line on issue itself
+                f   = issue.get("file", xml_path)
+                ln  = issue.get("line","1")
+                print(f"{f}:{ln}: {sev}: [{iid}] {msg}")
+                continue
+              for loc in locs:
+                f   = loc.get("file", xml_path)
+                ln  = loc.get("line","1")
+                col = loc.get("column")
+                if col:
+                  print(f"{f}:{ln}:{col}: {sev}: [{iid}] {msg}")
+                else:
+                  print(f"{f}:{ln}: {sev}: [{iid}] {msg}")
+          PY
+          # 空なら reviewdog で失敗させないように空ファイルのまま続行
+          wc -l lint.out || true
+
+      - name: Report lint results with reviewdog
+        if: always()
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # efm を2パターン用意（列あり/なし）
+          reviewdog \
+            -efm="%f:%l:%c: %t: %m" \
+            -efm="%f:%l: %t: %m" \
+            -name="Android Lint" \
+            -reporter=github-pr-review \
+            -level=warning \
+            -fail-on-error=false \
+            < lint.out
