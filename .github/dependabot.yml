@@ -78,9 +78,7 @@ updates:
       prefix-development: "deps-dev"
       include: "scope"
 
-    # レビュアーの設定（必要に応じて）
-    reviewers:
-      - "jtakumi"  # GitHubユーザー名に変更してください
+
 
   # GitHub Actionsの更新
   - package-ecosystem: "github-actions"
@@ -95,7 +93,7 @@ updates:
       - "github-actions"
       - "ci-cd"
     assignees:
-      - ""  # GitHubユーザー名に変更してください
+      - "jtakumi"  # GitHubユーザー名
 
     open-pull-requests-limit: 3
 
