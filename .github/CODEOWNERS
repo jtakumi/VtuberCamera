@@ -1,0 +1,31 @@
+# vtuberCamera プロジェクトのコードオーナー設定
+# このファイルは、プルリクエストの自動レビュアー割り当てに使用されます
+# Dependabotのプルリクエストもこの設定に基づいてレビュアーが割り当てられます
+
+# デフォルト: すべてのファイルのオーナー
+* @jtakumi
+
+# Android関連の依存関係とビルド設定
+*.gradle @jtakumi
+gradle.properties @jtakumi
+build.gradle.kts @jtakumi
+app/build.gradle.kts @jtakumi
+
+# GitHub Actions設定
+.github/ @jtakumi
+
+# プロジェクト設定ファイル
+*.xml @jtakumi
+*.yml @jtakumi
+*.yaml @jtakumi
+*.json @jtakumi
+
+# Kotlin/Javaソースコード
+*.kt @jtakumi
+*.java @jtakumi
+
+# リソースファイル
+app/src/main/res/ @jtakumi
+
+# マニフェストファイル
+app/src/main/AndroidManifest.xml @jtakumi
