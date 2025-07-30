@@ -17,6 +17,8 @@ updates:
           - "androidx.*"
         exclude-patterns:
           - "androidx.compose.*"  # Composeは別グループで管理
+          - "androidx.camera:*"   # CameraXは別グループで管理
+          - "androidx.navigation:*" # Navigationは別グループで管理
 
       # Compose関連ライブラリ群
       compose:
@@ -24,7 +26,7 @@ updates:
           - "androidx.compose.*"
           - "*compose*"
 
-      # CameraX関連ライブラリ群
+      # CameraX関連ライブラリ群（VtuberCameraの中核機能）
       camerax:
         patterns:
           - "androidx.camera:*"
@@ -40,12 +42,36 @@ updates:
         patterns:
           - "org.jetbrains.kotlin*"
           - "*kotlin*"
+        exclude-patterns:
+          - "androidx.*"  # AndroidXのKotlin関連は別グループ
 
       # Material Design関連
       material:
         patterns:
           - "com.google.android.material:*"
           - "*material*"
+
+      # Testing関連ライブラリ
+      testing:
+        patterns:
+          - "*test*"
+          - "*mockito*"
+          - "*junit*"
+          - "*espresso*"
+
+      # Network関連ライブラリ
+      network:
+        patterns:
+          - "*retrofit*"
+          - "*okhttp*"
+          - "*gson*"
+          - "*moshi*"
+
+      # Firebase関連ライブラリ
+      firebase:
+        patterns:
+          - "com.google.firebase:*"
+          - "*firebase*"
 
     # 無視する更新（慎重に扱いたいもの）
     ignore:
@@ -61,6 +87,10 @@ updates:
       - dependency-name: "androidx.core:core-ktx"
         update-types: ["version-update:semver-major"]
 
+      # CameraXのメジャーバージョンは慎重に（VtuberCameraの核心機能）
+      - dependency-name: "androidx.camera:*"
+        update-types: ["version-update:semver-major"]
+
     # プルリクエストの設定
     open-pull-requests-limit: 8
 
@@ -69,14 +99,21 @@ updates:
       - "dependencies"
       - "android"
       - "vtuberCamera"
+      - "auto-update"
     assignees:
-      - "jtakumi"  # GitHubユーザー名に変更してください
+      - "jtakumi"  # GitHubユーザー名
+    reviewers:
+      - "jtakumi"  # レビュワーも設定
 
     # コミットメッセージのカスタマイズ
     commit-message:
       prefix: "deps"
       prefix-development: "deps-dev"
       include: "scope"
+
+    # プルリクエストのテンプレート（bodyに含まれる情報）
+    pull-request-branch-name:
+      separator: "-"
 
 
 
@@ -92,11 +129,18 @@ updates:
     labels:
       - "github-actions"
       - "ci-cd"
+      - "auto-update"
     assignees:
       - "jtakumi"  # GitHubユーザー名
+    reviewers:
+      - "jtakumi"
 
     open-pull-requests-limit: 3
 
     commit-message:
       prefix: "ci"
       include: "scope"
+
+    # GitHub Actionsも自動マージの対象から除外したい場合
+    ignore:
+      - update-types: ["version-update:semver-major"]
