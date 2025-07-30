@@ -95,8 +95,6 @@ updates:
       - "dependencies"
       - "android"
       - "vtuberCamera"
-    assignees:
-      - "jtakumi"  # GitHubユーザー名
 
     # コミットメッセージのカスタマイズ
     commit-message:
@@ -118,12 +116,6 @@ updates:
       day: "monday"
       time: "10:00"
       timezone: "Asia/Tokyo"
-
-    labels:
-      - "github-actions"
-      - "ci-cd"
-    assignees:
-      - "jtakumi"  # GitHubユーザー名
 
     open-pull-requests-limit: 3
 
