@@ -130,7 +130,3 @@ updates:
     commit-message:
       prefix: "ci"
       include: "scope"
-
-    # GitHub Actionsも自動マージの対象から除外したい場合
-    ignore:
-      - update-types: ["version-update:semver-major"]
