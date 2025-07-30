@@ -1,0 +1,267 @@
+name: 📦 Dependabot PR Comment
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  comment-on-dependabot-pr:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    
+    steps:
+      - name: 🔍 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: 📋 Analyze dependency changes
+        id: analyze-deps
+        run: |
+          # Gradle関連ファイルの変更を取得
+          git diff HEAD~1 HEAD -- '*.gradle' '*.gradle.kts' build.gradle app/build.gradle gradle/libs.versions.toml > dependency_changes.diff
+          
+          # 依存関係の変更を抽出
+          echo "DEPENDENCY_CHANGES<<EOF" >> $GITHUB_OUTPUT
+          cat dependency_changes.diff >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          # PRタイトルからグループ情報を取得
+          echo "PR_TITLE=${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
+
+      - name: 💬 Generate and post comment
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const prTitle = '${{ steps.analyze-deps.outputs.PR_TITLE }}';
+            const changes = `${{ steps.analyze-deps.outputs.DEPENDENCY_CHANGES }}`;
+            
+            // PRタイトルからグループを特定
+            function identifyGroup(title) {
+              const groupPatterns = {
+                'androidx': /androidx(?!\.compose)/i,
+                'compose': /compose|androidx\.compose/i,
+                'camerax': /camera/i,
+                'navigation': /navigation/i,
+                'kotlin': /kotlin/i,
+                'material': /material/i,
+                'firebase': /firebase/i,
+                'testing': /test|junit|espresso|mockito/i,
+                'network': /retrofit|okhttp|gson|moshi/i,
+                'github-actions': /github.*actions?/i,
+                'gradle-plugin': /android.*gradle.*plugin|gradle.*plugin/i
+              };
+              
+              for (const [group, pattern] of Object.entries(groupPatterns)) {
+                if (pattern.test(title)) return group;
+              }
+              return 'other';
+            }
+            
+            // 依存関係の変更を解析
+            function parseChanges(diffText) {
+              const lines = diffText.split('\n');
+              const updates = [];
+              
+              for (const line of lines) {
+                // 様々な形式に対応
+                const patterns = [
+                  /^[+-]\s*['"]*([^'":\s]+):([^'":\s]+)['"]*\s*[=:]\s*['"]*([^'"\s]+)/,
+                  /^[+-]\s*implementation\s*['"]*([^'":\s]+):([^'":\s]+):([^'"\s]+)/,
+                  /^[+-]\s*api\s*['"]*([^'":\s]+):([^'":\s]+):([^'"\s]+)/,
+                  /^[+-]\s*['"]*([^'"]+)['"]*\s*=\s*['"]*([^'"\s]+)/
+                ];
+                
+                for (const pattern of patterns) {
+                  const match = line.match(pattern);
+                  if (match) {
+                    const operation = line.startsWith('+') ? 'added' : 'removed';
+                    if (match.length === 4) {
+                      updates.push({
+                        operation,
+                        group: match[1],
+                        artifact: match[2],
+                        version: match[3],
+                        line: line.trim()
+                      });
+                    } else if (match.length === 3) {
+                      updates.push({
+                        operation,
+                        dependency: match[1],
+                        version: match[2],
+                        line: line.trim()
+                      });
+                    }
+                    break;
+                  }
+                }
+              }
+              
+              return updates;
+            }
+            
+            const group = identifyGroup(prTitle);
+            const updates = parseChanges(changes);
+            
+            // グループ別の絵文字とコメント
+            const groupInfo = {
+              'androidx': { emoji: '🏗️', name: 'AndroidX Libraries', color: '4CAF50' },
+              'compose': { emoji: '🎨', name: 'Jetpack Compose', color: '2196F3' },
+              'camerax': { emoji: '📷', name: 'CameraX (VtuberCamera Core)', color: 'FF9800' },
+              'navigation': { emoji: '🧭', name: 'Navigation Components', color: '9C27B0' },
+              'kotlin': { emoji: '🟣', name: 'Kotlin Libraries', color: '7B1FA2' },
+              'material': { emoji: '💎', name: 'Material Design', color: 'E91E63' },
+              'firebase': { emoji: '🔥', name: 'Firebase', color: 'FF5722' },
+              'testing': { emoji: '🧪', name: 'Testing Libraries', color: '4CAF50' },
+              'network': { emoji: '🌐', name: 'Network Libraries', color: '00BCD4' },
+              'github-actions': { emoji: '⚡', name: 'GitHub Actions', color: '2088FF' },
+              'gradle-plugin': { emoji: '🔧', name: 'Gradle Plugin', color: '02303A' },
+              'other': { emoji: '📦', name: 'Dependencies', color: '757575' }
+            };
+            
+            const info = groupInfo[group] || groupInfo['other'];
+            
+            // Android特有のチェックポイント
+            const androidChecks = {
+              'androidx': [
+                'API互換性の確認',
+                'minSdkVersionの変更確認',
+                'Proguard/R8ルールの更新確認'
+              ],
+              'compose': [
+                'Compiler Extensionバージョンの確認',
+                'UI表示に影響がないかテスト',
+                'パフォーマンスへの影響確認'
+              ],
+              'camerax': [
+                'カメラ機能の動作確認 🎬',
+                'プレビューとキャプチャの品質確認',
+                'デバイス互換性テスト',
+                'VtuberCamera固有機能のテスト'
+              ],
+              'navigation': [
+                '画面遷移の動作確認',
+                'Deep Linkの動作確認',
+                'Back Stackの動作確認'
+              ],
+              'kotlin': [
+                'コンパイルエラーの確認',
+                '言語機能の変更点確認',
+                'IDE設定の更新確認'
+              ],
+              'material': [
+                'テーマの表示確認',
+                'ダークモード対応確認',
+                'マテリアルコンポーネントの動作確認'
+              ],
+              'firebase': [
+                'Firebase機能の動作確認',
+                '認証・データベース接続確認',
+                'パフォーマンス監視の確認'
+              ],
+              'testing': [
+                'テストの実行確認',
+                'テストカバレッジの確認',
+                'CI/CDでのテスト実行確認'
+              ],
+              'network': [
+                'ネットワーク通信の確認',
+                'APIレスポンスの確認',
+                'エラーハンドリングの確認'
+              ],
+              'gradle-plugin': [
+                'ビルド設定の互換性確認',
+                'APKサイズへの影響確認',
+                'ビルド時間への影響確認'
+              ],
+              'other': [
+                '基本的な動作確認',
+                'ビルドエラーの確認',
+                '依存関係の競合確認'
+              ]
+            };
+            
+            // コメント本文を生成
+            let commentBody = `## ${info.emoji} ${info.name} Update\n\n`;
+            
+            commentBody += `> **VtuberCamera Project - Dependency Update**\n`;
+            commentBody += `> 自動更新されたライブラリの詳細情報とレビューチェックリストです\n\n`;
+            
+            if (updates.length > 0) {
+              commentBody += `### 📋 変更内容\n\n`;
+              
+              // バージョンアップとダウンを分けて表示
+              const added = updates.filter(u => u.operation === 'added');
+              const removed = updates.filter(u => u.operation === 'removed');
+              
+              if (added.length > 0) {
+                commentBody += `**⬆️ 更新されたライブラリ:**\n`;
+                added.forEach(update => {
+                  const fullName = update.group ? `${update.group}:${update.artifact}` : update.dependency;
+                  commentBody += `- **${fullName}** → \`${update.version}\`\n`;
+                });
+                commentBody += `\n`;
+              }
+              
+              if (removed.length > 0) {
+                commentBody += `**⬇️ 削除されたバージョン:**\n`;
+                removed.forEach(update => {
+                  const fullName = update.group ? `${update.group}:${update.artifact}` : update.dependency;
+                  commentBody += `- **${fullName}** ← \`${update.version}\`\n`;
+                });
+                commentBody += `\n`;
+              }
+            }
+            
+            // Android固有のチェックリスト
+            commentBody += `### ✅ ${info.name} 固有のチェックポイント\n\n`;
+            const checks = androidChecks[group] || androidChecks['other'];
+            checks.forEach(check => {
+              commentBody += `- [ ] ${check}\n`;
+            });
+            
+            commentBody += `\n### 🏗️ 一般的なチェックポイント\n\n`;
+            commentBody += `- [ ] ビルドが正常に完了する\n`;
+            commentBody += `- [ ] 単体テストが全て通る\n`;
+            commentBody += `- [ ] UIテストが正常に動作する\n`;
+            commentBody += `- [ ] APKサイズの変化を確認\n`;
+            commentBody += `- [ ] メモリ使用量の変化を確認\n`;
+            commentBody += `- [ ] セキュリティ脆弱性がないか確認\n\n`;
+            
+            commentBody += `### 📱 VtuberCamera固有テスト\n\n`;
+            commentBody += `- [ ] カメラプレビューの表示確認\n`;
+            commentBody += `- [ ] 写真・動画キャプチャ機能の確認\n`;
+            commentBody += `- [ ] フィルター・エフェクト機能の確認\n`;
+            commentBody += `- [ ] 設定画面の動作確認\n`;
+            commentBody += `- [ ] パフォーマンス（フレームレート）の確認\n\n`;
+            
+            commentBody += `### 🧪 デバイステスト\n\n`;
+            commentBody += `- [ ] 実機での動作確認（Android 7.0以上）\n`;
+            commentBody += `- [ ] 各種画面サイズでの表示確認\n`;
+            commentBody += `- [ ] ダークモード/ライトモードでの確認\n`;
+            commentBody += `- [ ] 異なるカメラハードウェアでの確認\n\n`;
+            
+            commentBody += `### 🔗 参考リンク\n\n`;
+            if (updates.length > 0) {
+              updates.forEach(update => {
+                if (update.group && update.artifact) {
+                  const mavenUrl = `https://mvnrepository.com/artifact/${update.group}/${update.artifact}/${update.version}`;
+                  commentBody += `- [${update.group}:${update.artifact}](${mavenUrl})\n`;
+                }
+              });
+            }
+            
+            commentBody += `\n---\n`;
+            commentBody += `<sub>🤖 このコメントは Dependabot PR Comment Action により自動生成されました</sub>`;
+            
+            // PRにコメントを投稿
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: commentBody
+            });
+            
+            console.log('✅ VtuberCamera Dependabot PR comment posted successfully!');

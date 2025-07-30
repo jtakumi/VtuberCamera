@@ -17,6 +17,8 @@ updates:
           - "androidx.*"
         exclude-patterns:
           - "androidx.compose.*"  # Composeは別グループで管理
+          - "androidx.camera:*"   # CameraXは別グループで管理
+          - "androidx.navigation:*" # Navigationは別グループで管理
 
       # Compose関連ライブラリ群
       compose:
@@ -24,7 +26,7 @@ updates:
           - "androidx.compose.*"
           - "*compose*"
 
-      # CameraX関連ライブラリ群
+      # CameraX関連ライブラリ群（VtuberCameraの中核機能）
       camerax:
         patterns:
           - "androidx.camera:*"
@@ -40,12 +42,36 @@ updates:
         patterns:
           - "org.jetbrains.kotlin*"
           - "*kotlin*"
+        exclude-patterns:
+          - "androidx.*"  # AndroidXのKotlin関連は別グループ
 
       # Material Design関連
       material:
         patterns:
           - "com.google.android.material:*"
           - "*material*"
+
+      # Testing関連ライブラリ
+      testing:
+        patterns:
+          - "*test*"
+          - "*mockito*"
+          - "*junit*"
+          - "*espresso*"
+
+      # Network関連ライブラリ
+      network:
+        patterns:
+          - "*retrofit*"
+          - "*okhttp*"
+          - "*gson*"
+          - "*moshi*"
+
+      # Firebase関連ライブラリ
+      firebase:
+        patterns:
+          - "com.google.firebase:*"
+          - "*firebase*"
 
     # 無視する更新（慎重に扱いたいもの）
     ignore:
@@ -70,13 +96,17 @@ updates:
       - "android"
       - "vtuberCamera"
     assignees:
-      - "jtakumi"  # GitHubユーザー名に変更してください
+      - "jtakumi"  # GitHubユーザー名
 
     # コミットメッセージのカスタマイズ
     commit-message:
       prefix: "deps"
       prefix-development: "deps-dev"
       include: "scope"
+
+    # プルリクエストのテンプレート（bodyに含まれる情報）
+    pull-request-branch-name:
+      separator: "-"
 
 
 
