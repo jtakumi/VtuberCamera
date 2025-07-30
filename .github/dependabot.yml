@@ -87,10 +87,6 @@ updates:
       - dependency-name: "androidx.core:core-ktx"
         update-types: ["version-update:semver-major"]
 
-      # CameraXのメジャーバージョンは慎重に（VtuberCameraの核心機能）
-      - dependency-name: "androidx.camera:*"
-        update-types: ["version-update:semver-major"]
-
     # プルリクエストの設定
     open-pull-requests-limit: 8
 
@@ -99,11 +95,8 @@ updates:
       - "dependencies"
       - "android"
       - "vtuberCamera"
-      - "auto-update"
     assignees:
       - "jtakumi"  # GitHubユーザー名
-    reviewers:
-      - "jtakumi"  # レビュワーも設定
 
     # コミットメッセージのカスタマイズ
     commit-message:
@@ -129,11 +122,8 @@ updates:
     labels:
       - "github-actions"
       - "ci-cd"
-      - "auto-update"
     assignees:
       - "jtakumi"  # GitHubユーザー名
-    reviewers:
-      - "jtakumi"
 
     open-pull-requests-limit: 3
 
