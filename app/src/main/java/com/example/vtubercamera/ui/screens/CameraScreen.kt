@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -47,6 +48,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -72,6 +75,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vtubercamera.R
 import com.example.vtubercamera.ui.components.AsyncImage
+import com.example.vtubercamera.ui.modifiers.cameraGestures
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 import com.example.vtubercamera.utils.PermissionUtils
 
@@ -314,7 +318,20 @@ fun CameraScreen(
                                         previewView = this // PreviewViewの参照を保存
                                     }
                                 },
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .cameraGestures(
+                                        onScale = { newZoom ->
+                                            viewModel.setZoom(newZoom)
+                                        },
+                                        onDoubleTap = {
+                                            viewModel.resetZoom()
+                                        },
+                                        currentZoom = zoomRatio,
+                                        minZoom = 1.0f,
+                                        maxZoom = camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 10.0f,
+                                        enableHapticFeedback = true
+                                    )
                             ) { view ->
                                 // 初回のみカメラプロバイダーを初期化
                                 if (cameraProvider == null) {
@@ -382,7 +399,56 @@ fun CameraScreen(
                                 }
                             }
 
-                            // ズームコントロール
+                            // ズーム情報表示
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(16.dp)
+                                    .background(
+                                        color = Color.Black.copy(alpha = 0.5f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                val maxZoomRatio = camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 10.0f
+                                val minZoomRatio = camera?.cameraInfo?.zoomState?.value?.minZoomRatio ?: 1.0f
+                                Text(
+                                    text = String.format(
+                                        "ズーム: %.1fx (%.1f-%.1fx)",
+                                        zoomRatio, minZoomRatio, maxZoomRatio
+                                    ),
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            
+                            // ズームスライダー
+                            Column(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = 100.dp)
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 32.dp)
+                            ) {
+                                val maxZoomRatio = camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 10.0f
+                                val minZoomRatio = camera?.cameraInfo?.zoomState?.value?.minZoomRatio ?: 1.0f
+                                
+                                Slider(
+                                    value = ((zoomRatio - minZoomRatio) / (maxZoomRatio - minZoomRatio)).coerceIn(0f, 1f),
+                                    onValueChange = { progress ->
+                                        val targetZoom = minZoomRatio + (maxZoomRatio - minZoomRatio) * progress
+                                        viewModel.setZoom(targetZoom)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = MaterialTheme.colorScheme.primary,
+                                        activeTrackColor = MaterialTheme.colorScheme.primary,
+                                        inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                                    )
+                                )
+                            }
+                            
+                            // ズームコントロールボタン
                             Row(
                                 modifier = Modifier
                                     .align(Alignment.BottomStart)
@@ -390,19 +456,33 @@ fun CameraScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 IconButton(
-                                    onClick = { viewModel.setZoom(zoomRatio - 0.5f) }
+                                    onClick = { viewModel.setZoom(zoomRatio - 0.5f) },
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(
+                                            color = Color.Black.copy(alpha = 0.5f),
+                                            shape = CircleShape
+                                        )
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.ZoomOut,
-                                        contentDescription = stringResource(R.string.zoom_out)
+                                        contentDescription = stringResource(R.string.zoom_out),
+                                        tint = Color.White
                                     )
                                 }
                                 IconButton(
-                                    onClick = { viewModel.setZoom(zoomRatio + 0.5f) }
+                                    onClick = { viewModel.setZoom(zoomRatio + 0.5f) },
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(
+                                            color = Color.Black.copy(alpha = 0.5f),
+                                            shape = CircleShape
+                                        )
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.ZoomIn,
-                                        contentDescription = stringResource(R.string.zoom_in)
+                                        contentDescription = stringResource(R.string.zoom_in),
+                                        tint = Color.White
                                     )
                                 }
                             }
