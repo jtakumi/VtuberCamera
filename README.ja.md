@@ -326,10 +326,6 @@ id 'org.jetbrains.kotlin.plugin.compose' version '2.1.21'
 - [ ] **AI機能の統合** - ML Kitでのフェイストラッキング、オブジェクト検出
 - [ ] **VTuber特化機能の実装** - アバター連携、モーショントラッキング
 
-## 📄 ライセンス
-
-このプロジェクトは [MIT License](LICENSE) の下で公開されています。
-
 ---
 
 <div align="center">
