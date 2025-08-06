@@ -1,8 +1,10 @@
 # VTuber Camera
 
+**Read this in other languages**: [English](README.md) | [日本語](README.ja.md)
+
 <div align="center">
 
-**現代的なJetpack Composeベースのカメラアプリケーション**
+**Modern Camera Application Built with Jetpack Compose**
 
 [![Android](https://img.shields.io/badge/Platform-Android-green.svg)](https://android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue.svg)](https://kotlinlang.org)
@@ -12,17 +14,17 @@
 
 </div>
 
-## 📸 スクリーンショット
+## 📸 Screenshots
 
 <div align="center">
 
-### 日本語UI
-| カメラプレビュー | 写真プレビュー |
+### Japanese UI
+| Camera Preview | Photo Preview |
 |:---:|:---:|
 | <img src="docs/images/camera_preview.png" width="300" alt="Camera Preview (Japanese)"> | <img src="docs/images/photo_preview.png" width="300" alt="Photo Preview (Japanese)"> |
-| リアルタイムカメラプレビュー表示 | 撮影した写真の確認・削除機能 |
+| Real-time camera preview display | Photo confirmation and delete function |
 
-### 英語UI
+### English UI
 | Camera Preview | Photo Preview |
 |:---:|:---:|
 | <img src="docs/images/camera_preview_en.png" width="300" alt="Camera Preview (English)"> | <img src="docs/images/photo_preview_en.png" width="300" alt="Photo Preview (English)"> |
@@ -30,187 +32,187 @@
 
 </div>
 
-## ✨ 主な機能
+## ✨ Key Features
 
-### 📱 カメラ機能
-- 🎥 **リアルタイムプレビュー** - CameraX 1.4.0による高品質なカメラプレビュー
-- 📷 **高品質撮影** - JPEG形式での写真撮影・自動保存（Pictures/VTuberCameraフォルダ）
-- 🔄 **カメラ切り替え** - フロント/バックカメラのシームレス切り替え
-- ⚡ **フラッシュ制御** - ON/OFF/AUTO の3モード対応
-- 🔍 **ズーム機能** - ピンチジェスチャー・ボタンでのズーム操作
-- 🖼️ **プレビューモード** - 撮影写真の即座確認・削除機能
-- 📐 **回転対応** - デバイス回転時の自動調整
+### 📱 Camera Features
+- 🎥 **Real-time Preview** - High-quality camera preview with CameraX 1.4.0
+- 📷 **High-quality Capture** - JPEG photo capture and auto-save (Pictures/VTuberCamera folder)
+- 🔄 **Camera Switching** - Seamless front/back camera switching
+- ⚡ **Flash Control** - 3 modes support: ON/OFF/AUTO
+- 🔍 **Zoom Function** - Pinch gesture and button zoom controls
+- 🖼️ **Preview Mode** - Instant photo confirmation and delete function
+- 📐 **Rotation Support** - Automatic adjustment for device rotation
 
 ### 🎨 UI/UX
-- 🌟 **Material Design 3** - 最新のデザインシステム採用
-- 🌙 **ダークモード対応** - システム設定に連動
-- 🎨 **Dynamic Color** - Android 12+の動的テーマ対応
-- 📱 **宣言的UI** - Jetpack Composeによる直感的なインターフェース
-- ⚡ **高速レスポンス** - 起動時間2秒以下、撮影レスポンス200ms以下
+- 🌟 **Material Design 3** - Latest design system implementation
+- 🌙 **Dark Mode Support** - System setting integration
+- 🎨 **Dynamic Color** - Android 12+ dynamic theme support
+- 📱 **Declarative UI** - Intuitive interface with Jetpack Compose
+- ⚡ **Fast Response** - Startup time < 2s, capture response < 200ms
 
-## 🏗️ 技術スタック
+## 🏗️ Tech Stack
 
-### コア技術
+### Core Technologies
 - **Language**: Kotlin 2.1.21
 - **UI Framework**: Jetpack Compose 1.7.8
 - **Camera**: CameraX 1.4.2
 - **Architecture**: MVVM + StateFlow
 - **Design**: Material Design 3
-- **画像処理**: Coil 2.7.0
+- **Image Processing**: Coil 2.7.0
 - **Dependency Management**: Dependabot Automation
 
-### 開発環境
-- **Android Studio**: Hedgehog以上推奨 (Kotlin 2.0対応)
-- **Gradle**: 8.5+ (Kotlin 2.0必須要件)
+### Development Environment
+- **Android Studio**: Hedgehog or above (Kotlin 2.0 support required)
+- **Gradle**: 8.5+ (Kotlin 2.0 required)
 - **Min SDK**: 24 (Android 7.0+)
 - **Target SDK**: 35 (Android 15)
-- **Compile SDK**: 35 (Android 15対応)
-- **JDK**: 11+ (Kotlin 2.0推奨)
+- **Compile SDK**: 35 (Android 15 support)
+- **JDK**: 11+ (Kotlin 2.0 recommended)
 
-## 🚀 使用方法
+## 🚀 How to Use
 
-### 基本操作
-1. **アプリ起動** - カメラアイコンをタップしてアプリを開始
-2. **権限許可** - カメラ使用許可を承認
-3. **撮影** - 中央の撮影ボタンで写真を撮影
-4. **プレビュー** - 右下のサムネイルで撮影写真を確認
+### Basic Operations
+1. **Launch App** - Tap the camera icon to start the application
+2. **Grant Permission** - Approve camera usage permission
+3. **Take Photo** - Use the center capture button to take photos
+4. **Preview** - Tap the thumbnail in the bottom right to view captured photos
 
-### 高度な機能
-- **カメラ切り替え**: 右上の切り替えアイコンをタップ
-- **フラッシュ制御**: 右上のフラッシュアイコンで設定変更（OFF→ON→AUTO→OFF）
-- **ズーム操作**: 
-  - ピンチイン/アウトジェスチャー
-  - 左下の+/-ボタン
-- **写真管理**: プレビューモードで削除・保存の選択
+### Advanced Features
+- **Camera Switching**: Tap the switch icon in the top right
+- **Flash Control**: Tap the flash icon in the top right to change settings (OFF→ON→AUTO→OFF)
+- **Zoom Operations**: 
+  - Pinch in/out gesture
+  - +/- buttons in the bottom left
+- **Photo Management**: Delete or save options in preview mode
 
-## 📁 プロジェクト構造
+## 📁 Project Structure
 
 ```
 📦 VtuberCamera
 ├── 📱 app/src/main/
-│   ├── 🏠 MainActivity.kt                       # メインエントリーポイント
-│   ├── 📄 AndroidManifest.xml                   # アプリマニフェスト・権限設定
+│   ├── 🏠 MainActivity.kt                       # Main entry point
+│   ├── 📄 AndroidManifest.xml                   # App manifest and permissions
 │   │
 │   ├── 🎯 java/com/example/vtubercamera/
-│   │   ├── 🎥 ui/screens/CameraScreen.kt        # カメラ画面実装（Compose）
-│   │   ├── 🏗️ ui/viewmodels/CameraViewModel.kt  # 状態管理（MVVM）
-│   │   ├── 🎨 ui/components/AsyncImage.kt       # 画像表示コンポーネント
-│   │   ├── 🎨 ui/theme/                         # Material Design 3 テーマ
-│   │   │   ├── Theme.kt                        # アプリテーマ定義
-│   │   │   ├── Color.kt                        # カラーパレット
-│   │   │   └── Type.kt                         # タイポグラフィ
-│   │   └── 🔧 utils/                           # ユーティリティクラス
-│   │       ├── Android15Features.kt           # Android 15 新機能対応
-│   │       └── PermissionUtils.kt              # 権限管理ユーティリティ
+│   │   ├── 🎥 ui/screens/CameraScreen.kt        # Camera screen implementation (Compose)
+│   │   ├── 🏗️ ui/viewmodels/CameraViewModel.kt  # State management (MVVM)
+│   │   ├── 🎨 ui/components/AsyncImage.kt       # Image display component
+│   │   ├── 🎨 ui/theme/                         # Material Design 3 theme
+│   │   │   ├── Theme.kt                        # App theme definition
+│   │   │   ├── Color.kt                        # Color palette
+│   │   │   └── Type.kt                         # Typography
+│   │   └── 🔧 utils/                           # Utility classes
+│   │       ├── Android15Features.kt           # Android 15 feature support
+│   │       └── PermissionUtils.kt              # Permission management utilities
 │   │
 │   └── 📂 res/
-│       ├── 🌐 values/strings.xml               # 英語リソース（デフォルト）
-│       ├── 🇯🇵 values-ja/strings.xml            # 日本語リソース
-│       ├── 🎨 drawable/                        # アイコン・画像リソース
-│       ├── 🖼️ mipmap-*/                        # アプリアイコン（各解像度）
-│       ├── 🎵 raw/                             # 音声ファイル
-│       │   ├── camera_shutter.mp3             # シャッター音
-│       │   └── enter_app.mp3                  # アプリ起動音
-│       ├── 🔧 xml/                             # 設定ファイル
-│       └── 📐 layout/                          # レガシーレイアウト（参考用）
+│       ├── 🌐 values/strings.xml               # English resources (default)
+│       ├── 🇯🇵 values-ja/strings.xml            # Japanese resources
+│       ├── 🎨 drawable/                        # Icon and image resources
+│       ├── 🖼️ mipmap-*/                        # App icons (each resolution)
+│       ├── 🎵 raw/                             # Audio files
+│       │   ├── camera_shutter.mp3             # Shutter sound
+│       │   └── enter_app.mp3                  # App startup sound
+│       ├── 🔧 xml/                             # Configuration files
+│       └── 📐 layout/                          # Legacy layouts (for reference)
 │
 ├── 🔨 app/
-│   ├── build.gradle                            # アプリレベルビルド設定
-│   └── proguard-rules.pro                     # ProGuard設定（リリース用）
+│   ├── build.gradle                            # App-level build configuration
+│   └── proguard-rules.pro                     # ProGuard configuration (for release)
 │
-├── 📚 docs/                                    # プロジェクトドキュメント
-│   ├── CHANGE_LOG.md                          # 詳細な変更履歴
-│   └── images/                                # スクリーンショット
-│       ├── camera_preview.png                 # カメラプレビュー画面（日本語）
-│       ├── photo_preview.png                  # 写真プレビュー画面（日本語）
-│       ├── camera_preview_en.png              # カメラプレビュー画面（英語）
-│       └── photo_preview_en.png               # 写真プレビュー画面（英語）
+├── 📚 docs/                                    # Project documentation
+│   ├── CHANGE_LOG.md                          # Detailed changelog
+│   └── images/                                # Screenshots
+│       ├── camera_preview.png                 # Camera preview (Japanese)
+│       ├── photo_preview.png                  # Photo preview (Japanese)
+│       ├── camera_preview_en.png              # Camera preview (English)
+│       └── photo_preview_en.png               # Photo preview (English)
 │
-├── 🤖 .github/                                 # GitHub自動化設定
-│   └── dependabot.yml                        # 依存関係自動更新設定
+├── 🤖 .github/                                 # GitHub automation configuration
+│   └── dependabot.yml                        # Automatic dependency update configuration
 │
-├── 🔧 プロジェクト設定ファイル
-│   ├── build.gradle                           # プロジェクトレベルビルド設定 (Kotlin 2.1.21)
-│   ├── settings.gradle                        # Gradle設定
-│   ├── gradle.properties                      # Gradleプロパティ (Kotlin 2.0最適化)
-│   ├── local.properties                       # ローカル環境設定
-│   └── README.md                              # プロジェクト概要（このファイル）
+├── 🔧 Project configuration files
+│   ├── build.gradle                           # Project-level build configuration (Kotlin 2.1.21)
+│   ├── settings.gradle                        # Gradle settings
+│   ├── gradle.properties                      # Gradle properties (Kotlin 2.0 optimization)
+│   ├── local.properties                       # Local environment configuration
+│   └── README.md                              # Project overview (this file)
 │
-└── 🔒 .git/                                   # Git管理ファイル
+└── 🔒 .git/                                   # Git management files
 ```
 
-### 🏗️ アーキテクチャの詳細
+### 🏗️ Architecture Details
 
-#### コア実装
-- **MainActivity.kt**: Jetpack Composeのセットアップとカメラ画面の表示
-- **CameraScreen.kt**: カメラプレビュー、撮影、権限管理の全機能を統合
-- **CameraViewModel.kt**: カメラ状態、撮影写真、プレビューモードの管理
+#### Core Implementation
+- **MainActivity.kt**: Jetpack Compose setup and camera screen display
+- **CameraScreen.kt**: Integration of all camera features including preview, capture, and permission management
+- **CameraViewModel.kt**: Management of camera state, captured photos, and preview mode
 
-#### 多言語対応アーキテクチャ
-- **values/strings.xml**: 英語リソース（フォールバック用）
-- **values-ja/strings.xml**: 日本語リソース
-- **stringResource()**: Compose内での型安全な文字列参照
+#### Multi-language Support Architecture
+- **values/strings.xml**: English resources (fallback)
+- **values-ja/strings.xml**: Japanese resources
+- **stringResource()**: Type-safe string references within Compose
 
-#### Android 15対応
-- **Android15Features.kt**: Private Space、バックグラウンド制限等の新機能
-- **PermissionUtils.kt**: パーシャルフォトアクセス等の新権限対応
-- **AndroidManifest.xml**: READ_MEDIA_VISUAL_USER_SELECTED権限追加
+#### Android 15 Support
+- **Android15Features.kt**: New features like Private Space and background restrictions
+- **PermissionUtils.kt**: New permission support including partial photo access
+- **AndroidManifest.xml**: Added READ_MEDIA_VISUAL_USER_SELECTED permission
 
-#### UI/UXコンポーネント
-- **AsyncImage.kt**: Coilを使用した効率的な画像読み込みコンポーネント
-- **Theme.kt**: Material Design 3の動的カラー・ダークモード対応
-- **Color.kt & Type.kt**: 一貫したデザインシステム
+#### UI/UX Components
+- **AsyncImage.kt**: Efficient image loading component using Coil
+- **Theme.kt**: Material Design 3 dynamic color and dark mode support
+- **Color.kt & Type.kt**: Consistent design system
 
-### 🗂️ ファイル種別と役割
+### 🗂️ File Types and Roles
 
-| カテゴリ | ファイル | 主要な役割 |
+| Category | Files | Primary Role |
 |---------|---------|----------|
-| 📱 **Core** | MainActivity.kt | アプリエントリーポイント、Compose統合 |
-| 🎥 **Camera** | CameraScreen.kt | カメラ機能の全実装（撮影・プレビュー・権限） |
-| 🏗️ **State** | CameraViewModel.kt | MVVM状態管理、ライフサイクル対応 |
-| 🎨 **UI** | ui/theme/* | Material Design 3テーマシステム |
-| 🔧 **Utils** | utils/* | Android 15対応、権限管理ユーティリティ |
-| 🌐 **i18n** | values*/strings.xml | 多言語リソース（日本語・英語） |
-| 📚 **Docs** | docs/* | 開発履歴、スクリーンショット、技術文書 |
-| ⚙️ **Config** | *.gradle, *.xml | ビルド設定、ProGuard、権限設定 |
+| 📱 **Core** | MainActivity.kt | App entry point, Compose integration |
+| 🎥 **Camera** | CameraScreen.kt | Complete camera functionality implementation (capture, preview, permissions) |
+| 🏗️ **State** | CameraViewModel.kt | MVVM state management, lifecycle handling |
+| 🎨 **UI** | ui/theme/* | Material Design 3 theme system |
+| 🔧 **Utils** | utils/* | Android 15 support, permission management utilities |
+| 🌐 **i18n** | values*/strings.xml | Multi-language resources (Japanese/English) |
+| 📚 **Docs** | docs/* | Development history, screenshots, technical documentation |
+| ⚙️ **Config** | *.gradle, *.xml | Build configuration, ProGuard, permission settings |
 
-## 🔧 セットアップ
+## 🔧 Setup
 
-### 前提条件
-- Android Studio Hedgehog以上 (Kotlin 2.0必須要件)
-- JDK 11以上 (Kotlin 2.1.21推奨)
-- Gradle 8.5以上 (Kotlin 2.0必須要件)
-- Android SDK 24以上
+### Prerequisites
+- Android Studio Hedgehog or above (Kotlin 2.0 requirement)
+- JDK 11 or above (Kotlin 2.1.21 recommended)
+- Gradle 8.5 or above (Kotlin 2.0 requirement)
+- Android SDK 24 or above
 
-### インストール手順
-1. **リポジトリをクローン**
+### Installation Steps
+1. **Clone the repository**
    ```bash
    git clone https://github.com/yourusername/VtuberCamera.git
    cd VtuberCamera
    ```
 
-2. **Android Studioで開く**
-   - Android Studioを起動
-   - "Open an existing project"を選択
-   - クローンしたフォルダを選択
+2. **Open in Android Studio**
+   - Launch Android Studio
+   - Select "Open an existing project"
+   - Choose the cloned folder
 
-3. **依存関係の同期**
+3. **Sync dependencies**
    ```bash
    ./gradlew sync
    ```
 
-4. **アプリを実行**
-   - デバイス/エミュレータを接続
-   - Run ボタンをクリック
+4. **Run the app**
+   - Connect device/emulator
+   - Click the Run button
 
-## 🛠️ 開発
+## 🛠️ Development
 
-### アーキテクチャ
+### Architecture
 - **MVVM Pattern**: ViewModel + StateFlow
-- **Unidirectional Data Flow**: 状態ドリブンUI更新
-- **Compose Integration**: 宣言的UIパラダイム
+- **Unidirectional Data Flow**: State-driven UI updates
+- **Compose Integration**: Declarative UI paradigm
 
-### 主要な依存関係
+### Key Dependencies
 ```kotlin
 // CameraX (1.4.2)
 implementation "androidx.camera:camera-core:1.4.2"
@@ -228,107 +230,105 @@ implementation "androidx.activity:activity-compose:1.10.1"
 implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.9.1"
 implementation "androidx.core:core-ktx:1.16.0"
 
-// 画像処理 (2.7.0)
+// Image Processing (2.7.0)
 implementation "io.coil-kt:coil-compose:2.7.0"
 
 // Kotlin 2.1.21 + Compose Compiler Plugin
 id 'org.jetbrains.kotlin.plugin.compose' version '2.1.21'
 ```
 
-## 📈 パフォーマンス
+## 📈 Performance
 
-### 最適化された実装
-- ✅ **CameraX統合**: 98%のAndroidデバイス互換性
-- ✅ **効率的な状態管理**: StateFlowによるメモリ効率
-- ✅ **Compose最適化**: Recomposition最小化
-- ✅ **バッテリー効率**: 適切なライフサイクル管理
-- ✅ **プレビュー安定性**: 画面遷移時の安定したカメラプレビュー
+### Optimized Implementation
+- ✅ **CameraX Integration**: 98% Android device compatibility
+- ✅ **Efficient State Management**: Memory-efficient with StateFlow
+- ✅ **Compose Optimization**: Minimized recomposition
+- ✅ **Battery Efficiency**: Proper lifecycle management
+- ✅ **Preview Stability**: Stable camera preview during screen transitions
 
-### ベンチマーク結果
-- **起動時間**: < 2秒
-- **撮影レスポンス**: < 200ms
-- **メモリ使用量**: < 200MB
-- **バッテリー効率**: 標準カメラアプリ比較で95%
+### Benchmark Results
+- **Startup Time**: < 2 seconds
+- **Capture Response**: < 200ms
+- **Memory Usage**: < 200MB
+- **Battery Efficiency**: 95% compared to standard camera apps
 
-## 🔄 更新履歴
+## 🔄 Changelog
 
-### 📋 詳細な変更履歴
+### 📋 Detailed Changelog
 
-**詳細な開発履歴と技術的な変更点については、[CHANGE_LOG.md](docs/CHANGE_LOG.md) をご覧ください。**
+**For detailed development history and technical changes, please see [CHANGE_LOG.md](docs/CHANGE_LOG.md).**
 
-### 最近の変更
+### Recent Changes
 
-#### 📅 2025-07-13: 削除確認ダイアログの実装
+#### 📅 2025-07-13: Delete Confirmation Dialog Implementation
 
-**🎯 概要**
-- 削除ボタンを押したときに確認ダイアログを表示する安全機能を実装
-- ユーザーの誤操作防止とより安全な写真管理を実現
+**🎯 Overview**
+- Implemented safety feature to display confirmation dialog when delete button is pressed
+- Prevention of user errors and more secure photo management
 
-**🚀 主要な機能追加・改善**
-- **削除確認ダイアログ**: 削除ボタン押下時の確認ダイアログ表示
-- **誤操作防止**: 削除アクションの明確な確認フロー
-- **多言語対応**: 日本語・英語での適切なメッセージ表示
-- **操作キャンセル**: ダイアログでの操作取り消し機能
+**🚀 Major Feature Additions & Improvements**
+- **Delete Confirmation Dialog**: Confirmation dialog display when delete button is pressed
+- **Error Prevention**: Clear confirmation flow for delete actions
+- **Multi-language Support**: Appropriate messages in Japanese and English
+- **Operation Cancellation**: Operation cancellation functionality in dialog
 
-**📈 ユーザー体験の向上**
-- **安全性向上**: 意図しない写真削除の防止
-- **明確な操作確認**: "削除"と"キャンセル"の明確な選択肢
-- **直感的なUI**: Material Design 3に準拠したダイアログデザイン
-- **アクセシビリティ**: スクリーンリーダー対応の確認メッセージ
+**📈 User Experience Improvements**
+- **Enhanced Safety**: Prevention of unintended photo deletion
+- **Clear Operation Confirmation**: Clear "Delete" and "Cancel" options
+- **Intuitive UI**: Dialog design compliant with Material Design 3
+- **Accessibility**: Screen reader compatible confirmation messages
 
-**🔧 技術的な実装**
-- **状態管理**: `showDeleteConfirmDialog`状態変数の追加
-- **リソース管理**: 新しい文字列リソースの多言語対応
-- **UI改善**: AlertDialogによる標準的な確認フロー
+**🔧 Technical Implementation**
+- **State Management**: Added `showDeleteConfirmDialog` state variable
+- **Resource Management**: Multi-language support for new string resources
+- **UI Improvements**: Standard confirmation flow with AlertDialog
 
-### 主要なマイルストーン
-- ✅ **基本カメラ機能** - 撮影、プレビュー、保存機能の実装
-- ✅ **フラッシュ制御** - OFF/ON/AUTO モード完全対応
-- ✅ **カメラ切り替え** - フロント/バック切り替えの安定化
-- ✅ **ズーム機能** - ボタン操作
-- ✅ **状態管理最適化** - プレビューモード変更時の安定動作
-- ✅ **自動依存関係管理** - Dependabotでの週次自動更新
-- ✅ **テスト基盤** - CameraViewModelTest.ktのMockitoベーステスト構築
+### Major Milestones
+- ✅ **Basic Camera Functions** - Implementation of capture, preview, and save features
+- ✅ **Flash Control** - Complete support for OFF/ON/AUTO modes
+- ✅ **Camera Switching** - Stabilized front/back switching
+- ✅ **Zoom Function** - Button controls
+- ✅ **State Management Optimization** - Stable operation during preview mode changes
+- ✅ **Automatic Dependency Management** - Weekly automatic updates with Dependabot
+- ✅ **Testing Foundation** - Mockito-based test construction for CameraViewModelTest.kt
 
-## 🤝 コントリビューション
+## 🤝 Contributing
 
-### 開発に参加
-1. このリポジトリをクローン
-2. 機能ブランチを作成 (`git checkout -b feature/amazing-feature`)
-3. 変更をコミット (`git commit -m 'Add some amazing feature'`)
-4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
-5. プルリクエストを作成
+### Join Development
+1. Clone this repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Create a Pull Request
 
-### 課題報告
-- [Issues](../../issues) から新しいissueを作成
-- バグ報告、機能要望、質問などお気軽に
+### Issue Reporting
+- Create new issues from [Issues](../../issues)
+- Bug reports, feature requests, questions - feel free to ask
 
-## 📋 TODO / 今後の予定
+## 📋 TODO / Future Plans
 
-### 短期的な改善（1-2週間）
-- [ ] **CameraViewModelTest.ktの実装完成** - 14個のテストメソッドの実装
-- [ ] **他のViewModelテスト追加** - 全コンポーネントのテストカバレッジ向上
-- [ ] **Dependabot動作監視** - 自動更新の安定性確認
-- [ ] **最新ライブラリ機能の活用** - AGP 8.10.1、Compose 2.1.21の新機能研究
+### Short-term Improvements (1-2 weeks)
+- [ ] **Complete CameraViewModelTest.kt Implementation** - Implementation of 14 test methods
+- [ ] **Add Other ViewModel Tests** - Improve test coverage for all components
+- [ ] **Monitor Dependabot Operations** - Confirm stability of automatic updates
+- [ ] **Utilize Latest Library Features** - Research new features of AGP 8.10.1, Compose 2.1.21
 
-### 中期的な機能追加（1-2ヶ月）
-- [ ] **テストカバレッジ80%達成** - ユニットテスト、結合テストの完全実装
-- [ ] **CI/CDパイプライン完全自動化** - GitHub Actionsでのテスト、ビルド、デプロイ
-- [ ] **パフォーマンス測定自動化** - ビルド時間、メモリ使用量の継続監視
-- [ ] **動画撮影機能** - CameraX VideoCaptureの実装
-- [ ] **カメラフィルター・エフェクト機能** - リアルタイム画像処理
+### Medium-term Feature Additions (1-2 months)
+- [ ] **Achieve 80% Test Coverage** - Complete implementation of unit tests and integration tests
+- [ ] **Complete CI/CD Pipeline Automation** - Test, build, and deploy with GitHub Actions
+- [ ] **Automate Performance Measurement** - Continuous monitoring of build time and memory usage
+- [ ] **Video Recording Feature** - Implementation of CameraX VideoCapture
+- [ ] **Camera Filters & Effects Features** - Real-time image processing
 
-### 長期的な目標（3-6ヶ月）
-- [ ] **E2Eテスト実装** - Espresso、UIAutomatorでの結合テスト
-- [ ] **Kotlin Multiplatform移行検討** - iOS対応とコード共有
-- [ ] **AI機能の統合** - ML Kitでのフェイストラッキング、オブジェクト検出
-- [ ] **VTuber特化機能の実装** - アバター連携、モーショントラッキング
+### Long-term Goals (3-6 months)
+- [ ] **E2E Test Implementation** - Integration testing with Espresso and UIAutomator
+- [ ] **Consider Kotlin Multiplatform Migration** - iOS support and code sharing
+- [ ] **AI Feature Integration** - Face tracking and object detection with ML Kit
+- [ ] **VTuber-specific Feature Implementation** - Avatar integration, motion tracking
 
-## 📄 ライセンス
+## 📄 License
 
-このプロジェクトは [MIT License](LICENSE) の下で公開されています。
-
-
+This project is licensed under the [MIT License](LICENSE).
 
 ---
 
@@ -336,6 +336,6 @@ id 'org.jetbrains.kotlin.plugin.compose' version '2.1.21'
 
 **Made with ❤️ for VTuber Community**
 
-[🐛 バグ報告](../../issues) | [💡 機能要望](../../issues) | [📖 ドキュメント](docs/) | [⭐ Star this repo](../../stargazers)
+[🐛 Bug Report](../../issues) | [💡 Feature Request](../../issues) | [📖 Documentation](docs/) | [⭐ Star this repo](../../stargazers)
 
 </div>
