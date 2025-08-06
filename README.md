@@ -326,10 +326,6 @@ id 'org.jetbrains.kotlin.plugin.compose' version '2.1.21'
 - [ ] **AI Feature Integration** - Face tracking and object detection with ML Kit
 - [ ] **VTuber-specific Feature Implementation** - Avatar integration, motion tracking
 
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).
-
 ---
 
 <div align="center">
