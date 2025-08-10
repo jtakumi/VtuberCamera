@@ -413,8 +413,8 @@ fun CameraScreen(
                                 val maxZoomRatio = camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 10.0f
                                 val minZoomRatio = camera?.cameraInfo?.zoomState?.value?.minZoomRatio ?: 1.0f
                                 Text(
-                                    text = String.format(
-                                        "ズーム: %.1fx (%.1f-%.1fx)",
+                                    text = stringResource(
+                                        R.string.zoom_info,
                                         zoomRatio, minZoomRatio, maxZoomRatio
                                     ),
                                     color = Color.White,
