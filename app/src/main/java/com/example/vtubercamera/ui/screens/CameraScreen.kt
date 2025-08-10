@@ -328,7 +328,7 @@ fun CameraScreen(
                                             viewModel.resetZoom()
                                         },
                                         currentZoom = zoomRatio,
-                                        minZoom = 1.0f,
+                                        minZoom = camera?.cameraInfo?.zoomState?.value?.minZoomRatio ?: 1.0f,
                                         maxZoom = camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 10.0f,
                                         enableHapticFeedback = true
                                     )
@@ -648,7 +648,7 @@ private fun CameraScreenPreview() {
                 )
             )
         }
-            
+
         // シャッターボタン（下部中央）
         FloatingActionButton(
             onClick = {},
