@@ -548,11 +548,32 @@ private fun bindCameraWithPreview(
 @Composable
 private fun CameraScreenPreview() {
     // プレビュー用のモックUI
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-    ) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.camera_title)) },
+                actions = {
+                    IconButton(onClick = {}) {
+                        Icon(
+                            imageVector = Icons.Default.FlashOff,
+                            contentDescription = stringResource(R.string.flash_mode_toggle)
+                        )
+                    }
+                    IconButton(onClick = {}) {
+                        Icon(
+                            imageVector = Icons.Default.Cameraswitch,
+                            contentDescription = stringResource(R.string.switch_camera)
+                        )
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
         // カメラプレビューエリアのモック
         Box(
             modifier = Modifier
@@ -587,102 +608,80 @@ private fun CameraScreenPreview() {
             }
         }
         
-        // トップバーのモック
-        //height = 64
-        //title font size = 22sp
-        TopAppBar(
-            title = { Text(stringResource(R.string.camera_title)) },
-            actions = {
-                IconButton(onClick = {}) {
-                    Icon(
-                        imageVector = Icons.Default.FlashOff,
-                        contentDescription = "フラッシュ"
-                    )
-                }
-                IconButton(onClick = {}) {
-                    Icon(
-                        imageVector = Icons.Default.Cameraswitch,
-                        contentDescription = "カメラ切り替え"
-                    )
-                }
-            },
-            modifier = Modifier.align(Alignment.TopCenter)
-        )
-        
-        // コントロールボタンのモック
-        Row(
+        // ズーム情報表示（右上）
+        Box(
             modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(bottom = 32.dp, start = 32.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+                .background(
+                    color = Color.Black.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(8.dp)
+                )
+                .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
-            // ズームコントロール
-            IconButton(
-                onClick = {},
-                modifier = Modifier
-                    .size(48.dp)
-                    .align(Alignment.CenterVertically)
-                    .background(
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                        shape = CircleShape
-                    )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ZoomOut,
-                    contentDescription = "ズームアウト",
-                    tint = Color.White
-                )
-            }
-            // ズームコントロール
-            IconButton(
-                onClick = {},
-                modifier = Modifier
-                    .size(48.dp)
-                    .align(Alignment.CenterVertically)
-                    .background(
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                        shape = CircleShape
-                    )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ZoomIn,
-                    contentDescription = "ズームイン",
-                    tint = Color.White
-                )
-            }
-            
-            // シャッターボタン
-            FloatingActionButton(
-                onClick = {},
-                modifier = Modifier.size(72.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Camera,
-                    contentDescription = "写真撮影",
-                    modifier = Modifier.size(32.dp)
-                )
-            }
+            Text(
+                text = stringResource(
+                    R.string.zoom_info,
+                    2.0f, 1.0f, 10.0f
+                ),
+                color = Color.White,
+                style = MaterialTheme.typography.bodySmall
+            )
         }
         
-        // サムネイルのモック
+        // ズームスライダー（下部中央、シャッターボタンの上）
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 100.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp)
+        ) {
+            Slider(
+                value = 0.2f,
+                onValueChange = { },
+                modifier = Modifier.fillMaxWidth(),
+                colors = SliderDefaults.colors(
+                    thumbColor = MaterialTheme.colorScheme.primary,
+                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                    inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                )
+            )
+        }
+            
+        // シャッターボタン（下部中央）
+        FloatingActionButton(
+            onClick = {},
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Camera,
+                contentDescription = stringResource(R.string.take_photo)
+            )
+        }
+        
+        // 最後に撮影した写真のサムネイル（右下）
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
                 .size(80.dp)
+                .clip(RoundedCornerShape(8.dp))
                 .background(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                    shape = RoundedCornerShape(8.dp)
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
                 )
         ) {
             Icon(
                 imageVector = Icons.Default.Preview,
-                contentDescription = "サムネイル",
+                contentDescription = stringResource(R.string.last_captured_photo),
                 modifier = Modifier
                     .align(Alignment.Center)
                     .size(32.dp),
                 tint = Color.White.copy(alpha = 0.7f)
             )
+        }
         }
     }
 }
