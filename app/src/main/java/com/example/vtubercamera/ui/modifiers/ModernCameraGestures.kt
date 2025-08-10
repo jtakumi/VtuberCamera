@@ -139,23 +139,3 @@ fun Modifier.advancedCameraGestures(
             }
         }
 }
-
-/**
- * シンプルなピンチズームのみのModifier
- */
-@Composable
-fun Modifier.pinchToZoom(
-    onScale: (Float) -> Unit,
-    currentZoom: Float,
-    minZoom: Float = 1.0f,
-    maxZoom: Float = 10.0f,
-    zoomSensitivity: Float = 1.0f
-): Modifier {
-    return this.pointerInput(currentZoom, minZoom, maxZoom) {
-        detectTransformGestures { _, _, zoom, _ ->
-            val adjustedZoom = 1f + (zoom - 1f) * zoomSensitivity
-            val newZoom = (currentZoom * adjustedZoom).coerceIn(minZoom, maxZoom)
-            onScale(newZoom)
-        }
-    }
-}
