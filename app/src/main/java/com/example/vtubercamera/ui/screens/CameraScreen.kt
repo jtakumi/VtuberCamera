@@ -16,18 +16,18 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
@@ -36,8 +36,6 @@ import androidx.compose.material.icons.filled.FlashAuto
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Preview
-import androidx.compose.material.icons.filled.ZoomIn
-import androidx.compose.material.icons.filled.ZoomOut
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -47,6 +45,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -72,6 +72,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vtubercamera.R
 import com.example.vtubercamera.ui.components.AsyncImage
+import com.example.vtubercamera.ui.modifiers.modernCameraGestures
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 import com.example.vtubercamera.utils.PermissionUtils
 
@@ -314,7 +315,23 @@ fun CameraScreen(
                                         previewView = this // PreviewViewの参照を保存
                                     }
                                 },
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .modernCameraGestures(
+                                        onScale = { newZoom ->
+                                            viewModel.setZoom(newZoom)
+                                        },
+                                        onDoubleTap = {
+                                            viewModel.resetZoom()
+                                        },
+                                        currentZoom = zoomRatio,
+                                        minZoom = camera?.cameraInfo?.zoomState?.value?.minZoomRatio
+                                            ?: 1.0f,
+                                        maxZoom = camera?.cameraInfo?.zoomState?.value?.maxZoomRatio
+                                            ?: 10.0f,
+                                        enableHapticFeedback = true,
+                                        zoomSensitivity = 2.4f
+                                    )
                             ) { view ->
                                 // 初回のみカメラプロバイダーを初期化
                                 if (cameraProvider == null) {
@@ -382,31 +399,30 @@ fun CameraScreen(
                                 }
                             }
 
-                            // ズームコントロール
-                            Row(
+                            // ズーム情報表示
+                            Box(
                                 modifier = Modifier
-                                    .align(Alignment.BottomStart)
-                                    .padding(16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    .align(Alignment.TopEnd)
+                                    .padding(16.dp)
+                                    .background(
+                                        color = Color.Black.copy(alpha = 0.5f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
                             ) {
-                                IconButton(
-                                    onClick = { viewModel.setZoom(zoomRatio - 0.5f) }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ZoomOut,
-                                        contentDescription = stringResource(R.string.zoom_out)
-                                    )
-                                }
-                                IconButton(
-                                    onClick = { viewModel.setZoom(zoomRatio + 0.5f) }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ZoomIn,
-                                        contentDescription = stringResource(R.string.zoom_in)
-                                    )
-                                }
+                                val maxZoomRatio =
+                                    camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 10.0f
+                                val minZoomRatio =
+                                    camera?.cameraInfo?.zoomState?.value?.minZoomRatio ?: 1.0f
+                                Text(
+                                    text = stringResource(
+                                        R.string.zoom_info,
+                                        zoomRatio, minZoomRatio, maxZoomRatio
+                                    ),
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
                             }
-
                             // シャッターボタン
                             FloatingActionButton(
                                 onClick = {
@@ -508,141 +524,119 @@ private fun bindCameraWithPreview(
 @Composable
 private fun CameraScreenPreview() {
     // プレビュー用のモックUI
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-    ) {
-        // カメラプレビューエリアのモック
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.camera_title)) },
+                actions = {
+                    IconButton(onClick = {}) {
+                        Icon(
+                            imageVector = Icons.Default.FlashOff,
+                            contentDescription = stringResource(R.string.flash_mode_toggle)
+                        )
+                    }
+                    IconButton(onClick = {}) {
+                        Icon(
+                            imageVector = Icons.Default.Cameraswitch,
+                            contentDescription = stringResource(R.string.switch_camera)
+                        )
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.8f))
+                .padding(paddingValues)
         ) {
-            // カメラプレビューのプレースホルダー
-            Column(
+            // カメラプレビューエリアのモック
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                    .background(Color.Black.copy(alpha = 0.8f))
             ) {
-                Icon(
-                    imageVector = Icons.Default.Camera,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = Color.White
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = stringResource(R.string.camera_preview_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = Color.White
-                )
-                Text(
-                    text = stringResource(R.string.camera_preview_description),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.7f)
-                )
-            }
-        }
-        
-        // トップバーのモック
-        //height = 64
-        //title font size = 22sp
-        TopAppBar(
-            title = { Text(stringResource(R.string.camera_title)) },
-            actions = {
-                IconButton(onClick = {}) {
+                // カメラプレビューのプレースホルダー
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
                     Icon(
-                        imageVector = Icons.Default.FlashOff,
-                        contentDescription = "フラッシュ"
+                        imageVector = Icons.Default.Camera,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(R.string.camera_preview_title),
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = Color.White
+                    )
+                    Text(
+                        text = stringResource(R.string.camera_preview_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.7f)
                     )
                 }
-                IconButton(onClick = {}) {
-                    Icon(
-                        imageVector = Icons.Default.Cameraswitch,
-                        contentDescription = "カメラ切り替え"
-                    )
-                }
-            },
-            modifier = Modifier.align(Alignment.TopCenter)
-        )
-        
-        // コントロールボタンのモック
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(bottom = 32.dp, start = 32.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // ズームコントロール
-            IconButton(
-                onClick = {},
+            }
+
+            // ズーム情報表示（右上）
+            Box(
                 modifier = Modifier
-                    .size(48.dp)
-                    .align(Alignment.CenterVertically)
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
                     .background(
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                        shape = CircleShape
+                        color = Color.Black.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(8.dp)
                     )
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.ZoomOut,
-                    contentDescription = "ズームアウト",
-                    tint = Color.White
+                Text(
+                    text = stringResource(
+                        R.string.zoom_info,
+                        2.0f, 1.0f, 10.0f
+                    ),
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
-            // ズームコントロール
-            IconButton(
-                onClick = {},
-                modifier = Modifier
-                    .size(48.dp)
-                    .align(Alignment.CenterVertically)
-                    .background(
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                        shape = CircleShape
-                    )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ZoomIn,
-                    contentDescription = "ズームイン",
-                    tint = Color.White
-                )
-            }
-            
-            // シャッターボタン
+            // シャッターボタン（下部中央）
             FloatingActionButton(
                 onClick = {},
-                modifier = Modifier.size(72.dp)
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Camera,
-                    contentDescription = "写真撮影",
-                    modifier = Modifier.size(32.dp)
+                    contentDescription = stringResource(R.string.take_photo)
                 )
             }
-        }
-        
-        // サムネイルのモック
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-                .size(80.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                    shape = RoundedCornerShape(8.dp)
-                )
-        ) {
-            Icon(
-                imageVector = Icons.Default.Preview,
-                contentDescription = "サムネイル",
+
+            // 最後に撮影した写真のサムネイル（右下）
+            Box(
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .size(32.dp),
-                tint = Color.White.copy(alpha = 0.7f)
-            )
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Preview,
+                    contentDescription = stringResource(R.string.last_captured_photo),
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(32.dp),
+                    tint = Color.White.copy(alpha = 0.7f)
+                )
+            }
         }
     }
 }

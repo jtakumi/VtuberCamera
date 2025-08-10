@@ -11,6 +11,8 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.core.content.ContextCompat
+import android.animation.ValueAnimator
+import android.view.animation.DecelerateInterpolator
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -67,6 +69,22 @@ class CameraViewModel : ViewModel() {
         _zoomRatio.value =
             zoom.coerceIn(1.0f, _camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 1.0f)
         _camera?.cameraControl?.setZoomRatio(_zoomRatio.value)
+    }
+    
+    fun smoothZoomTo(targetZoom: Float, duration: Long = 300) {
+        val currentZoom = _zoomRatio.value
+        val animator = ValueAnimator.ofFloat(currentZoom, targetZoom)
+        animator.duration = duration
+        animator.interpolator = DecelerateInterpolator()
+        animator.addUpdateListener { animation ->
+            val animatedZoom = animation.animatedValue as Float
+            setZoom(animatedZoom)
+        }
+        animator.start()
+    }
+    
+    fun resetZoom() {
+        smoothZoomTo(1.0f)
     }
 
     fun takePhoto(
