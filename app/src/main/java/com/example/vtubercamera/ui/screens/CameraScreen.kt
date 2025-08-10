@@ -331,7 +331,7 @@ fun CameraScreen(
                                         minZoom = camera?.cameraInfo?.zoomState?.value?.minZoomRatio ?: 1.0f,
                                         maxZoom = camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 10.0f,
                                         enableHapticFeedback = true,
-                                        zoomSensitivity = 0.8f // ズーム感度を少し下げる
+                                        zoomSensitivity = 3f
                                     )
                             ) { view ->
                                 // 初回のみカメラプロバイダーを初期化
