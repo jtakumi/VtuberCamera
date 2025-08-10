@@ -423,38 +423,6 @@ fun CameraScreen(
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
-
-                            // ズームスライダー
-                            Column(
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .padding(bottom = 100.dp)
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 32.dp)
-                            ) {
-                                val maxZoomRatio =
-                                    camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 10.0f
-                                val minZoomRatio =
-                                    camera?.cameraInfo?.zoomState?.value?.minZoomRatio ?: 1.0f
-
-                                Slider(
-                                    value = ((zoomRatio - minZoomRatio) / (maxZoomRatio - minZoomRatio)).coerceIn(
-                                        0f,
-                                        1f
-                                    ),
-                                    onValueChange = { progress ->
-                                        val targetZoom =
-                                            minZoomRatio + (maxZoomRatio - minZoomRatio) * progress
-                                        viewModel.setZoom(targetZoom)
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = SliderDefaults.colors(
-                                        thumbColor = MaterialTheme.colorScheme.primary,
-                                        activeTrackColor = MaterialTheme.colorScheme.primary,
-                                        inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-                                    )
-                                )
-                            }
                             // シャッターボタン
                             FloatingActionButton(
                                 onClick = {
@@ -636,27 +604,6 @@ private fun CameraScreenPreview() {
                     style = MaterialTheme.typography.bodySmall
                 )
             }
-
-            // ズームスライダー（下部中央、シャッターボタンの上）
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 100.dp)
-                    .fillMaxWidth()
-                    .padding(horizontal = 32.dp)
-            ) {
-                Slider(
-                    value = 0.2f,
-                    onValueChange = { },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = SliderDefaults.colors(
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                        activeTrackColor = MaterialTheme.colorScheme.primary,
-                        inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-                    )
-                )
-            }
-
             // シャッターボタン（下部中央）
             FloatingActionButton(
                 onClick = {},
