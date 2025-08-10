@@ -75,7 +75,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vtubercamera.R
 import com.example.vtubercamera.ui.components.AsyncImage
-import com.example.vtubercamera.ui.modifiers.cameraGestures
+import com.example.vtubercamera.ui.modifiers.modernCameraGestures
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 import com.example.vtubercamera.utils.PermissionUtils
 
@@ -320,7 +320,7 @@ fun CameraScreen(
                                 },
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .cameraGestures(
+                                    .modernCameraGestures(
                                         onScale = { newZoom ->
                                             viewModel.setZoom(newZoom)
                                         },
@@ -330,7 +330,8 @@ fun CameraScreen(
                                         currentZoom = zoomRatio,
                                         minZoom = camera?.cameraInfo?.zoomState?.value?.minZoomRatio ?: 1.0f,
                                         maxZoom = camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 10.0f,
-                                        enableHapticFeedback = true
+                                        enableHapticFeedback = true,
+                                        zoomSensitivity = 0.8f // ズーム感度を少し下げる
                                     )
                             ) { view ->
                                 // 初回のみカメラプロバイダーを初期化
