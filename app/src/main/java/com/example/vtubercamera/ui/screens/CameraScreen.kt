@@ -447,46 +447,6 @@ fun CameraScreen(
                                     )
                                 )
                             }
-                            
-                            // ズームコントロールボタン
-                            Row(
-                                modifier = Modifier
-                                    .align(Alignment.BottomStart)
-                                    .padding(16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                IconButton(
-                                    onClick = { viewModel.setZoom(zoomRatio - 0.5f) },
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .background(
-                                            color = Color.Black.copy(alpha = 0.5f),
-                                            shape = CircleShape
-                                        )
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ZoomOut,
-                                        contentDescription = stringResource(R.string.zoom_out),
-                                        tint = Color.White
-                                    )
-                                }
-                                IconButton(
-                                    onClick = { viewModel.setZoom(zoomRatio + 0.5f) },
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .background(
-                                            color = Color.Black.copy(alpha = 0.5f),
-                                            shape = CircleShape
-                                        )
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ZoomIn,
-                                        contentDescription = stringResource(R.string.zoom_in),
-                                        tint = Color.White
-                                    )
-                                }
-                            }
-
                             // シャッターボタン
                             FloatingActionButton(
                                 onClick = {
