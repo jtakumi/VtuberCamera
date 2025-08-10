@@ -260,28 +260,18 @@ id 'org.jetbrains.kotlin.plugin.compose' version '2.1.21'
 
 ### Recent Changes
 
-#### 📅 2025-07-13: Delete Confirmation Dialog Implementation
+#### 📅 2025-08-10: UI Improvements, Internationalization, and Enhanced Pinch Zoom
 
-**🎯 Overview**
-- Implemented safety feature to display confirmation dialog when delete button is pressed
-- Prevention of user errors and more secure photo management
+**🎯 Key Changes**
+- **Internationalization**: Migrated hardcoded strings to `stringResource()`, added `zoom_info` resources in English and Japanese
+- **UI Improvements**: Refactored CameraScreenPreview from `Box` to `Scaffold` structure, unified layout with actual screen
+- **Enhanced Pinch Zoom**: Created `ModernCameraGestures.kt`, implemented modern approach using `detectTransformGestures`
+- **Improved UX**: Integrated 5 zoom control methods (pinch, slider, buttons, double-tap reset, haptic feedback)
 
-**🚀 Major Feature Additions & Improvements**
-- **Delete Confirmation Dialog**: Confirmation dialog display when delete button is pressed
-- **Error Prevention**: Clear confirmation flow for delete actions
-- **Multi-language Support**: Appropriate messages in Japanese and English
-- **Operation Cancellation**: Operation cancellation functionality in dialog
-
-**📈 User Experience Improvements**
-- **Enhanced Safety**: Prevention of unintended photo deletion
-- **Clear Operation Confirmation**: Clear "Delete" and "Cancel" options
-- **Intuitive UI**: Dialog design compliant with Material Design 3
-- **Accessibility**: Screen reader compatible confirmation messages
-
-**🔧 Technical Implementation**
-- **State Management**: Added `showDeleteConfirmDialog` state variable
-- **Resource Management**: Multi-language support for new string resources
-- **UI Improvements**: Standard confirmation flow with AlertDialog
+**🔧 Technical Improvements**
+- Migration from deprecated API (`pointerInteropFilter`) to modern API (`detectTransformGestures`)
+- Proper string resource management and code quality improvements
+- Enhanced UI/UX consistency and performance optimization
 
 ### Major Milestones
 - ✅ **Basic Camera Functions** - Implementation of capture, preview, and save features
