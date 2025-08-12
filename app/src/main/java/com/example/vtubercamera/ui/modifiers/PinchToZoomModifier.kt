@@ -4,6 +4,7 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInteropFilter
@@ -26,14 +27,16 @@ fun Modifier.pinchToZoom(
     maxZoom: Float = 10.0f
 ): Modifier {
     val context = LocalContext.current
-    
+    val currentZoomState = rememberUpdatedState(currentZoom)
+
     val scaleGestureDetector = remember {
         ScaleGestureDetector(
             context,
             object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
                 override fun onScale(detector: ScaleGestureDetector): Boolean {
                     val scaleFactor = detector.scaleFactor
-                    val newZoom = (currentZoom * scaleFactor).coerceIn(minZoom, maxZoom)
+                    val newZoom =
+                        (currentZoomState.value * scaleFactor).coerceIn(minZoom, maxZoom)
                     onScale(newZoom)
                     return true
                 }
