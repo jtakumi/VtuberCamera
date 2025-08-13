@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -37,7 +38,7 @@ fun Modifier.modernCameraGestures(
     zoomSensitivity: Float = 1.0f
 ): Modifier {
     val view = LocalView.current
-    var lastZoom by remember { mutableFloatStateOf(currentZoom) }
+    val lastZoom = rememberUpdatedState(currentZoom)
 
     return this
         // ピンチズーム検出
@@ -47,19 +48,18 @@ fun Modifier.modernCameraGestures(
             ) { _, _, zoom, _ ->
                 // ズーム感度を適用
                 val adjustedZoom = 1f + (zoom - 1f) * zoomSensitivity
-                val newZoom = (currentZoom * adjustedZoom).coerceIn(minZoom, maxZoom)
+                val newZoom = (lastZoom.value * adjustedZoom).coerceIn(minZoom, maxZoom)
 
                 // ハプティックフィードバック（最小/最大ズーム時）
                 if (enableHapticFeedback) {
-                    val wasAtLimit = lastZoom == minZoom || lastZoom == maxZoom
+                    val wasAtLimit = lastZoom.value == minZoom || lastZoom.value == maxZoom
                     val isAtLimit = newZoom == minZoom || newZoom == maxZoom
 
                     if (isAtLimit && !wasAtLimit) {
                         view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
                     }
                 }
-
-                lastZoom = newZoom
+                
                 onScale(newZoom)
             }
         }
