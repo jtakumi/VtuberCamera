@@ -140,7 +140,6 @@ class CameraViewModel : ViewModel() {
         _isPreviewMode.value = false
         // カメラ再バインドフラグを設定
         _needsCameraRebind.value = true
-        Log.d("CameraViewModel", "Exiting preview mode, requesting camera rebind")
     }
 
     fun clearLastCapturedImage(context: Context) {
