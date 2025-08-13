@@ -29,10 +29,10 @@
 
 ### 新規作成ファイル
 
-1. **CameraGestureModifier.kt**
+1. **ModernCameraGestures.kt**
    - パス: `/app/src/main/java/com/example/vtubercamera/ui/modifiers/`
-   - ScaleGestureDetectorとGestureDetectorを統合したカスタムModifier
-   - ピンチズームとダブルタップの処理
+   - ComposeのジェスチャーAPIを利用したカスタムModifier
+   - ピンチズームとダブルタップ、ハプティックフィードバック対応
 
 2. **PinchToZoomModifier.kt** (シンプル版)
    - パス: `/app/src/main/java/com/example/vtubercamera/ui/modifiers/`
