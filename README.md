@@ -35,7 +35,7 @@
 ## ✨ Key Features
 
 ### 📱 Camera Features
-- 🎥 **Real-time Preview** - High-quality camera preview with CameraX 1.4.0
+- 🎥 **Real-time Preview** - High-quality camera preview with CameraX 1.4.2
 - 📷 **High-quality Capture** - JPEG photo capture and auto-save (Pictures/VTuberCamera folder)
 - 🔄 **Camera Switching** - Seamless front/back camera switching
 - ⚡ **Flash Control** - 3 modes support: ON/OFF/AUTO
@@ -53,7 +53,7 @@
 ## 🏗️ Tech Stack
 
 ### Core Technologies
-- **Language**: Kotlin 2.1.21
+- **Language**: Kotlin 2.2.0
 - **UI Framework**: Jetpack Compose 1.7.8
 - **Camera**: CameraX 1.4.2
 - **Architecture**: MVVM + StateFlow
@@ -62,12 +62,12 @@
 - **Dependency Management**: Dependabot Automation
 
 ### Development Environment
-- **Android Studio**: Hedgehog or above (Kotlin 2.0 support required)
-- **Gradle**: 8.5+ (Kotlin 2.0 required)
+- **Android Studio**: Hedgehog or above (Kotlin 2.2.0 support required)
+- **Gradle**: 8.5+ (Kotlin 2.2.0 required)
 - **Min SDK**: 24 (Android 7.0+)
 - **Target SDK**: 35 (Android 15)
 - **Compile SDK**: 35 (Android 15 support)
-- **JDK**: 11+ (Kotlin 2.0 recommended)
+- **JDK**: 11+ (Kotlin 2.2.0 recommended)
 
 ## 🚀 How to Use
 
@@ -132,9 +132,9 @@
 │   └── dependabot.yml                        # Automatic dependency update configuration
 │
 ├── 🔧 Project configuration files
-│   ├── build.gradle                           # Project-level build configuration (Kotlin 2.1.21)
+│   ├── build.gradle                           # Project-level build configuration (Kotlin 2.2.0)
 │   ├── settings.gradle                        # Gradle settings
-│   ├── gradle.properties                      # Gradle properties (Kotlin 2.0 optimization)
+│   ├── gradle.properties                      # Gradle properties (Kotlin 2.2.0 optimization)
 │   ├── local.properties                       # Local environment configuration
 │   └── README.md                              # Project overview (this file)
 │
@@ -179,9 +179,9 @@
 ## 🔧 Setup
 
 ### Prerequisites
-- Android Studio Hedgehog or above (Kotlin 2.0 requirement)
-- JDK 11 or above (Kotlin 2.1.21 recommended)
-- Gradle 8.5 or above (Kotlin 2.0 requirement)
+- Android Studio Hedgehog or above (Kotlin 2.2.0 requirement)
+- JDK 11 or above (Kotlin 2.2.0 recommended)
+- Gradle 8.5 or above (Kotlin 2.2.0 requirement)
 - Android SDK 24 or above
 
 ### Installation Steps
@@ -226,15 +226,15 @@ implementation "androidx.compose.ui:ui:1.7.8"
 implementation "androidx.compose.material3:material3:1.3.2"
 implementation "androidx.activity:activity-compose:1.10.1"
 
-// ViewModel & StateFlow (2.9.1)
-implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.9.1"
+// ViewModel & StateFlow (2.9.2)
+implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.9.2"
 implementation "androidx.core:core-ktx:1.16.0"
 
 // Image Processing (2.7.0)
 implementation "io.coil-kt:coil-compose:2.7.0"
 
-// Kotlin 2.1.21 + Compose Compiler Plugin
-id 'org.jetbrains.kotlin.plugin.compose' version '2.1.21'
+// Kotlin 2.2.0 + Compose Compiler Plugin
+id 'org.jetbrains.kotlin.plugin.compose' version '2.2.0'
 ```
 
 ## 📈 Performance
@@ -301,7 +301,7 @@ id 'org.jetbrains.kotlin.plugin.compose' version '2.1.21'
 - [ ] **Complete CameraViewModelTest.kt Implementation** - Implementation of 14 test methods
 - [ ] **Add Other ViewModel Tests** - Improve test coverage for all components
 - [ ] **Monitor Dependabot Operations** - Confirm stability of automatic updates
-- [ ] **Utilize Latest Library Features** - Research new features of AGP 8.10.1, Compose 2.1.21
+- [ ] **Utilize Latest Library Features** - Research new features of AGP 8.12.0, Compose 2.2.0
 
 ### Medium-term Feature Additions (1-2 months)
 - [ ] **Achieve 80% Test Coverage** - Complete implementation of unit tests and integration tests
