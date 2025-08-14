@@ -35,7 +35,7 @@
 ## ✨ 主な機能
 
 ### 📱 カメラ機能
-- 🎥 **リアルタイムプレビュー** - CameraX 1.4.0による高品質なカメラプレビュー
+- 🎥 **リアルタイムプレビュー** - CameraX 1.4.2による高品質なカメラプレビュー
 - 📷 **高品質撮影** - JPEG形式での写真撮影・自動保存（Pictures/VTuberCameraフォルダ）
 - 🔄 **カメラ切り替え** - フロント/バックカメラのシームレス切り替え
 - ⚡ **フラッシュ制御** - ON/OFF/AUTO の3モード対応
@@ -53,7 +53,7 @@
 ## 🏗️ 技術スタック
 
 ### コア技術
-- **Language**: Kotlin 2.1.21
+- **Language**: Kotlin 2.2.0
 - **UI Framework**: Jetpack Compose 1.7.8
 - **Camera**: CameraX 1.4.2
 - **Architecture**: MVVM + StateFlow
@@ -62,12 +62,12 @@
 - **Dependency Management**: Dependabot Automation
 
 ### 開発環境
-- **Android Studio**: Hedgehog以上推奨 (Kotlin 2.0対応)
-- **Gradle**: 8.5+ (Kotlin 2.0必須要件)
+- **Android Studio**: Hedgehog以上推奨 (Kotlin 2.2.0対応)
+- **Gradle**: 8.5+ (Kotlin 2.2.0必須要件)
 - **Min SDK**: 24 (Android 7.0+)
 - **Target SDK**: 35 (Android 15)
 - **Compile SDK**: 35 (Android 15対応)
-- **JDK**: 11+ (Kotlin 2.0推奨)
+- **JDK**: 11+ (Kotlin 2.2.0推奨)
 
 ## 🚀 使用方法
 
@@ -132,9 +132,9 @@
 │   └── dependabot.yml                        # 依存関係自動更新設定
 │
 ├── 🔧 プロジェクト設定ファイル
-│   ├── build.gradle                           # プロジェクトレベルビルド設定 (Kotlin 2.1.21)
+│   ├── build.gradle                           # プロジェクトレベルビルド設定 (Kotlin 2.2.0)
 │   ├── settings.gradle                        # Gradle設定
-│   ├── gradle.properties                      # Gradleプロパティ (Kotlin 2.0最適化)
+│   ├── gradle.properties                      # Gradleプロパティ (Kotlin 2.2.0最適化)
 │   ├── local.properties                       # ローカル環境設定
 │   └── README.md                              # プロジェクト概要（このファイル）
 │
@@ -179,9 +179,9 @@
 ## 🔧 セットアップ
 
 ### 前提条件
-- Android Studio Hedgehog以上 (Kotlin 2.0必須要件)
-- JDK 11以上 (Kotlin 2.1.21推奨)
-- Gradle 8.5以上 (Kotlin 2.0必須要件)
+- Android Studio Hedgehog以上 (Kotlin 2.2.0必須要件)
+- JDK 11以上 (Kotlin 2.2.0推奨)
+- Gradle 8.5以上 (Kotlin 2.2.0必須要件)
 - Android SDK 24以上
 
 ### インストール手順
@@ -226,15 +226,15 @@ implementation "androidx.compose.ui:ui:1.7.8"
 implementation "androidx.compose.material3:material3:1.3.2"
 implementation "androidx.activity:activity-compose:1.10.1"
 
-// ViewModel & StateFlow (2.9.1)
-implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.9.1"
+// ViewModel & StateFlow (2.9.2)
+implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.9.2"
 implementation "androidx.core:core-ktx:1.16.0"
 
 // 画像処理 (2.7.0)
 implementation "io.coil-kt:coil-compose:2.7.0"
 
-// Kotlin 2.1.21 + Compose Compiler Plugin
-id 'org.jetbrains.kotlin.plugin.compose' version '2.1.21'
+// Kotlin 2.2.0 + Compose Compiler Plugin
+id 'org.jetbrains.kotlin.plugin.compose' version '2.2.0'
 ```
 
 ## 📈 パフォーマンス
@@ -301,7 +301,7 @@ id 'org.jetbrains.kotlin.plugin.compose' version '2.1.21'
 - [ ] **CameraViewModelTest.ktの実装完成** - 14個のテストメソッドの実装
 - [ ] **他のViewModelテスト追加** - 全コンポーネントのテストカバレッジ向上
 - [ ] **Dependabot動作監視** - 自動更新の安定性確認
-- [ ] **最新ライブラリ機能の活用** - AGP 8.10.1、Compose 2.1.21の新機能研究
+- [ ] **最新ライブラリ機能の活用** - AGP 8.12.0、Compose 2.2.0の新機能研究
 
 ### 中期的な機能追加（1-2ヶ月）
 - [ ] **テストカバレッジ80%達成** - ユニットテスト、結合テストの完全実装
