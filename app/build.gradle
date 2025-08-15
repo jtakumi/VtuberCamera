@@ -58,16 +58,10 @@ dependencies {
     def camerax_version = "1.4.2"
     def compose_version = "1.7.8"
 
-    // Firebase（Android 15対応版）
-    implementation(platform("com.google.firebase:firebase-bom:33.15.0"))  // 更新
-
     // Core libraries（Android 15対応）
     implementation 'androidx.core:core-ktx:1.16.0'  // 更新
     implementation 'androidx.appcompat:appcompat:1.7.1'  // 更新
     implementation 'com.google.android.material:material:1.12.0'  // 更新
-    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
-    // Firebase
-    implementation("com.google.firebase:firebase-analytics-ktx")
 
     // Support libraries
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
