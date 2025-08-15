@@ -1125,10 +1125,11 @@ vtuberCameraアプリが本格的な**多言語対応アプリ**として生ま�
 
 ---
 
-## 2025-06-12: Android 15 (targetSDK 35) 完全対応
+## 2025-06-12: Android 16 (targetSDK 36) 完全対応
 
 ### 🎯 概要
-Android 15 (API Level 35) への完全対応を実装しました。新しい権限モデル「パーシャルフォトアクセス」への対応、セキュリティ機能の強化、ProGuard設定の最適化など、包括的なアップデートを行いました。
+Android 16 (API Level 36) への完全対応を実装しました。新しい権限モデル「パーシャルフォトアクセス」への対応、セキュリティ機能の強
+化、ProGuard設定の最適化など、包括的なアップデートを行いました。
 
 ### 📋 主要な変更点
 
@@ -1136,9 +1137,9 @@ Android 15 (API Level 35) への完全対応を実装しました。新しい権
 **app/build.gradle**
 ```gradle
 android {
-    compileSdk 35
+    compileSdk 36
     defaultConfig {
-        targetSdk 35  // 34から35に更新
+        targetSdk 36  // 34から36に更新
     }
 }
 ```
