@@ -59,7 +59,7 @@ dependencies {
     def compose_version = "1.7.8"
 
     // Firebase（Android 15対応版）
-    implementation(platform("com.google.firebase:firebase-bom:33.15.0"))  // 更新
+    implementation(platform("com.google.firebase:firebase-bom:34.1.0"))  // 更新
 
     // Core libraries（Android 15対応）
     implementation 'androidx.core:core-ktx:1.16.0'  // 更新
