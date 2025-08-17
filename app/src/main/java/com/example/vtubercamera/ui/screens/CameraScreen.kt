@@ -489,21 +489,6 @@ fun CameraScreen(
                                         modifier = Modifier.fillMaxSize(),
                                         contentScale = ContentScale.Crop
                                     )
-
-                                    // 削除アイコン（右上に小さく表示）
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = stringResource(R.string.delete_photo),
-                                        modifier = Modifier
-                                            .align(Alignment.TopEnd)
-                                            .size(20.dp)
-                                            .background(
-                                                color = Color.Red.copy(alpha = 0.8f),
-                                                shape = RoundedCornerShape(10.dp)
-                                            )
-                                            .padding(2.dp),
-                                        tint = Color.White
-                                    )
                                 }
                             }
                         }
