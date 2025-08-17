@@ -159,6 +159,52 @@ class CameraViewModel : ViewModel() {
         _needsCameraRebind.value = true
     }
 
+    /**
+     * 指定されたURIの写真をストレージから削除
+     * @param context コンテキスト
+     * @param uri 削除する写真のURI
+     * @return 削除が成功したかどうか
+     */
+    fun deletePhoto(context: Context, uri: Uri): Boolean {
+        return try {
+            val deletedRows = context.contentResolver.delete(uri, null, null)
+            val success = deletedRows > 0
+            
+            if (success) {
+                Log.d("CameraViewModel", "写真を削除しました: $uri")
+                // 削除した写真が現在表示中の写真と同じ場合は状態をクリア
+                if (uri == _lastCapturedImageUri.value) {
+                    _lastCapturedImageUri.value = null
+                    _isPreviewMode.value = false
+                    _needsCameraRebind.value = true
+                }
+            } else {
+                Log.w("CameraViewModel", "写真の削除に失敗しました: $uri")
+            }
+            
+            success
+        } catch (e: Exception) {
+            Log.e("CameraViewModel", "写真の削除中にエラーが発生しました", e)
+            false
+        }
+    }
+
+    /**
+     * 複数の写真を一括削除
+     * @param context コンテキスト
+     * @param uris 削除する写真のURIリスト
+     * @return 削除に成功した写真の数
+     */
+    fun deleteMultiplePhotos(context: Context, uris: List<Uri>): Int {
+        var successCount = 0
+        uris.forEach { uri ->
+            if (deletePhoto(context, uri)) {
+                successCount++
+            }
+        }
+        return successCount
+    }
+
     fun onCameraRebound() {
         // カメラが再バインドされたらフラグをリセット
         _needsCameraRebind.value = false

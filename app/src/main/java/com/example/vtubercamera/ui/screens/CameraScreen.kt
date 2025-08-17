@@ -18,13 +18,13 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -32,6 +32,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.Cameraswitch
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FlashAuto
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
@@ -45,8 +46,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -61,6 +60,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -181,7 +181,23 @@ fun CameraScreen(
                 TextButton(
                     onClick = {
                         showDeleteConfirmDialog = false
-                        viewModel.clearLastCapturedImage(context)
+                        lastCapturedImageUri?.let { uri ->
+                            val success = viewModel.deletePhoto(context, uri)
+                            if (success) {
+                                Toast.makeText(
+                                    context,
+                                    R.string.photo_deleted_successfully,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                viewModel.clearLastCapturedImage(context)
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    R.string.photo_deletion_failed,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
                     }
                 ) {
                     Text(stringResource(R.string.delete))
@@ -456,7 +472,16 @@ fun CameraScreen(
                                         .padding(16.dp)
                                         .size(80.dp)
                                         .clip(RoundedCornerShape(8.dp))
-                                        .clickable { viewModel.enterPreviewMode() }
+                                        .pointerInput(Unit) {
+                                            detectTapGestures(
+                                                onLongPress = {
+                                                    showDeleteConfirmDialog = true
+                                                },
+                                                onTap = {
+                                                    viewModel.enterPreviewMode()
+                                                }
+                                            )
+                                        }
                                 ) {
                                     AsyncImage(
                                         model = uri,
