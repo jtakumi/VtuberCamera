@@ -22,4 +22,14 @@ class CameraScreenIconTest {
         val description = composeTestRule.activity.getString(R.string.switch_camera)
         composeTestRule.onNodeWithContentDescription(description).assertIsDisplayed()
     }
+
+    @Test
+    fun toggleFlashIcon_isDisplayed() {
+        composeTestRule.setContent {
+            CameraScreen()
+        }
+
+        val description = composeTestRule.activity.getString(R.string.flash_mode_toggle)
+        composeTestRule.onNodeWithContentDescription(description).assertIsDisplayed()
+    }
 }
