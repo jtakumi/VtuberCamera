@@ -45,4 +45,5 @@
     <string name="delete_photo_message">この写真を削除しますか？この操作は元に戻せません。</string>
     <string name="cancel">キャンセル</string>
     <string name="zoom_info">ズーム: %.1fx (%.1f-%.1fx)</string>
-</resources> 
+    <string name="load_vrm">VRMを読み込む</string>
+</resources>

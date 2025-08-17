@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.FlashAuto
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Preview
+import androidx.compose.material.icons.filled.FileOpen
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -75,6 +76,21 @@ import com.example.vtubercamera.ui.components.AsyncImage
 import com.example.vtubercamera.ui.modifiers.modernCameraGestures
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 import com.example.vtubercamera.utils.PermissionUtils
+import io.github.sceneview.Scene
+import io.github.sceneview.math.Position
+import io.github.sceneview.node.ModelNode
+import io.github.sceneview.rememberCameraNode
+import io.github.sceneview.rememberEngine
+import io.github.sceneview.rememberEnvironment
+import io.github.sceneview.rememberEnvironmentLoader
+import io.github.sceneview.rememberMainLightNode
+import io.github.sceneview.rememberMaterialLoader
+import io.github.sceneview.rememberModelLoader
+import io.github.sceneview.rememberNodes
+import io.github.sceneview.rememberRenderer
+import io.github.sceneview.rememberScene
+import io.github.sceneview.rememberView
+import java.nio.ByteBuffer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,6 +105,7 @@ fun CameraScreen(
     val flashMode by viewModel.flashMode.collectAsStateWithLifecycle()
     val zoomRatio by viewModel.zoomRatio.collectAsStateWithLifecycle()
     val needsCameraRebind by viewModel.needsCameraRebind.collectAsStateWithLifecycle()
+    val selectedVrmUri by viewModel.selectedVrmUri.collectAsStateWithLifecycle()
 
     // カメラ状態管理の改善
     var imageCapture: ImageCapture? by remember { mutableStateOf(null) }
@@ -129,6 +146,21 @@ fun CameraScreen(
                 if (hasPartialAccess && !permissions[Manifest.permission.READ_MEDIA_IMAGES]!!) {
                     showPartialAccessDialog = true
                 }
+            }
+        }
+    )
+
+    // VRMファイル選択用ランチャー
+    val vrmFilePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri: Uri? ->
+            uri?.let {
+                viewModel.setVrmUri(it)
+                Toast.makeText(
+                    context,
+                    "VRM selected: ${it.lastPathSegment}",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     )
@@ -215,6 +247,12 @@ fun CameraScreen(
                         Icon(
                             imageVector = Icons.Default.Cameraswitch,
                             contentDescription = stringResource(R.string.switch_camera)
+                        )
+                    }
+                    IconButton(onClick = { vrmFilePickerLauncher.launch(arrayOf("*/*")) }) {
+                        Icon(
+                            imageVector = Icons.Default.FileOpen,
+                            contentDescription = stringResource(R.string.load_vrm)
                         )
                     }
                 }
@@ -362,6 +400,46 @@ fun CameraScreen(
                                         )
                                     }, ContextCompat.getMainExecutor(context))
                                 }
+                            }
+
+                            if (selectedVrmUri != null) {
+                                val engine = rememberEngine()
+                                val modelLoader = rememberModelLoader(engine)
+                                val materialLoader = rememberMaterialLoader(engine)
+                                val environmentLoader = rememberEnvironmentLoader(engine)
+                                val environment = rememberEnvironment(environmentLoader) {
+                                    environmentLoader.createKTX1Environment(
+                                        "environments/neutral/neutral_ibl.ktx",
+                                        "environments/neutral/neutral_skybox.ktx"
+                                    )
+                                }
+                                val modelInstance = remember(selectedVrmUri) {
+                                    selectedVrmUri?.let { uri ->
+                                        context.contentResolver.openInputStream(uri)?.use { input ->
+                                            val bytes = input.readBytes()
+                                            modelLoader.createModelInstance(ByteBuffer.wrap(bytes))
+                                        }
+                                    }
+                                }
+                                Scene(
+                                    modifier = Modifier.fillMaxSize(),
+                                    engine = engine,
+                                    modelLoader = modelLoader,
+                                    materialLoader = materialLoader,
+                                    environmentLoader = environmentLoader,
+                                    environment = environment,
+                                    cameraNode = rememberCameraNode(engine) {
+                                        position = Position(z = 2.0f)
+                                    },
+                                    mainLightNode = rememberMainLightNode(engine) {
+                                        intensity = 100_000f
+                                    },
+                                    childNodes = rememberNodes {
+                                        modelInstance?.let {
+                                            add(ModelNode(modelInstance = it, scaleToUnits = 1.0f))
+                                        }
+                                    }
+                                )
                             }
 
                             // 状態変更の監視と賢い再バインド

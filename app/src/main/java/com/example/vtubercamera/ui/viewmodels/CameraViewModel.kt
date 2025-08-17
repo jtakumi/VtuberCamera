@@ -39,6 +39,10 @@ class CameraViewModel : ViewModel() {
     private val _zoomRatio = MutableStateFlow(1.0f)
     val zoomRatio: StateFlow<Float> = _zoomRatio.asStateFlow()
 
+    // 選択されたVRMファイルのURIを保持
+    private val _selectedVrmUri = MutableStateFlow<Uri?>(null)
+    val selectedVrmUri: StateFlow<Uri?> = _selectedVrmUri.asStateFlow()
+
     // カメラ再初期化フラグを追加
     private val _needsCameraRebind = MutableStateFlow(false)
     val needsCameraRebind: StateFlow<Boolean> = _needsCameraRebind.asStateFlow()
@@ -47,6 +51,10 @@ class CameraViewModel : ViewModel() {
 
     fun setCamera(camera: Camera?) {
         _camera = camera
+    }
+
+    fun setVrmUri(uri: Uri?) {
+        _selectedVrmUri.value = uri
     }
 
     fun switchCamera() {
