@@ -181,7 +181,6 @@ fun CameraScreen(
                 TextButton(
                     onClick = {
                         showDeleteConfirmDialog = false
-                        viewModel.clearLastCapturedImage(context)
                         lastCapturedImageUri?.let { uri ->
                             val success = viewModel.deletePhoto(context, uri)
                             if (success) {
@@ -190,6 +189,7 @@ fun CameraScreen(
                                     R.string.photo_deleted_successfully,
                                     Toast.LENGTH_SHORT
                                 ).show()
+                                viewModel.clearLastCapturedImage(context)
                             } else {
                                 Toast.makeText(
                                     context,
