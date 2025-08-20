@@ -14,6 +14,21 @@
 
 </div>
 
+## 📝 Specification (Current Implementation)
+
+### Overview
+Jetpack Compose-based Android camera app providing real-time preview and photo capture, with Android 15 features and internationalization.
+
+### Architecture
+- **MainActivity** – Initializes Android 15 capabilities and displays `CameraScreen`.
+- **CameraScreen** – Compose UI handling permission checks, preview, capture, and photo review.
+- **CameraViewModel** – Manages camera state via `StateFlow`, including zoom, flash, and capture logic.
+- **Utilities / Components**
+  - Permission management (`PermissionUtils`)
+  - Android 15 feature utilities (`Android15Features`)
+  - Image display (`AsyncImage`)
+- **Theme** – Material Design 3 with dynamic color and dark mode.
+
 ## 📸 Screenshots
 
 <div align="center">
