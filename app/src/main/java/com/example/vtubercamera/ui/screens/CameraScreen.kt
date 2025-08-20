@@ -1,10 +1,7 @@
 package com.example.vtubercamera.ui.screens
 
 import android.Manifest
-import android.content.Intent
-import android.net.Uri
 import android.os.Build
-import android.provider.Settings
 import android.util.Log
 import android.view.ViewGroup
 import android.widget.Toast
@@ -17,7 +14,6 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,12 +28,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.Cameraswitch
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FlashAuto
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Preview
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,7 +41,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -72,10 +65,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vtubercamera.R
 import com.example.vtubercamera.ui.components.AsyncImage
+import com.example.vtubercamera.ui.components.DeleteConfirmDialog
+import com.example.vtubercamera.ui.components.PartialAccessDialog
 import com.example.vtubercamera.ui.modifiers.modernCameraGestures
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 import com.example.vtubercamera.utils.PermissionUtils
-import kotlin.math.max
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -148,67 +142,33 @@ fun CameraScreen(
 
     // パーシャルアクセスダイアログ（Android 15対応）
     if (showPartialAccessDialog) {
-        AlertDialog(
-            onDismissRequest = { showPartialAccessDialog = false },
-            title = { Text(stringResource(R.string.photo_access)) },
-            text = { Text(stringResource(R.string.partial_access_message)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showPartialAccessDialog = false
-                        // 設定画面を開く
-                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = Uri.fromParts("package", context.packageName, null)
-                        }
-                        context.startActivity(intent)
-                    }
-                ) {
-                    Text(stringResource(R.string.open_settings))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPartialAccessDialog = false }) {
-                    Text(stringResource(R.string.later))
-                }
-            }
+        PartialAccessDialog(
+            onDismiss = { showPartialAccessDialog = false },
+            context = context
         )
     }
 
     // 削除確認ダイアログ
     if (showDeleteConfirmDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirmDialog = false },
-            title = { Text(stringResource(R.string.delete_photo_title)) },
-            text = { Text(stringResource(R.string.delete_photo_message)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDeleteConfirmDialog = false
-                        lastCapturedImageUri?.let { uri ->
-                            val success = viewModel.deletePhoto(context, uri)
-                            if (success) {
-                                Toast.makeText(
-                                    context,
-                                    R.string.photo_deleted_successfully,
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                viewModel.clearLastCapturedImage(context)
-                            } else {
-                                Toast.makeText(
-                                    context,
-                                    R.string.photo_deletion_failed,
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        }
+        DeleteConfirmDialog(
+            onDismiss = { showDeleteConfirmDialog = false },
+            onConfirm = {
+                lastCapturedImageUri?.let { uri ->
+                    val success = viewModel.deletePhoto(context, uri)
+                    if (success) {
+                        Toast.makeText(
+                            context,
+                            R.string.photo_deleted_successfully,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        viewModel.clearLastCapturedImage(context)
+                    } else {
+                        Toast.makeText(
+                            context,
+                            R.string.photo_deletion_failed,
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
-                ) {
-                    Text(stringResource(R.string.delete))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirmDialog = false }) {
-                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -281,7 +241,7 @@ fun CameraScreen(
                 }
 
                 else -> {
-                    viewModel.apply{
+                    viewModel.apply {
                         setMaxZoomRatio(camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 10.0f)
                         setMinZoomRatio(camera?.cameraInfo?.zoomState?.value?.minZoomRatio ?: 1.0f)
                     }
@@ -342,7 +302,10 @@ fun CameraScreen(
                                     .fillMaxSize()
                                     .modernCameraGestures(
                                         onScale = { newZoom ->
-                                            viewModel.smoothZoomTo(targetZoom = newZoom, duration = 0)
+                                            viewModel.smoothZoomTo(
+                                                targetZoom = newZoom,
+                                                duration = 0
+                                            )
                                         },
                                         onDoubleTap = {
                                             viewModel.resetZoom()
