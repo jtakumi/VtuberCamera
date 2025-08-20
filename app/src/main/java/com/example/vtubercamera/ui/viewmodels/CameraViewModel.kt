@@ -14,11 +14,9 @@ import androidx.core.content.ContextCompat
 import android.animation.ValueAnimator
 import android.view.animation.DecelerateInterpolator
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -38,6 +36,12 @@ class CameraViewModel : ViewModel() {
 
     private val _zoomRatio = MutableStateFlow(1.0f)
     val zoomRatio: StateFlow<Float> = _zoomRatio.asStateFlow()
+
+    private val _maxZoomRatio = MutableStateFlow(10.0f)
+    val maxZoomRatio: StateFlow<Float> = _maxZoomRatio.asStateFlow()
+    private val _minZoomRatio = MutableStateFlow(1.0f)
+    val minZoomRatio: StateFlow<Float> = _minZoomRatio.asStateFlow()
+
 
     // カメラ再初期化フラグを追加
     private val _needsCameraRebind = MutableStateFlow(false)
@@ -85,6 +89,13 @@ class CameraViewModel : ViewModel() {
     
     fun resetZoom() {
         smoothZoomTo(1.0f)
+    }
+
+    fun setMaxZoomRatio(maxZoomRatio: Float) {
+        _maxZoomRatio.value = maxZoomRatio
+    }
+    fun setMinZoomRatio(minZoomRatio: Float) {
+        _minZoomRatio.value = minZoomRatio
     }
 
     fun takePhoto(
