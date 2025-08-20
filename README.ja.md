@@ -14,6 +14,21 @@
 
 </div>
 
+## 📝 仕様書（現行実装）
+
+### 概要
+Jetpack Compose を用いた Android 向けカメラアプリ。CameraX によるリアルタイムプレビューと写真撮影を提供し、Android 15 向け機能や国際化にも対応しています。
+
+### アーキテクチャ
+- **MainActivity**: Android 15 機能の初期化後、`CameraScreen` を表示するエントリポイント
+- **CameraScreen**: カメラプレビューや権限確認、撮影・プレビュー UI を Compose で実装
+- **CameraViewModel**: `StateFlow` でカメラ状態を管理し、ズーム・フラッシュ・撮影などのロジックを提供
+- **Utility / Component**
+  - 権限管理 (`PermissionUtils`)
+  - Android 15 対応機能 (`Android15Features`)
+  - 画像表示 (`AsyncImage`)
+- **テーマ**: Material Design 3・動的カラー・ダークモード対応
+
 ## 📸 スクリーンショット
 
 <div align="center">
