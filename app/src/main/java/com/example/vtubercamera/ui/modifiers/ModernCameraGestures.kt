@@ -40,10 +40,6 @@ fun Modifier.modernCameraGestures(
     val view = LocalView.current
     var lastZoom by remember { mutableFloatStateOf(currentZoom) }
 
-    // 外部からズーム値が更新された場合に同期する
-    LaunchedEffect(currentZoom) {
-        lastZoom = currentZoom
-    }
 
     return this
         // ピンチズーム検出
@@ -98,11 +94,6 @@ fun Modifier.advancedCameraGestures(
 ): Modifier {
     val view = LocalView.current
     var lastZoom by remember { mutableFloatStateOf(currentZoom) }
-
-    // 外部からズーム値が更新された場合に同期する
-    LaunchedEffect(currentZoom) {
-        lastZoom = currentZoom
-    }
 
     return this
         // ピンチズーム検出
