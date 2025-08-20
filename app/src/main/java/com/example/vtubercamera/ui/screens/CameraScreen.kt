@@ -75,6 +75,7 @@ import com.example.vtubercamera.ui.components.AsyncImage
 import com.example.vtubercamera.ui.modifiers.modernCameraGestures
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 import com.example.vtubercamera.utils.PermissionUtils
+import kotlin.math.max
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,6 +89,8 @@ fun CameraScreen(
     val isPreviewMode by viewModel.isPreviewMode.collectAsStateWithLifecycle()
     val flashMode by viewModel.flashMode.collectAsStateWithLifecycle()
     val zoomRatio by viewModel.zoomRatio.collectAsStateWithLifecycle()
+    val maxZoomRatio by viewModel.maxZoomRatio.collectAsStateWithLifecycle()
+    val minZoomRatio by viewModel.minZoomRatio.collectAsStateWithLifecycle()
     val needsCameraRebind by viewModel.needsCameraRebind.collectAsStateWithLifecycle()
 
     // カメラ状態管理の改善
@@ -278,6 +281,10 @@ fun CameraScreen(
                 }
 
                 else -> {
+                    viewModel.apply{
+                        setMaxZoomRatio(camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 10.0f)
+                        setMinZoomRatio(camera?.cameraInfo?.zoomState?.value?.minZoomRatio ?: 1.0f)
+                    }
                     if (isPreviewMode && lastCapturedImageUri != null) {
                         Box(modifier = Modifier.fillMaxSize()) {
                             AsyncImage(
@@ -335,16 +342,14 @@ fun CameraScreen(
                                     .fillMaxSize()
                                     .modernCameraGestures(
                                         onScale = { newZoom ->
-                                            viewModel.setZoom(newZoom)
+                                            viewModel.smoothZoomTo(targetZoom = newZoom, duration = 0)
                                         },
                                         onDoubleTap = {
                                             viewModel.resetZoom()
                                         },
                                         currentZoom = zoomRatio,
-                                        minZoom = camera?.cameraInfo?.zoomState?.value?.minZoomRatio
-                                            ?: 1.0f,
-                                        maxZoom = camera?.cameraInfo?.zoomState?.value?.maxZoomRatio
-                                            ?: 10.0f,
+                                        minZoom = minZoomRatio,
+                                        maxZoom = maxZoomRatio,
                                         enableHapticFeedback = true,
                                         zoomSensitivity = 2.4f
                                     )
@@ -426,10 +431,6 @@ fun CameraScreen(
                                     )
                                     .padding(horizontal = 12.dp, vertical = 8.dp)
                             ) {
-                                val maxZoomRatio =
-                                    camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 10.0f
-                                val minZoomRatio =
-                                    camera?.cameraInfo?.zoomState?.value?.minZoomRatio ?: 1.0f
                                 Text(
                                     text = stringResource(
                                         R.string.zoom_info,

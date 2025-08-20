@@ -5,16 +5,17 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import kotlin.math.abs
+import kotlin.math.min
 
 /**
  * Modern camera gestures using Compose's built-in gesture detection
@@ -38,7 +39,6 @@ fun Modifier.modernCameraGestures(
     zoomSensitivity: Float = 1.0f
 ): Modifier {
     val view = LocalView.current
-    val lastZoom = rememberUpdatedState(currentZoom)
 
     return this
         // ピンチズーム検出
@@ -48,18 +48,17 @@ fun Modifier.modernCameraGestures(
             ) { _, _, zoom, _ ->
                 // ズーム感度を適用
                 val adjustedZoom = 1f + (zoom - 1f) * zoomSensitivity
-                val newZoom = (lastZoom.value * adjustedZoom).coerceIn(minZoom, maxZoom)
+                val newZoom = (currentZoom * adjustedZoom).coerceIn(minZoom, maxZoom)
 
                 // ハプティックフィードバック（最小/最大ズーム時）
                 if (enableHapticFeedback) {
-                    val wasAtLimit = lastZoom.value == minZoom || lastZoom.value == maxZoom
+                    val wasAtLimit = currentZoom == minZoom || currentZoom == maxZoom
                     val isAtLimit = newZoom == minZoom || newZoom == maxZoom
 
                     if (isAtLimit && !wasAtLimit) {
                         view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
                     }
                 }
-                
                 onScale(newZoom)
             }
         }
@@ -100,7 +99,7 @@ fun Modifier.advancedCameraGestures(
                 panZoomLock = false
             ) { _, _, zoom, _ ->
                 val adjustedZoom = 1f + (zoom - 1f) * zoomSensitivity
-                val newZoom = (currentZoom * adjustedZoom).coerceIn(minZoom, maxZoom)
+                val newZoom = (lastZoom * adjustedZoom).coerceIn(minZoom, maxZoom)
 
                 if (enableHapticFeedback) {
                     val wasAtLimit = lastZoom == minZoom || lastZoom == maxZoom
