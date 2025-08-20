@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import com.example.vtubercamera.R
 
 /**
@@ -91,5 +92,25 @@ fun DeleteConfirmDialog(
         text = stringResource(R.string.delete_photo_message),
         confirmText = stringResource(R.string.delete),
         dismissText = stringResource(R.string.cancel)
+    )
+}
+
+@Preview(locale = "ja")
+@Preview(locale = "en")
+@Composable
+fun DeleteConfirmDialogPreview(){
+    DeleteConfirmDialog(
+        onDismiss = {},
+        onConfirm = {}
+    )
+}
+
+@Preview(locale = "ja")
+@Preview(locale = "en")
+@Composable
+fun PartialAccessDialogPreview(){
+    PartialAccessDialog(
+        onDismiss = {},
+        context = androidx.compose.ui.platform.LocalContext.current
     )
 }
