@@ -15,6 +15,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import kotlin.math.abs
+import kotlin.math.min
 
 /**
  * Modern camera gestures using Compose's built-in gesture detection
@@ -38,8 +39,6 @@ fun Modifier.modernCameraGestures(
     zoomSensitivity: Float = 1.0f
 ): Modifier {
     val view = LocalView.current
-    var lastZoom by remember { mutableFloatStateOf(currentZoom) }
-
 
     return this
         // ピンチズーム検出
@@ -49,19 +48,17 @@ fun Modifier.modernCameraGestures(
             ) { _, _, zoom, _ ->
                 // ズーム感度を適用
                 val adjustedZoom = 1f + (zoom - 1f) * zoomSensitivity
-                val newZoom = (lastZoom * adjustedZoom).coerceIn(minZoom, maxZoom)
+                val newZoom = (currentZoom * adjustedZoom).coerceIn(minZoom, maxZoom)
 
                 // ハプティックフィードバック（最小/最大ズーム時）
                 if (enableHapticFeedback) {
-                    val wasAtLimit = lastZoom == minZoom || lastZoom == maxZoom
+                    val wasAtLimit = currentZoom == minZoom || currentZoom == maxZoom
                     val isAtLimit = newZoom == minZoom || newZoom == maxZoom
 
                     if (isAtLimit && !wasAtLimit) {
                         view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
                     }
                 }
-                
-                lastZoom = newZoom
                 onScale(newZoom)
             }
         }
