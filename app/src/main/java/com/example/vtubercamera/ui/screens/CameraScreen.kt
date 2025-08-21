@@ -310,6 +310,9 @@ fun CameraScreen(
                                         onDoubleTap = {
                                             viewModel.resetZoom()
                                         },
+                                        onTap = { offset ->
+                                            previewView?.let { viewModel.focusOnPoint(it, offset.x, offset.y) }
+                                        },
                                         currentZoom = zoomRatio,
                                         minZoom = minZoomRatio,
                                         maxZoom = maxZoomRatio,

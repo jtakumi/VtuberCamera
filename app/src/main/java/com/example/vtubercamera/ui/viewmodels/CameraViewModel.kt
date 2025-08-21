@@ -8,12 +8,14 @@ import android.provider.MediaStore
 import android.util.Log
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.core.content.ContextCompat
 import android.animation.ValueAnimator
 import android.view.animation.DecelerateInterpolator
 import androidx.lifecycle.ViewModel
+import androidx.camera.view.PreviewView
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -89,6 +91,13 @@ class CameraViewModel : ViewModel() {
     
     fun resetZoom() {
         smoothZoomTo(1.0f)
+    }
+
+    fun focusOnPoint(previewView: PreviewView, x: Float, y: Float) {
+        val factory = previewView.meteringPointFactory
+        val point = factory.createPoint(x, y)
+        val action = FocusMeteringAction.Builder(point).build()
+        _camera?.cameraControl?.startFocusAndMetering(action)
     }
 
     fun setMaxZoomRatio(maxZoomRatio: Float) {
