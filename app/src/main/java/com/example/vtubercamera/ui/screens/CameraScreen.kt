@@ -14,6 +14,7 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,8 +23,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
@@ -86,6 +89,7 @@ fun CameraScreen(
     val maxZoomRatio by viewModel.maxZoomRatio.collectAsStateWithLifecycle()
     val minZoomRatio by viewModel.minZoomRatio.collectAsStateWithLifecycle()
     val needsCameraRebind by viewModel.needsCameraRebind.collectAsStateWithLifecycle()
+    val focusPoint by viewModel.focusPoint.collectAsStateWithLifecycle()
 
     // カメラ状態管理の改善
     var imageCapture: ImageCapture? by remember { mutableStateOf(null) }
@@ -348,6 +352,34 @@ fun CameraScreen(
                                             }
                                         )
                                     }, ContextCompat.getMainExecutor(context))
+                                }
+                            }
+
+                            // フォーカスポイントの円を表示
+                            focusPoint?.let { (x, y) ->
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(0.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(10.dp)
+                                            .align(Alignment.TopStart)
+                                            .offset(
+                                                x = ((x - 5f).dp).coerceAtLeast(0.dp),
+                                                y = ((y - 5f).dp).coerceAtLeast(0.dp)
+                                            )
+                                            .background(
+                                                color = Color.White,
+                                                shape = CircleShape
+                                            )
+                                            .border(
+                                                width = 1.dp,
+                                                color = Color.Black,
+                                                shape = CircleShape
+                                            )
+                                    )
                                 }
                             }
 
