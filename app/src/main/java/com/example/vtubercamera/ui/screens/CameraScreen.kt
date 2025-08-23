@@ -70,6 +70,7 @@ import com.example.vtubercamera.R
 import com.example.vtubercamera.ui.components.AsyncImage
 import com.example.vtubercamera.ui.components.DeleteConfirmDialog
 import com.example.vtubercamera.ui.components.PartialAccessDialog
+import com.example.vtubercamera.ui.components.PermissionRequestComponent
 import com.example.vtubercamera.ui.modifiers.modernCameraGestures
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 import com.example.vtubercamera.utils.PermissionUtils
@@ -211,37 +212,21 @@ fun CameraScreen(
         ) {
             when {
                 !hasCameraPermission -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(stringResource(R.string.camera_permission_required))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) }) {
-                            Text(stringResource(R.string.grant_camera_permission))
-                        }
-                    }
+                    PermissionRequestComponent(
+                        title = stringResource(R.string.camera_permission_required),
+                        buttonText = stringResource(R.string.grant_camera_permission),
+                        onButtonClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) }
+                    )
                 }
 
                 !hasMediaPermissions -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(stringResource(R.string.storage_permission_required))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = {
+                    PermissionRequestComponent(
+                        title = stringResource(R.string.storage_permission_required),
+                        buttonText = stringResource(R.string.grant_storage_permission),
+                        onButtonClick = {
                             mediaPermissionsLauncher.launch(PermissionUtils.getRequiredMediaPermissions())
-                        }) {
-                            Text(stringResource(R.string.grant_storage_permission))
                         }
-                    }
+                    )
                 }
 
                 else -> {
