@@ -71,6 +71,7 @@ import com.example.vtubercamera.ui.components.AsyncImage
 import com.example.vtubercamera.ui.components.DeleteConfirmDialog
 import com.example.vtubercamera.ui.components.PartialAccessDialog
 import com.example.vtubercamera.ui.components.PermissionRequestComponent
+import com.example.vtubercamera.ui.components.PhotoPreviewComponent
 import com.example.vtubercamera.ui.modifiers.modernCameraGestures
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 import com.example.vtubercamera.utils.PermissionUtils
@@ -234,35 +235,13 @@ fun CameraScreen(
                         setMaxZoomRatio(camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 10.0f)
                         setMinZoomRatio(camera?.cameraInfo?.zoomState?.value?.minZoomRatio ?: 1.0f)
                     }
-                    if (isPreviewMode && lastCapturedImageUri != null) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            AsyncImage(
-                                model = lastCapturedImageUri!!,
-                                contentDescription = stringResource(R.string.captured_photo),
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Fit
-                            )
-                            Row(
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .padding(bottom = 16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                Button(
-                                    onClick = { showDeleteConfirmDialog = true },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.error
-                                    )
-                                ) {
-                                    Text(stringResource(R.string.delete))
-                                }
-                                Button(
-                                    onClick = { viewModel.exitPreviewMode() }
-                                ) {
-                                    Text(stringResource(R.string.back))
-                                }
-                            }
-                        }
+                    if (isPreviewMode) {
+                        PhotoPreviewComponent(
+                            imageUri = lastCapturedImageUri.toString(),
+                            onDelete = { showDeleteConfirmDialog = true },
+                            onBack = { viewModel.exitPreviewMode() }
+                        )
+
                     } else {
                         // カメラプレビューとコントロールを回転可能なBoxでラップ
                         Box(
