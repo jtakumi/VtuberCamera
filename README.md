@@ -275,18 +275,12 @@ id 'org.jetbrains.kotlin.plugin.compose' version '2.2.0'
 
 ### Recent Changes
 
-#### 📅 2025-08-10: UI Improvements, Internationalization, and Enhanced Pinch Zoom
+#### 📅 2025-08-23: Tap-to-Focus and Permission Request Screen
 
 **🎯 Key Changes**
-- **Internationalization**: Migrated hardcoded strings to `stringResource()`, added `zoom_info` resources in English and Japanese
-- **UI Improvements**: Refactored CameraScreenPreview from `Box` to `Scaffold` structure, unified layout with actual screen
-- **Enhanced Pinch Zoom**: Created `ModernCameraGestures.kt`, implemented modern approach using `detectTransformGestures`
-- **Improved UX**: Integrated 5 zoom control methods (pinch, slider, buttons, double-tap reset, haptic feedback)
-
-**🔧 Technical Improvements**
-- Migration from deprecated API (`pointerInteropFilter`) to modern API (`detectTransformGestures`)
-- Proper string resource management and code quality improvements
-- Enhanced UI/UX consistency and performance optimization
+- **Tap-to-Focus**: Added focus handling and focus point display in `CameraViewModel`.
+- **Gesture Support**: Enabled tap focus in `CameraScreen` and `ModernCameraGestures`.
+- **Permission UI**: Introduced `PermissionRequestComponent` and `PhotoPreviewComponent` for permission requests and post-capture preview.
 
 ### Major Milestones
 - ✅ **Basic Camera Functions** - Implementation of capture, preview, and save features

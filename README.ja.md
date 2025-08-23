@@ -275,18 +275,12 @@ id 'org.jetbrains.kotlin.plugin.compose' version '2.2.0'
 
 ### 最近の変更
 
-#### 📅 2025-08-10: UI改善と国際化対応、ピンチズーム機能の強化
+#### 📅 2025-08-23: フォーカス機能と権限リクエスト画面の追加
 
 **🎯 主な変更内容**
-- **国際化対応**: ハードコードされた文字列を`stringResource()`に移行、`zoom_info`リソースを英語・日本語で追加
-- **UI改善**: CameraScreenPreviewを`Box`から`Scaffold`構造に変更、実際の画面と同じレイアウトに統一
-- **ピンチズーム強化**: `ModernCameraGestures.kt`を新規作成、`detectTransformGestures`を使用したモダンな実装
-- **ユーザー体験向上**: 5つのズーム操作方法（ピンチ、スライダー、ボタン、ダブルタップリセット、ハプティック）を統合
-
-**🔧 技術的改善**
-- 非推奨API（`pointerInteropFilter`）からモダンAPI（`detectTransformGestures`）への移行
-- 文字列リソースの適切な管理とコード品質向上
-- UI/UXの一貫性とパフォーマンス最適化
+- CameraViewModelにフォーカス処理とフォーカスポイント表示を追加
+- CameraScreenおよびModernCameraGesturesでタップフォーカスに対応
+- PermissionRequestComponentとPhotoPreviewComponentを新規作成し、権限リクエストと撮影後プレビューを提供
 
 ### 主要なマイルストーン
 - ✅ **基本カメラ機能** - 撮影、プレビュー、保存機能の実装
