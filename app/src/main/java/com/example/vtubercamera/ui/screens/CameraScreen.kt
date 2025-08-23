@@ -72,7 +72,6 @@ import com.example.vtubercamera.ui.components.DeleteConfirmDialog
 import com.example.vtubercamera.ui.components.PartialAccessDialog
 import com.example.vtubercamera.ui.components.PermissionRequestComponent
 import com.example.vtubercamera.ui.components.PhotoPreviewComponent
-import com.example.vtubercamera.ui.components.ShutterButtonComponent
 import com.example.vtubercamera.ui.modifiers.modernCameraGestures
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 import com.example.vtubercamera.utils.PermissionUtils
@@ -404,7 +403,7 @@ fun CameraScreen(
                                 )
                             }
                             // シャッターボタン
-                            ShutterButtonComponent(
+                            FloatingActionButton(
                                 onClick = {
                                     imageCapture?.let { capture ->
                                         viewModel.takePhoto(
@@ -417,8 +416,16 @@ fun CameraScreen(
                                             }
                                         )
                                     }
-                                }
-                            )
+                                },
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = 16.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Camera,
+                                    contentDescription = stringResource(R.string.take_photo)
+                                )
+                            }
 
                             // 最後に撮影した写真のサムネイル
                             lastCapturedImageUri?.let { uri ->
