@@ -48,7 +48,10 @@ fun PhotoPreviewComponent(
                 Text(stringResource(R.string.delete))
             }
             Button(
-                onClick = onBack
+                onClick = onBack,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
             ) {
                 Text(stringResource(R.string.back))
             }
