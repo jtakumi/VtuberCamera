@@ -8,15 +8,20 @@ import android.provider.MediaStore
 import android.util.Log
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.core.content.ContextCompat
 import android.animation.ValueAnimator
 import android.view.animation.DecelerateInterpolator
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.camera.view.PreviewView
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -46,6 +51,10 @@ class CameraViewModel : ViewModel() {
     // カメラ再初期化フラグを追加
     private val _needsCameraRebind = MutableStateFlow(false)
     val needsCameraRebind: StateFlow<Boolean> = _needsCameraRebind.asStateFlow()
+
+    // フォーカスポイントの状態管理
+    private val _focusPoint = MutableStateFlow<Pair<Float, Float>?>(null)
+    val focusPoint: StateFlow<Pair<Float, Float>?> = _focusPoint.asStateFlow()
 
     private var _camera: Camera? = null
 
@@ -89,6 +98,20 @@ class CameraViewModel : ViewModel() {
     
     fun resetZoom() {
         smoothZoomTo(1.0f)
+    }
+
+    fun focusOnPoint(previewView: PreviewView, x: Float, y: Float) {
+        val factory = previewView.meteringPointFactory
+        val point = factory.createPoint(x, y)
+        val action = FocusMeteringAction.Builder(point).build()
+        _camera?.cameraControl?.startFocusAndMetering(action)
+        
+        // フォーカスポイントを設定し、1秒後に消す
+        _focusPoint.value = Pair(x, y)
+        viewModelScope.launch {
+            delay(1000) // 1秒待機
+            _focusPoint.value = null
+        }
     }
 
     fun setMaxZoomRatio(maxZoomRatio: Float) {

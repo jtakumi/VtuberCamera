@@ -32,6 +32,7 @@ import kotlin.math.min
 fun Modifier.modernCameraGestures(
     onScale: (Float) -> Unit,
     onDoubleTap: () -> Unit = {},
+    onTap: (Offset) -> Unit = {},
     currentZoom: Float,
     minZoom: Float = 1.0f,
     maxZoom: Float = 10.0f,
@@ -65,6 +66,7 @@ fun Modifier.modernCameraGestures(
         // ダブルタップ検出
         .pointerInput(Unit) {
             detectTapGestures(
+                onTap = { offset -> onTap(offset) },
                 onDoubleTap = { onDoubleTap() }
             )
         }
