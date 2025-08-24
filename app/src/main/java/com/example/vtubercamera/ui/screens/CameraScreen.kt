@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -382,25 +383,37 @@ fun CameraScreen(
                                 }
                             }
 
-                            // ズーム情報表示
-                            Box(
+                            // ズームレベルボタン
+                            Row(
                                 modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(16.dp)
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = 96.dp)
                                     .background(
                                         color = Color.Black.copy(alpha = 0.5f),
-                                        shape = RoundedCornerShape(8.dp)
+                                        shape = RoundedCornerShape(24.dp)
                                     )
-                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = stringResource(
-                                        R.string.zoom_info,
-                                        zoomRatio, minZoomRatio, maxZoomRatio
-                                    ),
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
+                                val zoomLevels = listOf(0.5f, 1f, 2f)
+                                zoomLevels
+                                    .filter { it in minZoomRatio..maxZoomRatio }
+                                    .forEach { level ->
+                                        val isSelected = kotlin.math.abs(zoomRatio - level) < 0.01f
+                                        Button(
+                                            onClick = { viewModel.smoothZoomTo(level) },
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                                contentColor = Color.White
+                                            ),
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                            shape = CircleShape
+                                        ) {
+                                            val label = if (level % 1f == 0f) level.toInt().toString() else level.toString()
+                                            Text("${label}x")
+                                        }
+                                    }
                             }
                             // シャッターボタン
                             FloatingActionButton(
@@ -424,6 +437,27 @@ fun CameraScreen(
                                 Icon(
                                     imageVector = Icons.Default.Camera,
                                     contentDescription = stringResource(R.string.take_photo)
+                                )
+                            }
+
+                            // ズーム情報表示
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(16.dp)
+                                    .background(
+                                        color = Color.Black.copy(alpha = 0.5f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(
+                                        R.string.zoom_info,
+                                        zoomRatio, minZoomRatio, maxZoomRatio
+                                    ),
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.bodySmall
                                 )
                             }
 
