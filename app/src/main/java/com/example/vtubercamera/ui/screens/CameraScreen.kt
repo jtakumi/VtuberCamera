@@ -16,33 +16,17 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Camera
-import androidx.compose.material.icons.filled.Cameraswitch
-import androidx.compose.material.icons.filled.FlashAuto
-import androidx.compose.material.icons.filled.FlashOff
-import androidx.compose.material.icons.filled.FlashOn
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,6 +50,7 @@ import com.example.vtubercamera.ui.components.PermissionRequestComponent
 import com.example.vtubercamera.ui.components.PhotoPreviewComponent
 import com.example.vtubercamera.ui.modifiers.modernCameraGestures
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
+import com.example.vtubercamera.ui.viewmodels.PhotoItem
 import com.example.vtubercamera.utils.PermissionUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,8 +69,12 @@ fun CameraScreen(
     val minZoomRatio by viewModel.minZoomRatio.collectAsStateWithLifecycle()
     val needsCameraRebind by viewModel.needsCameraRebind.collectAsStateWithLifecycle()
     val focusPoint by viewModel.focusPoint.collectAsStateWithLifecycle()
+    val allPhotos by viewModel.allPhotos.collectAsStateWithLifecycle()
+    val isLoadingPhotos by viewModel.isLoadingPhotos.collectAsStateWithLifecycle()
+    val selectedPhotos by viewModel.selectedPhotos.collectAsStateWithLifecycle()
+    val isSelectionMode by viewModel.isSelectionMode.collectAsStateWithLifecycle()
+    val currentViewingPhoto by viewModel.currentViewingPhoto.collectAsStateWithLifecycle()
 
-    // カメラ状態管理の改善
     var imageCapture: ImageCapture? by remember { mutableStateOf(null) }
     var camera: Camera? by remember { mutableStateOf(null) }
     var cameraProvider: ProcessCameraProvider? by remember { mutableStateOf(null) }
@@ -93,6 +82,7 @@ fun CameraScreen(
     var preview: Preview? by remember { mutableStateOf(null) }
     var showPartialAccessDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    var showGalleryView by remember { mutableStateOf(false) }
 
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -105,20 +95,16 @@ fun CameraScreen(
         )
     }
 
-    // カメラ権限リクエスト用ランチャー
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { granted ->
             hasCameraPermission = granted
         }
     )
-    // メディアアクセス権限リクエスト用ランチャー
     val mediaPermissionsLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
         onResult = { permissions ->
             hasMediaPermissions = permissions.values.all { it }
-
-            // Android 15: パーシャルアクセスの確認
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 val hasPartialAccess = PermissionUtils.hasPartialMediaAccess(context)
                 if (hasPartialAccess && !permissions[Manifest.permission.READ_MEDIA_IMAGES]!!) {
@@ -128,7 +114,6 @@ fun CameraScreen(
         }
     )
 
-    // 初期権限チェック
     LaunchedEffect(Unit) {
         if (!hasCameraPermission) {
             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
@@ -138,7 +123,12 @@ fun CameraScreen(
         }
     }
 
-    // パーシャルアクセスダイアログ（Android 15対応）
+    LaunchedEffect(hasMediaPermissions) {
+        if (hasMediaPermissions) {
+            viewModel.loadAllPhotos(context)
+        }
+    }
+
     if (showPartialAccessDialog) {
         PartialAccessDialog(
             onDismiss = { showPartialAccessDialog = false },
@@ -146,53 +136,114 @@ fun CameraScreen(
         )
     }
 
-    // 削除確認ダイアログ
     if (showDeleteConfirmDialog) {
         DeleteConfirmDialog(
             onDismiss = { showDeleteConfirmDialog = false },
             onConfirm = {
-                lastCapturedImageUri?.let { uri ->
-                    val success = viewModel.deletePhoto(context, uri)
-                    if (success) {
-                        Toast.makeText(
-                            context,
-                            R.string.photo_deleted_successfully,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        viewModel.clearLastCapturedImage(context)
-                    } else {
-                        Toast.makeText(
-                            context,
-                            R.string.photo_deletion_failed,
-                            Toast.LENGTH_SHORT
-                        ).show()
+                if (isSelectionMode && selectedPhotos.isNotEmpty()) {
+                    val deletedCount = viewModel.deleteSelectedPhotos(context)
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.photos_deleted_count, deletedCount),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    lastCapturedImageUri?.let { uri ->
+                        val success = viewModel.deletePhoto(context, uri)
+                        if (success) {
+                            Toast.makeText(
+                                context,
+                                R.string.photo_deleted_successfully,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            viewModel.clearLastCapturedImage(context)
+                        } else {
+                            Toast.makeText(
+                                context,
+                                R.string.photo_deletion_failed,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
                 }
+                showDeleteConfirmDialog = false
             }
         )
     }
 
-
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.camera_title)) },
-                actions = {
-                    IconButton(onClick = { viewModel.toggleFlash() }) {
-                        Icon(
-                            imageVector = when (flashMode) {
-                                ImageCapture.FLASH_MODE_ON -> Icons.Default.FlashOn
-                                ImageCapture.FLASH_MODE_AUTO -> Icons.Default.FlashAuto
-                                else -> Icons.Default.FlashOff
-                            },
-                            contentDescription = stringResource(R.string.flash_mode_toggle)
-                        )
+                title = {
+                    Text(
+                        if (showGalleryView) "ギャラリー" else stringResource(R.string.camera_title)
+                    )
+                },
+                navigationIcon = {
+                    if (showGalleryView) {
+                        IconButton(onClick = {
+                            showGalleryView = false
+                            viewModel.exitSelectionMode()
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "戻る"
+                            )
+                        }
                     }
-                    IconButton(onClick = { viewModel.switchCamera() }) {
-                        Icon(
-                            imageVector = Icons.Default.Cameraswitch,
-                            contentDescription = stringResource(R.string.switch_camera)
-                        )
+                },
+                actions = {
+                    if (showGalleryView) {
+                        if (isSelectionMode) {
+                            IconButton(onClick = { viewModel.toggleSelectAll() }) {
+                                Icon(
+                                    imageVector = if (selectedPhotos.size == allPhotos.size && allPhotos.isNotEmpty())
+                                        Icons.Default.SelectAll else Icons.Default.CheckBox,
+                                    contentDescription = "全選択"
+                                )
+                            }
+                            IconButton(
+                                onClick = { showDeleteConfirmDialog = true },
+                                enabled = selectedPhotos.isNotEmpty()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "削除"
+                                )
+                            }
+                        } else {
+                            IconButton(onClick = { viewModel.startSelectionMode() }) {
+                                Icon(
+                                    imageVector = Icons.Default.SelectAll,
+                                    contentDescription = "選択"
+                                )
+                            }
+                        }
+                    } else {
+                        if (allPhotos.isNotEmpty()) {
+                            IconButton(onClick = { showGalleryView = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.Photo,
+                                    contentDescription = "ギャラリー"
+                                )
+                            }
+                        }
+                        IconButton(onClick = { viewModel.toggleFlash() }) {
+                            Icon(
+                                imageVector = when (flashMode) {
+                                    ImageCapture.FLASH_MODE_ON -> Icons.Default.FlashOn
+                                    ImageCapture.FLASH_MODE_AUTO -> Icons.Default.FlashAuto
+                                    else -> Icons.Default.FlashOff
+                                },
+                                contentDescription = stringResource(R.string.flash_mode_toggle)
+                            )
+                        }
+                        IconButton(onClick = { viewModel.switchCamera() }) {
+                            Icon(
+                                imageVector = Icons.Default.Cameraswitch,
+                                contentDescription = stringResource(R.string.switch_camera)
+                            )
+                        }
                     }
                 }
             )
@@ -222,152 +273,123 @@ fun CameraScreen(
                     )
                 }
 
+                currentViewingPhoto != null -> {
+                    PhotoDetailView(
+                        photo = currentViewingPhoto!!,
+                        onBack = { viewModel.setCurrentViewingPhoto(null) },
+                        onDelete = { photo ->
+                            val success = viewModel.deletePhoto(context, photo.uri)
+                            if (success) {
+                                Toast.makeText(context, "写真を削除しました", Toast.LENGTH_SHORT).show()
+                                viewModel.setCurrentViewingPhoto(null)
+                            }
+                        },
+                        onNext = { viewModel.goToNextPhoto() },
+                        onPrevious = { viewModel.goToPreviousPhoto() },
+                        hasNext = allPhotos.isNotEmpty() &&
+                                allPhotos.indexOfFirst { it.id == currentViewingPhoto!!.id } < allPhotos.size - 1,
+                        hasPrevious = allPhotos.isNotEmpty() &&
+                                allPhotos.indexOfFirst { it.id == currentViewingPhoto!!.id } > 0
+                    )
+                }
+
+                showGalleryView -> {
+                    GalleryView(
+                        photos = allPhotos,
+                        isLoading = isLoadingPhotos,
+                        selectedPhotos = selectedPhotos,
+                        isSelectionMode = isSelectionMode,
+                        onPhotoClick = { photo ->
+                            if (isSelectionMode) {
+                                viewModel.togglePhotoSelection(photo.uri)
+                            } else {
+                                viewModel.setCurrentViewingPhoto(photo)
+                            }
+                        },
+                        onPhotoLongClick = { photo ->
+                            if (!isSelectionMode) {
+                                viewModel.startSelectionMode()
+                                viewModel.togglePhotoSelection(photo.uri)
+                            }
+                        }
+                    )
+                }
+
+                isPreviewMode -> {
+                    PhotoPreviewComponent(
+                        imageUri = lastCapturedImageUri.toString(),
+                        onDelete = { showDeleteConfirmDialog = true },
+                        onBack = { viewModel.exitPreviewMode() }
+                    )
+                }
+
                 else -> {
                     viewModel.apply {
                         setMaxZoomRatio(camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 10.0f)
                         setMinZoomRatio(camera?.cameraInfo?.zoomState?.value?.minZoomRatio ?: 1.0f)
                     }
-                    if (isPreviewMode) {
-                        PhotoPreviewComponent(
-                            imageUri = lastCapturedImageUri.toString(),
-                            onDelete = { showDeleteConfirmDialog = true },
-                            onBack = { viewModel.exitPreviewMode() }
-                        )
 
-                    } else {
-                        // カメラプレビューとコントロールを回転可能なBoxでラップ
-                        Box(
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                rotationZ = when (context.resources.configuration.orientation) {
+                                    android.content.res.Configuration.ORIENTATION_LANDSCAPE -> 90f
+                                    else -> 0f
+                                }
+                            }
+                    ) {
+                        AndroidView(
+                            factory = { ctx ->
+                                PreviewView(ctx).apply {
+                                    layoutParams = ViewGroup.LayoutParams(
+                                        ViewGroup.LayoutParams.MATCH_PARENT,
+                                        ViewGroup.LayoutParams.MATCH_PARENT
+                                    )
+                                    previewView = this
+                                }
+                            },
                             modifier = Modifier
                                 .fillMaxSize()
-                                .graphicsLayer {
-                                    // 画面の向きに応じて回転
-                                    rotationZ = when (context.resources.configuration.orientation) {
-                                        android.content.res.Configuration.ORIENTATION_LANDSCAPE -> 90f
-                                        else -> 0f
-                                    }
-                                }
-                        ) {
-                            // AndroidViewの改善（元のコードの構造を保持）
-                            AndroidView(
-                                factory = { ctx ->
-                                    PreviewView(ctx).apply {
-                                        layoutParams = ViewGroup.LayoutParams(
-                                            ViewGroup.LayoutParams.MATCH_PARENT,
-                                            ViewGroup.LayoutParams.MATCH_PARENT
+                                .modernCameraGestures(
+                                    onScale = { newZoom ->
+                                        viewModel.smoothZoomTo(
+                                            targetZoom = newZoom,
+                                            duration = 0
                                         )
-                                        previewView = this // PreviewViewの参照を保存
-                                    }
-                                },
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .modernCameraGestures(
-                                        onScale = { newZoom ->
-                                            viewModel.smoothZoomTo(
-                                                targetZoom = newZoom,
-                                                duration = 0
+                                    },
+                                    onDoubleTap = {
+                                        viewModel.resetZoom()
+                                    },
+                                    onTap = { offset ->
+                                        previewView?.let {
+                                            viewModel.focusOnPoint(
+                                                it,
+                                                offset.x,
+                                                offset.y
                                             )
-                                        },
-                                        onDoubleTap = {
-                                            viewModel.resetZoom()
-                                        },
-                                        onTap = { offset ->
-                                            previewView?.let {
-                                                viewModel.focusOnPoint(
-                                                    it,
-                                                    offset.x,
-                                                    offset.y
-                                                )
-                                            }
-                                        },
-                                        currentZoom = zoomRatio,
-                                        minZoom = minZoomRatio,
-                                        maxZoom = maxZoomRatio,
-                                        enableHapticFeedback = true,
-                                        zoomSensitivity = 2.4f
-                                    )
-                            ) { view ->
-                                // 初回のみカメラプロバイダーを初期化
-                                if (cameraProvider == null) {
-                                    val cameraProviderFuture =
-                                        ProcessCameraProvider.getInstance(context)
-                                    cameraProviderFuture.addListener({
-                                        cameraProvider = cameraProviderFuture.get()
-
-                                        // プレビューを一度だけ作成してSurfaceProviderを設定
-                                        preview = Preview.Builder().build().also {
-                                            it.surfaceProvider = view.surfaceProvider
                                         }
+                                    },
+                                    currentZoom = zoomRatio,
+                                    minZoom = minZoomRatio,
+                                    maxZoom = maxZoomRatio,
+                                    enableHapticFeedback = true,
+                                    zoomSensitivity = 2.4f
+                                )
+                        ) { view ->
+                            if (cameraProvider == null) {
+                                val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+                                cameraProviderFuture.addListener({
+                                    cameraProvider = cameraProviderFuture.get()
 
-                                        // 初回バインド
-                                        bindCameraWithPreview(
-                                            lifecycleOwner = lifecycleOwner,
-                                            cameraProvider = cameraProvider!!,
-                                            preview = preview!!,
-                                            cameraSelector = cameraSelector,
-                                            flashMode = flashMode,
-                                            initialZoomRatio = zoomRatio,
-                                            onImageCaptureCreated = { capture ->
-                                                imageCapture = capture
-                                            },
-                                            onCameraCreated = { cam ->
-                                                camera = cam
-                                                viewModel.setCamera(cam)
-                                            }
-                                        )
-                                    }, ContextCompat.getMainExecutor(context))
-                                }
-                            }
-
-                            // フォーカスポイントの円を表示
-                            focusPoint?.let { (x, y) ->
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(0.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(10.dp)
-                                            .align(Alignment.TopStart)
-                                            .offset(
-                                                x = ((x - 5f).dp).coerceAtLeast(0.dp),
-                                                y = ((y - 5f).dp).coerceAtLeast(0.dp)
-                                            )
-                                            .background(
-                                                color = Color.White,
-                                                shape = CircleShape
-                                            )
-                                            .border(
-                                                width = 1.dp,
-                                                color = Color.Black,
-                                                shape = CircleShape
-                                            )
-                                    )
-                                }
-                            }
-
-                            // 状態変更の監視と賢い再バインド
-                            LaunchedEffect(cameraSelector,  needsCameraRebind) {
-                                // カメラプロバイダーとプレビューが準備できている場合のみ再バインド
-                                if (cameraProvider != null && preview != null) {
-                                    Log.d(
-                                        "CameraScreen",
-                                        "Rebinding camera - Selector: ${if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) "BACK" else "FRONT"}, Flash: $flashMode, NeedsRebind: $needsCameraRebind"
-                                    )
-
-                                    // needsCameraRebindがtrueの場合は、新しいPreviewを作成
-                                    if (needsCameraRebind && previewView != null) {
-                                        Log.d("CameraScreen", "Creating new Preview for rebind")
-                                        preview = Preview.Builder().build().also {
-                                            it.surfaceProvider = previewView!!.surfaceProvider
-                                        }
-                                        viewModel.onCameraRebound() // フラグをリセット
+                                    preview = Preview.Builder().build().also {
+                                        it.surfaceProvider = view.surfaceProvider
                                     }
 
                                     bindCameraWithPreview(
                                         lifecycleOwner = lifecycleOwner,
                                         cameraProvider = cameraProvider!!,
-                                        preview = preview!!, // 新しいまたは既存のプレビューを使用
+                                        preview = preview!!,
                                         cameraSelector = cameraSelector,
                                         flashMode = flashMode,
                                         initialZoomRatio = zoomRatio,
@@ -379,81 +401,189 @@ fun CameraScreen(
                                             viewModel.setCamera(cam)
                                         }
                                     )
-                                }
+                                }, ContextCompat.getMainExecutor(context))
                             }
+                        }
 
-                            // ズーム情報表示
+                        focusPoint?.let { (x, y) ->
                             Box(
                                 modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(16.dp)
-                                    .background(
-                                        color = Color.Black.copy(alpha = 0.5f),
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
-                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                                    .fillMaxSize()
+                                    .padding(0.dp)
                             ) {
-                                Text(
-                                    text = stringResource(
-                                        R.string.zoom_info,
-                                        zoomRatio, minZoomRatio, maxZoomRatio
-                                    ),
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                            // シャッターボタン
-                            FloatingActionButton(
-                                onClick = {
-                                    imageCapture?.let { capture ->
-                                        viewModel.takePhoto(
-                                            imageCapture = capture,
-                                            context = context,
-                                            onPhotoSaved = { /* トーストメッセージを削除 */ },
-                                            onError = { msg ->
-                                                Toast.makeText(context, msg, Toast.LENGTH_SHORT)
-                                                    .show()
-                                            }
-                                        )
-                                    }
-                                },
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .padding(bottom = 16.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Camera,
-                                    contentDescription = stringResource(R.string.take_photo)
-                                )
-                            }
-
-                            // 最後に撮影した写真のサムネイル
-                            lastCapturedImageUri?.let { uri ->
                                 Box(
                                     modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .padding(16.dp)
-                                        .size(80.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .pointerInput(Unit) {
-                                            detectTapGestures(
-                                                onLongPress = {
-                                                    showDeleteConfirmDialog = true
-                                                },
-                                                onTap = {
-                                                    viewModel.enterPreviewMode()
-                                                }
-                                            )
+                                        .size(10.dp)
+                                        .align(Alignment.TopStart)
+                                        .offset(
+                                            x = ((x - 5f).dp).coerceAtLeast(0.dp),
+                                            y = ((y - 5f).dp).coerceAtLeast(0.dp)
+                                        )
+                                        .background(
+                                            color = Color.White,
+                                            shape = CircleShape
+                                        )
+                                        .border(
+                                            width = 1.dp,
+                                            color = Color.Black,
+                                            shape = CircleShape
+                                        )
+                                )
+                            }
+                        }
+
+                        LaunchedEffect(cameraSelector, needsCameraRebind) {
+                            if (cameraProvider != null && preview != null) {
+                                Log.d(
+                                    "CameraScreen",
+                                    "Rebinding camera - Selector: ${if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) "BACK" else "FRONT"}, Flash: $flashMode, NeedsRebind: $needsCameraRebind"
+                                )
+
+                                if (needsCameraRebind && previewView != null) {
+                                    Log.d("CameraScreen", "Creating new Preview for rebind")
+                                    preview = Preview.Builder().build().also {
+                                        it.surfaceProvider = previewView!!.surfaceProvider
+                                    }
+                                    viewModel.onCameraRebound()
+                                }
+
+                                bindCameraWithPreview(
+                                    lifecycleOwner = lifecycleOwner,
+                                    cameraProvider = cameraProvider!!,
+                                    preview = preview!!,
+                                    cameraSelector = cameraSelector,
+                                    flashMode = flashMode,
+                                    initialZoomRatio = zoomRatio,
+                                    onImageCaptureCreated = { capture ->
+                                        imageCapture = capture
+                                    },
+                                    onCameraCreated = { cam ->
+                                        camera = cam
+                                        viewModel.setCamera(cam)
+                                    }
+                                )
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(16.dp)
+                                .background(
+                                    color = Color.Black.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = stringResource(
+                                    R.string.zoom_info,
+                                    zoomRatio, minZoomRatio, maxZoomRatio
+                                ),
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+
+                        FloatingActionButton(
+                            onClick = {
+                                imageCapture?.let { capture ->
+                                    viewModel.takePhoto(
+                                        imageCapture = capture,
+                                        context = context,
+                                        onPhotoSaved = { },
+                                        onError = { msg ->
+                                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                                         }
-                                ) {
-                                    AsyncImage(
-                                        model = uri,
-                                        contentDescription = stringResource(R.string.last_captured_photo),
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
                                     )
                                 }
-                            }
+                            },
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 16.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Camera,
+                                contentDescription = stringResource(R.string.take_photo)
+                            )
+                        }
+
+                        PhotoPreviewArea(
+                            lastCapturedImageUri = lastCapturedImageUri,
+                            recentPhotos = allPhotos.take(5),
+                            onLastPhotoClick = { viewModel.enterPreviewMode() },
+                            onLastPhotoLongPress = { showDeleteConfirmDialog = true },
+                            onRecentPhotoClick = { photo ->
+                                viewModel.setCurrentViewingPhoto(photo)
+                            },
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(16.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PhotoPreviewArea(
+    lastCapturedImageUri: android.net.Uri?,
+    recentPhotos: List<PhotoItem>,
+    onLastPhotoClick: () -> Unit,
+    onLastPhotoLongPress: () -> Unit,
+    onRecentPhotoClick: (PhotoItem) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (lastCapturedImageUri != null || recentPhotos.isNotEmpty()) {
+        Column(modifier = modifier) {
+            lastCapturedImageUri?.let { uri ->
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onLongPress = { onLastPhotoLongPress() },
+                                onTap = { onLastPhotoClick() }
+                            )
+                        }
+                ) {
+                    AsyncImage(
+                        model = uri,
+                        contentDescription = "最後に撮影した写真",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+
+                if (recentPhotos.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+
+            if (recentPhotos.isNotEmpty()) {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(recentPhotos) { photo ->
+                        Box(
+                            modifier = Modifier
+                                .size(50.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .pointerInput(Unit) {
+                                    detectTapGestures {
+                                        onRecentPhotoClick(photo)
+                                    }
+                                }
+                        ) {
+                            AsyncImage(
+                                model = photo.uri,
+                                contentDescription = "最近の写真",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
                         }
                     }
                 }
@@ -462,11 +592,182 @@ fun CameraScreen(
     }
 }
 
-// 既存のPreviewを再利用するバインド関数
+@Composable
+private fun GalleryView(
+    photos: List<PhotoItem>,
+    isLoading: Boolean,
+    selectedPhotos: Set<android.net.Uri>,
+    isSelectionMode: Boolean,
+    onPhotoClick: (PhotoItem) -> Unit,
+    onPhotoLongClick: (PhotoItem) -> Unit
+) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center)
+            )
+        } else if (photos.isEmpty()) {
+            Text(
+                text = "写真がありません",
+                modifier = Modifier.align(Alignment.Center),
+                style = MaterialTheme.typography.bodyLarge
+            )
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(3),
+                contentPadding = PaddingValues(4.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                items(photos.size) { index ->
+                    val photo = photos[index]
+                    val isSelected = selectedPhotos.contains(photo.uri)
+
+                    Box(
+                        modifier = Modifier
+                            .aspectRatio(1f)
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onLongPress = { onPhotoLongClick(photo) },
+                                    onTap = { onPhotoClick(photo) }
+                                )
+                            }
+                    ) {
+                        AsyncImage(
+                            model = photo.uri,
+                            contentDescription = photo.displayName,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+
+                        if (isSelectionMode) {
+                            if (isSelected) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Blue.copy(alpha = 0.3f))
+                                )
+                            }
+                            Icon(
+                                imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                                contentDescription = if (isSelected) "選択済み" else "未選択",
+                                tint = if (isSelected) Color.Blue else Color.White,
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(8.dp)
+                                    .size(24.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PhotoDetailView(
+    photo: PhotoItem,
+    onBack: () -> Unit,
+    onDelete: (PhotoItem) -> Unit,
+    onNext: () -> Unit,
+    onPrevious: () -> Unit,
+    hasNext: Boolean,
+    hasPrevious: Boolean
+) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("写真を削除") },
+            text = { Text("この写真を削除しますか？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDelete(photo)
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("削除")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("キャンセル")
+                }
+            }
+        )
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        AsyncImage(
+            model = photo.uri,
+            contentDescription = photo.displayName,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Fit
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .background(
+                    color = Color.Black.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(8.dp)
+                )
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "戻る",
+                    tint = Color.White
+                )
+            }
+
+            IconButton(onClick = { showDeleteDialog = true }) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "削除",
+                    tint = Color.White
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            if (hasPrevious) {
+                FloatingActionButton(
+                    onClick = onPrevious,
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "前の写真")
+                }
+            }
+
+            if (hasNext) {
+                FloatingActionButton(
+                    onClick = onNext,
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(Icons.Default.ArrowForward, contentDescription = "次の写真")
+                }
+            }
+        }
+    }
+}
+
 private fun bindCameraWithPreview(
     lifecycleOwner: LifecycleOwner,
     cameraProvider: ProcessCameraProvider,
-    preview: Preview, // 既存のPreviewを受け取る
+    preview: Preview,
     cameraSelector: CameraSelector,
     flashMode: Int,
     initialZoomRatio: Float? = null,
@@ -479,27 +780,23 @@ private fun bindCameraWithPreview(
             "Binding camera with flash mode: $flashMode, camera: ${if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) "BACK" else "FRONT"}"
         )
 
-        // ImageCaptureのみ新しく作成（フラッシュモードを反映）
         val imageCapture = ImageCapture.Builder()
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
             .setFlashMode(flashMode)
             .build()
 
-        // 既存のバインディングを解除
         cameraProvider.unbindAll()
 
-        // 既存のPreviewと新しいImageCaptureでバインド
         val camera = cameraProvider.bindToLifecycle(
             lifecycleOwner,
             cameraSelector,
-            preview, // 既存のPreviewを再利用
+            preview,
             imageCapture
         )
 
         onImageCaptureCreated(imageCapture)
         onCameraCreated(camera)
 
-        // 再バインドによってリセットされるズームを復元
         initialZoomRatio?.let { targetZoom ->
             try {
                 val minZoom = camera.cameraInfo.zoomState.value?.minZoomRatio ?: 1.0f
@@ -520,3 +817,4 @@ private fun bindCameraWithPreview(
         null
     }
 }
+
