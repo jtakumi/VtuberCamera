@@ -293,7 +293,6 @@ id 'org.jetbrains.kotlin.plugin.compose' version '2.2.0'
 
 ## 🐞 既知の問題 / 制限
 
-- 一部端末でズーム動作が不安定になる場合があります。詳細は [ZOOM_IMPLEMENTATION.md](ZOOM_IMPLEMENTATION.md) を参照してください。
 - 動画撮影には未対応で、写真撮影のみ利用可能です。
 - 低照度環境ではタップフォーカスが正しく動作しないことがあります。
 
