@@ -305,6 +305,7 @@ fun CameraScreen(
                                             preview = preview!!,
                                             cameraSelector = cameraSelector,
                                             flashMode = flashMode,
+                                            initialZoomRatio = zoomRatio,
                                             onImageCaptureCreated = { capture ->
                                                 imageCapture = capture
                                             },
@@ -369,6 +370,7 @@ fun CameraScreen(
                                         preview = preview!!, // 新しいまたは既存のプレビューを使用
                                         cameraSelector = cameraSelector,
                                         flashMode = flashMode,
+                                        initialZoomRatio = zoomRatio,
                                         onImageCaptureCreated = { capture ->
                                             imageCapture = capture
                                         },
@@ -467,6 +469,7 @@ private fun bindCameraWithPreview(
     preview: Preview, // 既存のPreviewを受け取る
     cameraSelector: CameraSelector,
     flashMode: Int,
+    initialZoomRatio: Float? = null,
     onImageCaptureCreated: (ImageCapture) -> Unit,
     onCameraCreated: (Camera) -> Unit
 ): Camera? {
@@ -495,6 +498,19 @@ private fun bindCameraWithPreview(
 
         onImageCaptureCreated(imageCapture)
         onCameraCreated(camera)
+
+        // 再バインドによってリセットされるズームを復元
+        initialZoomRatio?.let { targetZoom ->
+            try {
+                val minZoom = camera.cameraInfo.zoomState.value?.minZoomRatio ?: 1.0f
+                val maxZoom = camera.cameraInfo.zoomState.value?.maxZoomRatio ?: 10.0f
+                val coerced = targetZoom.coerceIn(minZoom, maxZoom)
+                camera.cameraControl.setZoomRatio(coerced)
+                Log.d("CameraBinding", "Restored zoom ratio to $coerced after rebind")
+            } catch (e: Exception) {
+                Log.w("CameraBinding", "ズーム復元に失敗しました", e)
+            }
+        }
 
         Log.d("CameraBinding", "Camera bound successfully")
 
