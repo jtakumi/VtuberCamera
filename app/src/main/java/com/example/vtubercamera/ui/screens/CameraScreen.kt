@@ -347,7 +347,7 @@ fun CameraScreen(
                             }
 
                             // 状態変更の監視と賢い再バインド
-                            LaunchedEffect(cameraSelector, flashMode, needsCameraRebind) {
+                            LaunchedEffect(cameraSelector,  needsCameraRebind) {
                                 // カメラプロバイダーとプレビューが準備できている場合のみ再バインド
                                 if (cameraProvider != null && preview != null) {
                                     Log.d(
