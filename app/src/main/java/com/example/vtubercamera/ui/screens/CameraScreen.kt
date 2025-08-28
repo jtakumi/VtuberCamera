@@ -16,13 +16,8 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -34,9 +29,6 @@ import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.FlashAuto
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
-import androidx.compose.material.icons.filled.Preview
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -279,7 +271,13 @@ fun CameraScreen(
                                             viewModel.resetZoom()
                                         },
                                         onTap = { offset ->
-                                            previewView?.let { viewModel.focusOnPoint(it, offset.x, offset.y) }
+                                            previewView?.let {
+                                                viewModel.focusOnPoint(
+                                                    it,
+                                                    offset.x,
+                                                    offset.y
+                                                )
+                                            }
                                         },
                                         currentZoom = zoomRatio,
                                         minZoom = minZoomRatio,
