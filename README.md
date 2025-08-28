@@ -293,7 +293,6 @@ id 'org.jetbrains.kotlin.plugin.compose' version '2.2.0'
 
 ## 🐞 Known Issues / Limitations
 
-- Zoom behavior may be unstable on certain devices. See [ZOOM_IMPLEMENTATION.md](ZOOM_IMPLEMENTATION.md) for details.
 - Video recording is not yet supported—only photo capture is available.
 - Tap-to-focus may fail in low-light environments.
 

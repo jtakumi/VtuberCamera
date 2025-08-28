@@ -16,13 +16,8 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -34,9 +29,6 @@ import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.FlashAuto
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
-import androidx.compose.material.icons.filled.Preview
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -279,7 +271,13 @@ fun CameraScreen(
                                             viewModel.resetZoom()
                                         },
                                         onTap = { offset ->
-                                            previewView?.let { viewModel.focusOnPoint(it, offset.x, offset.y) }
+                                            previewView?.let {
+                                                viewModel.focusOnPoint(
+                                                    it,
+                                                    offset.x,
+                                                    offset.y
+                                                )
+                                            }
                                         },
                                         currentZoom = zoomRatio,
                                         minZoom = minZoomRatio,
@@ -307,6 +305,7 @@ fun CameraScreen(
                                             preview = preview!!,
                                             cameraSelector = cameraSelector,
                                             flashMode = flashMode,
+                                            initialZoomRatio = zoomRatio,
                                             onImageCaptureCreated = { capture ->
                                                 imageCapture = capture
                                             },
@@ -348,7 +347,7 @@ fun CameraScreen(
                             }
 
                             // 状態変更の監視と賢い再バインド
-                            LaunchedEffect(cameraSelector, flashMode, needsCameraRebind) {
+                            LaunchedEffect(cameraSelector,  needsCameraRebind) {
                                 // カメラプロバイダーとプレビューが準備できている場合のみ再バインド
                                 if (cameraProvider != null && preview != null) {
                                     Log.d(
@@ -371,6 +370,7 @@ fun CameraScreen(
                                         preview = preview!!, // 新しいまたは既存のプレビューを使用
                                         cameraSelector = cameraSelector,
                                         flashMode = flashMode,
+                                        initialZoomRatio = zoomRatio,
                                         onImageCaptureCreated = { capture ->
                                             imageCapture = capture
                                         },
@@ -469,6 +469,7 @@ private fun bindCameraWithPreview(
     preview: Preview, // 既存のPreviewを受け取る
     cameraSelector: CameraSelector,
     flashMode: Int,
+    initialZoomRatio: Float? = null,
     onImageCaptureCreated: (ImageCapture) -> Unit,
     onCameraCreated: (Camera) -> Unit
 ): Camera? {
@@ -497,6 +498,19 @@ private fun bindCameraWithPreview(
 
         onImageCaptureCreated(imageCapture)
         onCameraCreated(camera)
+
+        // 再バインドによってリセットされるズームを復元
+        initialZoomRatio?.let { targetZoom ->
+            try {
+                val minZoom = camera.cameraInfo.zoomState.value?.minZoomRatio ?: 1.0f
+                val maxZoom = camera.cameraInfo.zoomState.value?.maxZoomRatio ?: 10.0f
+                val coerced = targetZoom.coerceIn(minZoom, maxZoom)
+                camera.cameraControl.setZoomRatio(coerced)
+                Log.d("CameraBinding", "Restored zoom ratio to $coerced after rebind")
+            } catch (e: Exception) {
+                Log.w("CameraBinding", "ズーム復元に失敗しました", e)
+            }
+        }
 
         Log.d("CameraBinding", "Camera bound successfully")
 
