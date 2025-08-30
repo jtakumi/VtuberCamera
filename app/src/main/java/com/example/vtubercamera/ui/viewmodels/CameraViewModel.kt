@@ -95,6 +95,8 @@ class CameraViewModel : ViewModel() {
             CameraSelector.DEFAULT_FRONT_CAMERA -> CameraSelector.DEFAULT_BACK_CAMERA
             else -> CameraSelector.DEFAULT_BACK_CAMERA
         }
+        // カメラ切り替え時に再バインドが必要
+        _needsCameraRebind.value = true
     }
 
     fun toggleFlash() {
@@ -400,6 +402,8 @@ class CameraViewModel : ViewModel() {
     fun exitSelectionMode() {
         _isSelectionMode.value = false
         _selectedPhotos.value = emptySet()
+        // ギャラリーから戻った時にカメラを再バインド
+        _needsCameraRebind.value = true
     }
 
     /**
@@ -436,6 +440,10 @@ class CameraViewModel : ViewModel() {
      */
     fun setCurrentViewingPhoto(photo: PhotoItem?) {
         _currentViewingPhoto.value = photo
+        // 写真詳細ビューから戻った時にカメラを再バインド
+        if (photo == null) {
+            _needsCameraRebind.value = true
+        }
     }
 
     /**
