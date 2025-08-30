@@ -17,14 +17,38 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.*
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Camera
+import androidx.compose.material.icons.filled.Cameraswitch
+import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FlashAuto
+import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.Photo
+import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,18 +66,16 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.vtubercamera.BuildConfig
 import com.example.vtubercamera.R
 import com.example.vtubercamera.ui.components.AsyncImage
 import com.example.vtubercamera.ui.components.DeleteConfirmDialog
 import com.example.vtubercamera.ui.components.GalleryView
 import com.example.vtubercamera.ui.components.PartialAccessDialog
 import com.example.vtubercamera.ui.components.PermissionRequestComponent
-import com.example.vtubercamera.ui.components.PhotoPreviewComponent
 import com.example.vtubercamera.ui.components.PhotoDetailView
+import com.example.vtubercamera.ui.components.PhotoPreviewComponent
 import com.example.vtubercamera.ui.modifiers.modernCameraGestures
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
-import com.example.vtubercamera.ui.viewmodels.PhotoItem
 import com.example.vtubercamera.utils.PermissionUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,13 +88,13 @@ fun CameraScreen(
 
     // デバイス設定の読み取り
     val configuration = LocalConfiguration.current
-    val language = configuration.locales[0].language
-    val country = configuration.locales[0].country
-    val orientation = configuration.orientation
-    val density = configuration.densityDpi
-    val screenDp = LocalWindowInfo.current.containerSize
+    configuration.locales[0].language
+    configuration.locales[0].country
+    configuration.orientation
+    configuration.densityDpi
+    LocalWindowInfo.current.containerSize
     val uiMode = configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-    val isNightMode = uiMode == Configuration.UI_MODE_NIGHT_YES
+    uiMode == Configuration.UI_MODE_NIGHT_YES
     val cameraSelector by viewModel.cameraSelector.collectAsStateWithLifecycle()
     val lastCapturedImageUri by viewModel.lastCapturedImageUri.collectAsStateWithLifecycle()
     val isPreviewMode by viewModel.isPreviewMode.collectAsStateWithLifecycle()
@@ -424,21 +446,6 @@ fun CameraScreen(
                             }
                         }
 
-                        // 設定情報のデバッグ表示
-                        if (BuildConfig.DEBUG) {
-                            ConfigurationDebugPanel(
-                                language = language,
-                                country = country,
-                                orientation = orientation,
-                                density = density,
-                                screenWidthDp = screenDp.width,
-                                screenHeightDp = screenDp.height,
-                                isNightMode = isNightMode,
-                                modifier = Modifier
-                                    .align(Alignment.TopStart)
-                                    .padding(8.dp)
-                            )
-                        }
 
                         focusPoint?.let { (x, y) ->
                             Box(
@@ -577,8 +584,6 @@ fun CameraScreen(
 }
 
 
-
-
 private fun bindCameraWithPreview(
     lifecycleOwner: LifecycleOwner,
     cameraProvider: ProcessCameraProvider,
@@ -630,60 +635,5 @@ private fun bindCameraWithPreview(
     } catch (e: Exception) {
         Log.e("CameraBinding", "カメラのバインドに失敗しました", e)
         null
-    }
-}
-
-@Composable
-private fun ConfigurationDebugPanel(
-    language: String,
-    country: String,
-    orientation: Int,
-    density: Int,
-    screenWidthDp: Int,
-    screenHeightDp: Int,
-    isNightMode: Boolean,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = Color.Black.copy(alpha = 0.7f)
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(8.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Text(
-                text = "設定情報",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White
-            )
-            Text(
-                text = "言語: $language-$country",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White
-            )
-            Text(
-                text = "向き: ${if (orientation == Configuration.ORIENTATION_LANDSCAPE) "横" else "縦"}",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White
-            )
-            Text(
-                text = "密度: ${density}dpi",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White
-            )
-            Text(
-                text = "画面: ${screenWidthDp}×${screenHeightDp}dp",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White
-            )
-            Text(
-                text = "テーマ: ${if (isNightMode) "ダーク" else "ライト"}",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White
-            )
-        }
     }
 }
