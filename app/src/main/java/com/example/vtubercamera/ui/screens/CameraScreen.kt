@@ -18,10 +18,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -36,8 +32,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -50,9 +46,10 @@ import com.example.vtubercamera.BuildConfig
 import com.example.vtubercamera.R
 import com.example.vtubercamera.ui.components.AsyncImage
 import com.example.vtubercamera.ui.components.DeleteConfirmDialog
+import com.example.vtubercamera.ui.components.GalleryView
 import com.example.vtubercamera.ui.components.PartialAccessDialog
-import com.example.vtubercamera.ui.components.PhotoPreviewComponent
 import com.example.vtubercamera.ui.components.PermissionRequestComponent
+import com.example.vtubercamera.ui.components.PhotoPreviewComponent
 import com.example.vtubercamera.ui.modifiers.modernCameraGestures
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 import com.example.vtubercamera.ui.viewmodels.PhotoItem
@@ -65,7 +62,7 @@ fun CameraScreen(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-    
+
     // デバイス設定の読み取り
     val configuration = LocalConfiguration.current
     val language = configuration.locales[0].language
@@ -425,7 +422,7 @@ fun CameraScreen(
                                 }, ContextCompat.getMainExecutor(context))
                             }
                         }
-                        
+
                         // 設定情報のデバッグ表示
                         if (BuildConfig.DEBUG) {
                             ConfigurationDebugPanel(
@@ -544,104 +541,32 @@ fun CameraScreen(
                                 contentDescription = stringResource(R.string.take_photo)
                             )
                         }
-                            // 最後に撮影した写真のサムネイル
-                            lastCapturedImageUri?.let { uri ->
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .padding(16.dp)
-                                        .size(80.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .pointerInput(Unit) {
-                                            detectTapGestures(
-                                                onLongPress = {
-                                                    showDeleteConfirmDialog = true
-                                                },
-                                                onTap = {
-                                                    viewModel.enterPreviewMode()
-                                                }
-                                            )
-                                        }
-                                ) {
-                                    AsyncImage(
-                                        model = uri,
-                                        contentDescription = stringResource(R.string.last_captured_photo),
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                }
-                            }
-                    }
-                    }
-                }
-            }
-        }
-    }
-@Composable
-private fun GalleryView(
-    photos: List<PhotoItem>,
-    isLoading: Boolean,
-    selectedPhotos: Set<android.net.Uri>,
-    isSelectionMode: Boolean,
-    onPhotoClick: (PhotoItem) -> Unit,
-    onPhotoLongClick: (PhotoItem) -> Unit
-) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center)
-            )
-        } else if (photos.isEmpty()) {
-            Text(
-                text = "写真がありません",
-                modifier = Modifier.align(Alignment.Center),
-                style = MaterialTheme.typography.bodyLarge
-            )
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                contentPadding = PaddingValues(4.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-                horizontalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                items(photos.size) { index ->
-                    val photo = photos[index]
-                    val isSelected = selectedPhotos.contains(photo.uri)
-
-                    Box(
-                        modifier = Modifier
-                            .aspectRatio(1f)
-                            .pointerInput(Unit) {
-                                detectTapGestures(
-                                    onLongPress = { onPhotoLongClick(photo) },
-                                    onTap = { onPhotoClick(photo) }
-                                )
-                            }
-                    ) {
-                        AsyncImage(
-                            model = photo.uri,
-                            contentDescription = photo.displayName,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-
-                        if (isSelectionMode) {
-                            if (isSelected) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color.Blue.copy(alpha = 0.3f))
-                                )
-                            }
-                            Icon(
-                                imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                                contentDescription = if (isSelected) "選択済み" else "未選択",
-                                tint = if (isSelected) Color.Blue else Color.White,
+                        // 最後に撮影した写真のサムネイル
+                        lastCapturedImageUri?.let { uri ->
+                            Box(
                                 modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(8.dp)
-                                    .size(24.dp)
-                            )
+                                    .align(Alignment.BottomEnd)
+                                    .padding(16.dp)
+                                    .size(80.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onLongPress = {
+                                                showDeleteConfirmDialog = true
+                                            },
+                                            onTap = {
+                                                viewModel.enterPreviewMode()
+                                            }
+                                        )
+                                    }
+                            ) {
+                                AsyncImage(
+                                    model = uri,
+                                    contentDescription = stringResource(R.string.last_captured_photo),
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
                         }
                     }
                 }
@@ -649,6 +574,7 @@ private fun GalleryView(
         }
     }
 }
+
 
 @Composable
 private fun PhotoDetailView(
