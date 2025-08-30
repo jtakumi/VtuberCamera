@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -186,7 +187,7 @@ fun CameraScreen(
                             viewModel.exitSelectionMode()
                         }) {
                             Icon(
-                                imageVector = Icons.Default.ArrowBack,
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "戻る"
                             )
                         }
@@ -722,7 +723,7 @@ private fun PhotoDetailView(
         ) {
             IconButton(onClick = onBack) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "戻る",
                     tint = Color.White
                 )
@@ -748,7 +749,7 @@ private fun PhotoDetailView(
                     onClick = onPrevious,
                     modifier = Modifier.size(48.dp)
                 ) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "前の写真")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "前の写真")
                 }
             }
 
@@ -757,7 +758,7 @@ private fun PhotoDetailView(
                     onClick = onNext,
                     modifier = Modifier.size(48.dp)
                 ) {
-                    Icon(Icons.Default.ArrowForward, contentDescription = "次の写真")
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "次の写真")
                 }
             }
         }
