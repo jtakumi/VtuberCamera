@@ -50,6 +50,7 @@ import com.example.vtubercamera.ui.components.GalleryView
 import com.example.vtubercamera.ui.components.PartialAccessDialog
 import com.example.vtubercamera.ui.components.PermissionRequestComponent
 import com.example.vtubercamera.ui.components.PhotoPreviewComponent
+import com.example.vtubercamera.ui.components.PhotoDetailView
 import com.example.vtubercamera.ui.modifiers.modernCameraGestures
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 import com.example.vtubercamera.ui.viewmodels.PhotoItem
@@ -576,104 +577,7 @@ fun CameraScreen(
 }
 
 
-@Composable
-private fun PhotoDetailView(
-    photo: PhotoItem,
-    onBack: () -> Unit,
-    onDelete: (PhotoItem) -> Unit,
-    onNext: () -> Unit,
-    onPrevious: () -> Unit,
-    hasNext: Boolean,
-    hasPrevious: Boolean
-) {
-    var showDeleteDialog by remember { mutableStateOf(false) }
 
-    if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("写真を削除") },
-            text = { Text("この写真を削除しますか？") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onDelete(photo)
-                        showDeleteDialog = false
-                    }
-                ) {
-                    Text("削除")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("キャンセル")
-                }
-            }
-        )
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        AsyncImage(
-            model = photo.uri,
-            contentDescription = photo.displayName,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Fit
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .background(
-                    color = Color.Black.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(8.dp)
-                )
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "戻る",
-                    tint = Color.White
-                )
-            }
-
-            IconButton(onClick = { showDeleteDialog = true }) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "削除",
-                    tint = Color.White
-                )
-            }
-        }
-
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            if (hasPrevious) {
-                FloatingActionButton(
-                    onClick = onPrevious,
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "前の写真")
-                }
-            }
-
-            if (hasNext) {
-                FloatingActionButton(
-                    onClick = onNext,
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "次の写真")
-                }
-            }
-        }
-    }
-}
 
 private fun bindCameraWithPreview(
     lifecycleOwner: LifecycleOwner,
