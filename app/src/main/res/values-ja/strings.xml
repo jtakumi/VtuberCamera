@@ -42,9 +42,15 @@
     <string name="camera_preview_title">カメラプレビュー</string>
     <string name="camera_preview_description">実際のカメラ機能はここに表示されます</string>
     <string name="delete_photo_title">写真を削除</string>
+    <string name="delete_photo_confirmation">この写真を削除しますか？</string>
     <string name="delete_photo_message">この写真を削除しますか？この操作は元に戻せません。</string>
     <string name="cancel">キャンセル</string>
-    <string name="zoom_info">ズーム: %.1fx (%.1f-%.1fx)</string>
+    <string name="previous_photo">前の写真</string>
+    <string name="next_photo">次の写真</string>
+    <string name="zoom_info">ズーム: %1$.1fx (%2$.1f-%3$.1fx)</string>
     <string name="photo_deleted_successfully">写真を削除しました</string>
     <string name="photo_deletion_failed">写真の削除に失敗しました</string>
-</resources> 
+    <plurals name="photos_deleted_count">
+        <item quantity="other">%1$d 枚の写真を削除しました</item>
+    </plurals>
+</resources>
