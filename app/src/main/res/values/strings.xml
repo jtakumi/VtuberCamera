@@ -47,5 +47,8 @@
     <string name="zoom_info">Zoom: %.1fx (%.1f-%.1fx)</string>
     <string name="photo_deleted_successfully">Photo deleted successfully</string>
     <string name="photo_deletion_failed">Failed to delete photo</string>
-    <string name="photos_deleted_count">Deleted %1$d photos</string>
+    <plurals name="photos_deleted_count">
+        <item quantity="one">Deleted %1$d photo</item>
+        <item quantity="other">Deleted %1$d photos</item>
+    </plurals>
 </resources>

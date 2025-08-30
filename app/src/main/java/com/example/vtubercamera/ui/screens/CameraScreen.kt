@@ -144,7 +144,7 @@ fun CameraScreen(
                     val deletedCount = viewModel.deleteSelectedPhotos(context)
                     Toast.makeText(
                         context,
-                        context.getString(R.string.photos_deleted_count, deletedCount),
+                        context.resources.getQuantityString(R.plurals.photos_deleted_count, deletedCount, deletedCount),
                         Toast.LENGTH_SHORT
                     ).show()
                 } else {

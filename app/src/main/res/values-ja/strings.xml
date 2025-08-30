@@ -47,5 +47,8 @@
     <string name="zoom_info">ズーム: %.1fx (%.1f-%.1fx)</string>
     <string name="photo_deleted_successfully">写真を削除しました</string>
     <string name="photo_deletion_failed">写真の削除に失敗しました</string>
-    <string name="photos_deleted_count">%1$d 枚の写真を削除しました</string>
+    <plurals name="photos_deleted_count">
+        <item quantity="one">%1$d 枚の写真を削除しました</item>
+        <item quantity="other">%1$d 枚の写真を削除しました</item>
+    </plurals>
 </resources>
