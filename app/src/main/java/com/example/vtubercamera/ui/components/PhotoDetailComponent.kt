@@ -13,8 +13,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.vtubercamera.R
 import com.example.vtubercamera.ui.viewmodels.PhotoItem
 
 @Composable
@@ -32,8 +35,8 @@ fun PhotoDetailView(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("写真を削除") },
-            text = { Text("この写真を削除しますか？") },
+            title = { Text(stringResource(R.string.delete_photo_title)) },
+            text = { Text(stringResource(R.string.delete_photo_confirmation)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -41,12 +44,12 @@ fun PhotoDetailView(
                         showDeleteDialog = false
                     }
                 ) {
-                    Text("削除")
+                    Text(stringResource(R.string.delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("キャンセル")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -97,7 +100,7 @@ private fun TopActionBar(
         IconButton(onClick = onBack) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "戻る",
+                contentDescription = stringResource(R.string.back),
                 tint = Color.White
             )
         }
@@ -105,7 +108,7 @@ private fun TopActionBar(
         IconButton(onClick = onDelete) {
             Icon(
                 imageVector = Icons.Default.Delete,
-                contentDescription = "削除",
+                contentDescription = stringResource(R.string.delete),
                 tint = Color.White
             )
         }
@@ -124,28 +127,28 @@ private fun NavigationButtons(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        if (hasPrevious) {
-            FloatingActionButton(
-                onClick = onPrevious,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "前の写真"
-                )
+            if (hasPrevious) {
+                FloatingActionButton(
+                    onClick = onPrevious,
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.previous_photo)
+                    )
+                }
             }
-        }
 
-        if (hasNext) {
-            FloatingActionButton(
-                onClick = onNext,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "次の写真"
-                )
+            if (hasNext) {
+                FloatingActionButton(
+                    onClick = onNext,
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = stringResource(R.string.next_photo)
+                    )
+                }
             }
-        }
     }
 }
