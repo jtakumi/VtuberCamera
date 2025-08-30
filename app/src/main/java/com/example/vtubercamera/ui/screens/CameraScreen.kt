@@ -1,6 +1,7 @@
 package com.example.vtubercamera.ui.screens
 
 import android.Manifest
+import android.content.res.Configuration
 import android.os.Build
 import android.util.Log
 import android.view.ViewGroup
@@ -18,14 +19,14 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,6 +37,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -43,12 +46,13 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.vtubercamera.BuildConfig
 import com.example.vtubercamera.R
 import com.example.vtubercamera.ui.components.AsyncImage
 import com.example.vtubercamera.ui.components.DeleteConfirmDialog
 import com.example.vtubercamera.ui.components.PartialAccessDialog
-import com.example.vtubercamera.ui.components.PermissionRequestComponent
 import com.example.vtubercamera.ui.components.PhotoPreviewComponent
+import com.example.vtubercamera.ui.components.PermissionRequestComponent
 import com.example.vtubercamera.ui.modifiers.modernCameraGestures
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 import com.example.vtubercamera.ui.viewmodels.PhotoItem
@@ -61,6 +65,16 @@ fun CameraScreen(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    
+    // デバイス設定の読み取り
+    val configuration = LocalConfiguration.current
+    val language = configuration.locales[0].language
+    val country = configuration.locales[0].country
+    val orientation = configuration.orientation
+    val density = configuration.densityDpi
+    val screenDp = LocalWindowInfo.current.containerSize
+    val uiMode = configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+    val isNightMode = uiMode == Configuration.UI_MODE_NIGHT_YES
     val cameraSelector by viewModel.cameraSelector.collectAsStateWithLifecycle()
     val lastCapturedImageUri by viewModel.lastCapturedImageUri.collectAsStateWithLifecycle()
     val isPreviewMode by viewModel.isPreviewMode.collectAsStateWithLifecycle()
@@ -145,7 +159,11 @@ fun CameraScreen(
                     val deletedCount = viewModel.deleteSelectedPhotos(context)
                     Toast.makeText(
                         context,
-                        context.resources.getQuantityString(R.plurals.photos_deleted_count, deletedCount, deletedCount),
+                        context.resources.getQuantityString(
+                            R.plurals.photos_deleted_count,
+                            deletedCount,
+                            deletedCount
+                        ),
                         Toast.LENGTH_SHORT
                     ).show()
                 } else {
@@ -281,7 +299,8 @@ fun CameraScreen(
                         onDelete = { photo ->
                             val success = viewModel.deletePhoto(context, photo.uri)
                             if (success) {
-                                Toast.makeText(context, "写真を削除しました", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "写真を削除しました", Toast.LENGTH_SHORT)
+                                    .show()
                                 viewModel.setCurrentViewingPhoto(null)
                             }
                         },
@@ -335,7 +354,7 @@ fun CameraScreen(
                             .fillMaxSize()
                             .graphicsLayer {
                                 rotationZ = when (context.resources.configuration.orientation) {
-                                    android.content.res.Configuration.ORIENTATION_LANDSCAPE -> 90f
+                                    Configuration.ORIENTATION_LANDSCAPE -> 90f
                                     else -> 0f
                                 }
                             }
@@ -379,7 +398,8 @@ fun CameraScreen(
                                 )
                         ) { view ->
                             if (cameraProvider == null) {
-                                val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+                                val cameraProviderFuture =
+                                    ProcessCameraProvider.getInstance(context)
                                 cameraProviderFuture.addListener({
                                     cameraProvider = cameraProviderFuture.get()
 
@@ -404,6 +424,22 @@ fun CameraScreen(
                                     )
                                 }, ContextCompat.getMainExecutor(context))
                             }
+                        }
+                        
+                        // 設定情報のデバッグ表示
+                        if (BuildConfig.DEBUG) {
+                            ConfigurationDebugPanel(
+                                language = language,
+                                country = country,
+                                orientation = orientation,
+                                density = density,
+                                screenWidthDp = screenDp.width,
+                                screenHeightDp = screenDp.height,
+                                isNightMode = isNightMode,
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .padding(8.dp)
+                            )
                         }
 
                         focusPoint?.let { (x, y) ->
@@ -819,3 +855,57 @@ private fun bindCameraWithPreview(
     }
 }
 
+@Composable
+private fun ConfigurationDebugPanel(
+    language: String,
+    country: String,
+    orientation: Int,
+    density: Int,
+    screenWidthDp: Int,
+    screenHeightDp: Int,
+    isNightMode: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Black.copy(alpha = 0.7f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = "設定情報",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White
+            )
+            Text(
+                text = "言語: $language-$country",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White
+            )
+            Text(
+                text = "向き: ${if (orientation == Configuration.ORIENTATION_LANDSCAPE) "横" else "縦"}",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White
+            )
+            Text(
+                text = "密度: ${density}dpi",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White
+            )
+            Text(
+                text = "画面: ${screenWidthDp}×${screenHeightDp}dp",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White
+            )
+            Text(
+                text = "テーマ: ${if (isNightMode) "ダーク" else "ライト"}",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White
+            )
+        }
+    }
+}

@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
-import android.widget.Toast
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -98,7 +97,7 @@ fun DeleteConfirmDialog(
 @Preview(locale = "ja")
 @Preview(locale = "en")
 @Composable
-fun DeleteConfirmDialogPreview(){
+fun DeleteConfirmDialogPreview() {
     DeleteConfirmDialog(
         onDismiss = {},
         onConfirm = {}
@@ -108,7 +107,7 @@ fun DeleteConfirmDialogPreview(){
 @Preview(locale = "ja")
 @Preview(locale = "en")
 @Composable
-fun PartialAccessDialogPreview(){
+fun PartialAccessDialogPreview() {
     PartialAccessDialog(
         onDismiss = {},
         context = androidx.compose.ui.platform.LocalContext.current
