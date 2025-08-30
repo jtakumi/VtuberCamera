@@ -296,6 +296,7 @@ class CameraViewModel : ViewModel() {
                     getAllPhotosFromDevice(context)
                 }
                 _allPhotos.value = photos
+                _lastCapturedImageUri.value = photos.firstOrNull()?.uri
                 Log.d("CameraViewModel", "読み込んだ写真数: ${photos.size}")
             } catch (e: Exception) {
                 Log.e("CameraViewModel", "写真の読み込みに失敗しました", e)

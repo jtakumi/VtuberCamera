@@ -544,91 +544,39 @@ fun CameraScreen(
                                 contentDescription = stringResource(R.string.take_photo)
                             )
                         }
-
-                        PhotoPreviewArea(
-                            lastCapturedImageUri = lastCapturedImageUri,
-                            recentPhotos = allPhotos.take(5),
-                            onLastPhotoClick = { viewModel.enterPreviewMode() },
-                            onLastPhotoLongPress = { showDeleteConfirmDialog = true },
-                            onRecentPhotoClick = { photo ->
-                                viewModel.setCurrentViewingPhoto(photo)
-                            },
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(16.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PhotoPreviewArea(
-    lastCapturedImageUri: android.net.Uri?,
-    recentPhotos: List<PhotoItem>,
-    onLastPhotoClick: () -> Unit,
-    onLastPhotoLongPress: () -> Unit,
-    onRecentPhotoClick: (PhotoItem) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    if (lastCapturedImageUri != null || recentPhotos.isNotEmpty()) {
-        Column(modifier = modifier) {
-            lastCapturedImageUri?.let { uri ->
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onLongPress = { onLastPhotoLongPress() },
-                                onTap = { onLastPhotoClick() }
-                            )
-                        }
-                ) {
-                    AsyncImage(
-                        model = uri,
-                        contentDescription = "最後に撮影した写真",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-
-                if (recentPhotos.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-            }
-
-            if (recentPhotos.isNotEmpty()) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(recentPhotos) { photo ->
-                        Box(
-                            modifier = Modifier
-                                .size(50.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .pointerInput(Unit) {
-                                    detectTapGestures {
-                                        onRecentPhotoClick(photo)
-                                    }
+                            // 最後に撮影した写真のサムネイル
+                            lastCapturedImageUri?.let { uri ->
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(16.dp)
+                                        .size(80.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .pointerInput(Unit) {
+                                            detectTapGestures(
+                                                onLongPress = {
+                                                    showDeleteConfirmDialog = true
+                                                },
+                                                onTap = {
+                                                    viewModel.enterPreviewMode()
+                                                }
+                                            )
+                                        }
+                                ) {
+                                    AsyncImage(
+                                        model = uri,
+                                        contentDescription = stringResource(R.string.last_captured_photo),
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
                                 }
-                        ) {
-                            AsyncImage(
-                                model = photo.uri,
-                                contentDescription = "最近の写真",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
+                            }
+                    }
                     }
                 }
             }
         }
     }
-}
-
 @Composable
 private fun GalleryView(
     photos: List<PhotoItem>,
