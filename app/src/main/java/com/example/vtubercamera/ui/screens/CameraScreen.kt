@@ -369,11 +369,12 @@ fun CameraScreen(
                         setMinZoomRatio(camera?.cameraInfo?.zoomState?.value?.minZoomRatio ?: 1.0f)
                     }
 
+                    val currentOrientation = LocalConfiguration.current.orientation
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .graphicsLayer {
-                                rotationZ = when (context.resources.configuration.orientation) {
+                                rotationZ = when (currentOrientation) {
                                     Configuration.ORIENTATION_LANDSCAPE -> 90f
                                     else -> 0f
                                 }
