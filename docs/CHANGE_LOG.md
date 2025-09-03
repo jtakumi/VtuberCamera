@@ -1,6 +1,7 @@
 # VTuberCamera 変更履歴
 
 ## 目次
+- [2025-09-03: Hiltを使用したDependency Injection (DI) の導入](#2025-09-03-hiltを使用したdependency-injection-di-の導入)
 - [2025-08-31 (後期): コード品質改善とデバッグ機能の最適化](#2025-08-31-後期-コード品質改善とデバッグ機能の最適化)
 - [2025-08-31: ギャラリー機能とフォト詳細表示の完全実装](#2025-08-31-ギャラリー機能とフォト詳細表示の完全実装)
 - [2025-08-23: フォーカス機能と権限リクエスト画面の追加](#2025-08-23-フォーカス機能と権限リクエスト画面の追加)
@@ -18,6 +19,108 @@
 - [2025-06-07: カメラ機能改善](#2025-06-07-カメラ機能改善)
 - [2025-06-06: CameraXの実装と改善](#2025-06-06-cameraxの実装と改善)
 - [2025-06-04-05: プロジェクト基盤構築](#2025-06-04-05-プロジェクト基盤構築)
+
+---
+## 2025-09-03: Hiltを使用したDependency Injection (DI) の導入
+
+### 🔧 概要
+アプリケーションのテスト容易性とメンテナンス性の向上を目的として、Hiltを使用したDependency Injection (DI) アーキテクチャを全面導入しました。既存のViewModelとUI層を大幅にリファクタリングし、Repository PatternとDI Containerによる依存関係の外部化を実現しました。
+
+### 📝 主要な変更点
+
+#### 1. Hilt DIフレームワークの導入
+**Gradle設定の更新**
+- **Hilt依存関係の追加**: Hilt Android 2.52とHilt Navigation Compose 1.2.0を導入
+- **Kotlin互換性調整**: Kotlin 1.9.25に調整（Hilt 2.52との互換性確保）
+- **JVM Target更新**: Java 11に更新（最新ライブラリ対応）
+- **テスト依存関係追加**: Hilt Testing、Mockito Kotlin、Coroutines Testを追加
+
+**ApplicationクラスとDI初期化**
+- **VtuberCameraApp.kt**: `@HiltAndroidApp`アノテーションによるHilt初期化
+- **AndroidManifest.xml**: カスタムApplicationクラスの登録
+
+#### 2. Repository Patternの実装
+**CameraRepository** - カメラ機能の抽象化
+- **インターフェース定義**: カメラプロバイダ取得、カメラバインド、写真撮影機能の抽象化
+- **CameraRepositoryImpl**: ProcessCameraProviderとImageCaptureの具体的実装
+- **依存関係注入**: `@Singleton`と`@ApplicationContext`による適切なスコープ管理
+
+**MediaRepository** - メディア操作の抽象化
+- **インターフェース定義**: 写真一覧取得、削除、リフレッシュ機能の抽象化
+- **MediaRepositoryImpl**: MediaStore APIを使用した具体的実装
+- **Flow対応**: リアクティブなデータストリーム提供
+
+**PermissionManager** - 権限管理の集約
+- **権限チェック集約**: カメラ権限、メディア権限、部分アクセス権限の統一管理
+- **PermissionUtilsのラップ**: 既存のユーティリティ機能をDI対応
+
+#### 3. ViewModelのDI化
+**CameraViewModel大幅リファクタリング**
+- **@HiltViewModelアノテーション**: Hiltによる自動インスタンス生成
+- **Constructor Injection**: Repository群の依存関係注入
+- **Context依存排除**: メソッドからContext引数を削除し、Repository経由でのアクセスに変更
+- **非同期処理改善**: コールバック形式による結果通知に統一
+
+**主要メソッドの変更**:
+- `takePhoto()`: Context引数削除、CameraRepository経由の処理
+- `deletePhoto()`: 同期処理から非同期コールバック形式に変更
+- `refreshPhotos()`: MediaRepository経由のデータ更新
+- `deleteMultiplePhotos()`: 一括削除のRepository対応
+
+#### 4. DIモジュールの構成
+**CameraModule** - 依存関係の定義
+- **@InstallIn(SingletonComponent::class)**: シングルトンスコープでの提供
+- **Repository Binding**: インターフェースと実装の関連付け
+- **ProcessCameraProvider提供**: カメラプロバイダのファクトリメソッド
+
+#### 5. UI層のDI統合
+**MainActivity** - エントリーポイントの設定
+- **@AndroidEntryPoint**: Hilt対応Activityとして設定
+
+**CameraScreen** - Compose UIのDI対応
+- **hiltViewModel()**: `viewModel()`から`hiltViewModel()`への置換
+- **メソッド呼び出し更新**: 新しいコールバック形式への対応
+- **PhotoItem import更新**: データモデルの再配置に対応
+
+#### 6. データモデルの再構成
+**PhotoItem** - 共有データモデル化
+- **com.example.vtubercamera.data.PhotoItem**: ViewModelから独立したデータクラス
+- **コンポーネント更新**: GalleryComponents.kt、PhotoDetailComponent.ktのimport更新
+
+#### 7. テスト基盤の構築
+**CameraViewModelTest** - DI対応テストの実装
+- **Mock Dependencies**: Mockito KotlinによるRepository群のモック化
+- **Test Dispatchers**: Coroutines Testによる非同期処理テスト
+- **InstantTaskExecutorRule**: LiveData/StateFlowのテスト対応
+- **Verification Tests**: Repository呼び出しの検証テスト
+
+### 🚀 改善効果
+
+#### アーキテクチャ面での向上
+- **関心の分離**: UI層、ビジネスロジック層、データ層の明確な分離
+- **依存関係の逆転**: 高レベルモジュールが低レベルモジュールに依存しない設計
+- **単一責任原則**: 各クラスが明確に定義された単一の責任を持つ
+
+#### 開発・保守性の向上
+- **テスト容易性**: 依存関係のモック化が容易で包括的なテスト作成が可能
+- **機能拡張性**: 新機能追加時の既存コードへの影響を最小化
+- **デバッグ効率**: 責任範囲が明確で問題箇所の特定が容易
+
+#### コード品質の向上
+- **型安全性**: Hiltによるコンパイル時依存関係チェック
+- **実行時エラー削減**: 依存関係の自動解決による初期化エラーの防止
+- **メモリリーク防止**: 適切なライフサイクル管理とスコープ定義
+
+### 🔄 互換性とマイグレーション
+- **既存機能維持**: すべての既存機能が正常に動作することを確認
+- **UI変更なし**: ユーザーインターフェースに変更はなし
+- **パフォーマンス向上**: DI Containerによる効率的なインスタンス管理
+
+### 📚 技術スタック更新
+- **Hilt**: 2.52 (Google推奨のDIフレームワーク)
+- **Kotlin**: 1.9.25 (Hilt互換性確保)
+- **Compose**: Hilt Navigation Compose 1.2.0
+- **テストライブラリ**: Mockito Kotlin 5.2.1, Coroutines Test 1.8.1
 
 ---
 ## 2025-08-31 (後期): コード品質改善とデバッグ機能の最適化
