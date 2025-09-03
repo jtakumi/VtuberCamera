@@ -275,12 +275,14 @@ id 'org.jetbrains.kotlin.plugin.compose' version '2.2.0'
 
 ### 最近の変更
 
-#### 📅 2025-08-23: フォーカス機能と権限リクエスト画面の追加
+#### 📅 2025-09-03: Hilt による Dependency Injection (DI) の導入
 
 **🎯 主な変更内容**
-- CameraViewModelにフォーカス処理とフォーカスポイント表示を追加
-- CameraScreenおよびModernCameraGesturesでタップフォーカスに対応
-- PermissionRequestComponentとPhotoPreviewComponentを新規作成し、権限リクエストと撮影後プレビューを提供
+- **DIアーキテクチャ**: Hiltベースの完全なDependency Injectionシステムの実装
+- **Repositoryパターン**: データ層抽象化のための`CameraRepository`と`MediaRepository`の導入  
+- **ViewModelリファクタリング**: `@HiltViewModel`によるコンストラクタインジェクション、Context依存の排除
+- **テスト強化**: Mockito Kotlinによる依存関係をモック化した包括的ユニットテスト
+- **アーキテクチャ改善**: UI層、ビジネスロジック層、データ層の明確な関心の分離
 
 ### 主要なマイルストーン
 - ✅ **基本カメラ機能** - 撮影、プレビュー、保存機能の実装
