@@ -1,18 +1,57 @@
 package com.example.vtubercamera.ui.viewmodels
 
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.CameraSelector
+import com.example.vtubercamera.data.CameraRepository
+import com.example.vtubercamera.data.MediaRepository
+import com.example.vtubercamera.managers.PermissionManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.Assert.*
+import org.mockito.Mock
+import org.mockito.MockitoAnnotations
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class CameraViewModelTest {
 
+    @get:Rule
+    val instantTaskExecutorRule = InstantTaskExecutorRule()
+
+    @Mock
+    private lateinit var mockCameraRepository: CameraRepository
+
+    @Mock
+    private lateinit var mockMediaRepository: MediaRepository
+
+    @Mock
+    private lateinit var mockPermissionManager: PermissionManager
+
     private lateinit var viewModel: CameraViewModel
+    private val testDispatcher = StandardTestDispatcher()
 
     @Before
     fun setUp() {
-        viewModel = CameraViewModel()
+        MockitoAnnotations.openMocks(this)
+        Dispatchers.setMain(testDispatcher)
+        
+        // Setup mock returns
+        whenever(mockMediaRepository.getAllPhotos()).thenReturn(flowOf(emptyList()))
+        
+        viewModel = CameraViewModel(
+            cameraRepository = mockCameraRepository,
+            mediaRepository = mockMediaRepository,
+            permissionManager = mockPermissionManager
+        )
     }
 
     @Test
@@ -103,5 +142,15 @@ class CameraViewModelTest {
         // カメラ再バインド完了
         viewModel.onCameraRebound()
         assertEquals(false, viewModel.needsCameraRebind.value)
+    }
+
+    @Test
+    fun `refreshPhotos should call mediaRepository refreshPhotos`() = runTest {
+        // When - Refresh photos is called
+        viewModel.refreshPhotos()
+        testDispatcher.scheduler.advanceUntilIdle()
+        
+        // Then - MediaRepository refresh should be called
+        verify(mockMediaRepository).refreshPhotos()
     }
 }
