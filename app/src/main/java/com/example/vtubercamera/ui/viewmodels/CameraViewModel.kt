@@ -256,9 +256,7 @@ class CameraViewModel @Inject constructor(
                 // Update last captured image URI with the latest photo
                 val photos = allPhotos.value
                 _lastCapturedImageUri.value = photos.firstOrNull()?.uri
-                Log.d("CameraViewModel", "写真を更新しました: ${photos.size}")
             } catch (e: Exception) {
-                Log.e("CameraViewModel", "写真の更新に失敗しました", e)
             } finally {
                 _isLoadingPhotos.value = false
             }
