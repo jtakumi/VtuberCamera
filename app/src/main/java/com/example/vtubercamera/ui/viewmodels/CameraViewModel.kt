@@ -1,42 +1,32 @@
 package com.example.vtubercamera.ui.viewmodels
 
 import android.animation.ValueAnimator
-import android.content.ContentValues
-import android.content.Context
 import android.net.Uri
-import android.os.Build
-import android.provider.MediaStore
 import android.util.Log
 import android.view.animation.DecelerateInterpolator
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageCaptureException
 import androidx.camera.view.PreviewView
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Dispatchers
+import com.example.vtubercamera.data.CameraRepository
+import com.example.vtubercamera.data.MediaRepository
+import com.example.vtubercamera.data.PhotoItem
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.text.SimpleDateFormat
-import java.util.Locale
+import javax.inject.Inject
 
-data class PhotoItem(
-    val id: Long,
-    val uri: Uri,
-    val displayName: String,
-    val dateAdded: Long,
-    val size: Long,
-    val mimeType: String,
-)
-
-class CameraViewModel : ViewModel() {
+@HiltViewModel
+class CameraViewModel @Inject constructor(
+    private val cameraRepository: CameraRepository,
+    private val mediaRepository: MediaRepository,
+) : ViewModel() {
 
     private val _cameraSelector = MutableStateFlow(CameraSelector.DEFAULT_BACK_CAMERA)
     val cameraSelector: StateFlow<CameraSelector> = _cameraSelector.asStateFlow()
@@ -70,6 +60,14 @@ class CameraViewModel : ViewModel() {
     // ギャラリー機能の状態管理
     private val _allPhotos = MutableStateFlow<List<PhotoItem>>(emptyList())
     val allPhotos: StateFlow<List<PhotoItem>> = _allPhotos.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            mediaRepository.getAllPhotos().collect { photos ->
+                _allPhotos.value = photos
+            }
+        }
+    }
 
     private val _isLoadingPhotos = MutableStateFlow(false)
     val isLoadingPhotos: StateFlow<Boolean> = _isLoadingPhotos.asStateFlow()
@@ -112,7 +110,7 @@ class CameraViewModel : ViewModel() {
             zoom.coerceIn(1.0f, _camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 1.0f)
         _camera?.cameraControl?.setZoomRatio(_zoomRatio.value)
     }
-    
+
     fun smoothZoomTo(targetZoom: Float, duration: Long = 300) {
         val currentZoom = _zoomRatio.value
         val animator = ValueAnimator.ofFloat(currentZoom, targetZoom)
@@ -124,7 +122,7 @@ class CameraViewModel : ViewModel() {
         }
         animator.start()
     }
-    
+
     fun resetZoom() {
         smoothZoomTo(1.0f)
     }
@@ -134,7 +132,7 @@ class CameraViewModel : ViewModel() {
         val point = factory.createPoint(x, y)
         val action = FocusMeteringAction.Builder(point).build()
         _camera?.cameraControl?.startFocusAndMetering(action)
-        
+
         // フォーカスポイントを設定し、1秒後に消す
         _focusPoint.value = Pair(x, y)
         viewModelScope.launch {
@@ -146,55 +144,28 @@ class CameraViewModel : ViewModel() {
     fun setMaxZoomRatio(maxZoomRatio: Float) {
         _maxZoomRatio.value = maxZoomRatio
     }
+
     fun setMinZoomRatio(minZoomRatio: Float) {
         _minZoomRatio.value = minZoomRatio
     }
 
     fun takePhoto(
         imageCapture: ImageCapture,
-        context: Context,
         onPhotoSaved: (String) -> Unit = {},
         onError: (String) -> Unit = {}
     ) {
-        val name = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.getDefault())
-            .format(System.currentTimeMillis())
-
-        val contentValues = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, name)
-            put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/VTuberCamera")
-            }
-        }
-
-        val outputOptions = ImageCapture.OutputFileOptions
-            .Builder(
-                context.contentResolver,
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                contentValues
-            )
-            .build()
-
-        imageCapture.takePicture(
-            outputOptions,
-            ContextCompat.getMainExecutor(context),
-            object : ImageCapture.OnImageSavedCallback {
-                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                    val msg = "写真を保存しました: ${output.savedUri}"
-                    Log.d("Camera", msg)
-                    _lastCapturedImageUri.value = output.savedUri
+        viewModelScope.launch {
+            cameraRepository.capturePhoto(
+                imageCapture = imageCapture,
+                onPhotoSaved = { uri ->
+                    val msg = "写真を保存しました: $uri"
+                    _lastCapturedImageUri.value = uri
                     onPhotoSaved(msg)
-                    // 写真一覧を更新
-                    loadAllPhotos(context)
-                }
-
-                override fun onError(exc: ImageCaptureException) {
-                    val msg = "写真の保存に失敗しました"
-                    Log.e("Camera", msg, exc)
-                    onError(msg)
-                }
-            },
-        )
+                    refreshPhotos()
+                },
+                onError = onError
+            )
+        }
     }
 
     fun enterPreviewMode() {
@@ -207,14 +178,12 @@ class CameraViewModel : ViewModel() {
         _needsCameraRebind.value = true
     }
 
-    fun clearLastCapturedImage(context: Context) {
+    fun clearLastCapturedImage() {
         _lastCapturedImageUri.value?.let { uri ->
-            context.let { ctx ->
+            viewModelScope.launch {
                 try {
-                    ctx.contentResolver.delete(uri, null, null)
+                    mediaRepository.deletePhoto(uri)
                     Log.d("CameraViewModel", "写真を削除しました: $uri")
-                    // 写真一覧を更新
-                    loadAllPhotos(context)
                 } catch (e: Exception) {
                     Log.e("CameraViewModel", "写真の削除に失敗しました", e)
                 }
@@ -222,87 +191,69 @@ class CameraViewModel : ViewModel() {
         }
         _lastCapturedImageUri.value = null
         _isPreviewMode.value = false
-        // カメラ再バインドフラグを設定
         _needsCameraRebind.value = true
     }
 
     /**
      * 指定されたURIの写真をストレージから削除
-     * @param context コンテキスト
      * @param uri 削除する写真のURI
      * @return 削除が成功したかどうか
      */
-    fun deletePhoto(context: Context, uri: Uri): Boolean {
-        return try {
-            val deletedRows = context.contentResolver.delete(uri, null, null)
-            val success = deletedRows > 0
-
-            if (success) {
-                Log.d("CameraViewModel", "写真を削除しました: $uri")
-                // 削除した写真が現在表示中の写真と同じ場合は状態をクリア
-                if (uri == _lastCapturedImageUri.value) {
-                    _lastCapturedImageUri.value = null
-                    _isPreviewMode.value = false
-                    _needsCameraRebind.value = true
+    fun deletePhoto(uri: Uri, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val success = mediaRepository.deletePhoto(uri)
+                if (success) {
+                    Log.d("CameraViewModel", "写真を削除しました: $uri")
+                    // 削除した写真が現在表示中の写真と同じ場合は状態をクリア
+                    if (uri == _lastCapturedImageUri.value) {
+                        _lastCapturedImageUri.value = null
+                        _isPreviewMode.value = false
+                        _needsCameraRebind.value = true
+                    }
+                } else {
+                    Log.w("CameraViewModel", "写真の削除に失敗しました: $uri")
                 }
-                // 写真一覧を更新
-                loadAllPhotos(context)
-            } else {
-                Log.w("CameraViewModel", "写真の削除に失敗しました: $uri")
+                onResult(success)
+            } catch (e: Exception) {
+                Log.e("CameraViewModel", "写真の削除中にエラーが発生しました", e)
+                onResult(false)
             }
-
-            success
-        } catch (e: Exception) {
-            Log.e("CameraViewModel", "写真の削除中にエラーが発生しました", e)
-            false
         }
     }
 
     /**
      * 複数の写真を一括削除
-     * @param context コンテキスト
      * @param uris 削除する写真のURIリスト
      * @return 削除に成功した写真の数
      */
-    fun deleteMultiplePhotos(context: Context, uris: List<Uri>): Int {
-        var successCount = 0
-        uris.forEach { uri ->
+    fun deleteMultiplePhotos(uris: List<Uri>, onResult: (Int) -> Unit) {
+        viewModelScope.launch {
             try {
-                val deletedRows = context.contentResolver.delete(uri, null, null)
-                if (deletedRows > 0) {
-                    successCount++
+                val successCount = mediaRepository.deleteMultiplePhotos(uris)
+                if (successCount > 0) {
+                    clearSelection()
                 }
+                onResult(successCount)
             } catch (e: Exception) {
-                Log.e("CameraViewModel", "写真の削除中にエラーが発生しました", e)
+                Log.e("CameraViewModel", "複数写真の削除中にエラーが発生しました", e)
+                onResult(0)
             }
         }
-
-        if (successCount > 0) {
-            // 写真一覧を更新
-            loadAllPhotos(context)
-            // 選択をクリア
-            clearSelection()
-        }
-
-        return successCount
     }
 
     /**
      * 端末内の全ての写真を取得
      */
-    fun loadAllPhotos(context: Context) {
+    fun refreshPhotos() {
         viewModelScope.launch {
             _isLoadingPhotos.value = true
             try {
-                val photos = withContext(Dispatchers.IO) {
-                    getAllPhotosFromDevice(context)
-                }
-                _allPhotos.value = photos
+                mediaRepository.refreshPhotos()
+                // Update last captured image URI with the latest photo
+                val photos = allPhotos.value
                 _lastCapturedImageUri.value = photos.firstOrNull()?.uri
-                Log.d("CameraViewModel", "読み込んだ写真数: ${photos.size}")
-            } catch (e: Exception) {
-                Log.e("CameraViewModel", "写真の読み込みに失敗しました", e)
-                _allPhotos.value = emptyList()
+            } catch (_: Exception) {
             } finally {
                 _isLoadingPhotos.value = false
             }
@@ -312,63 +263,6 @@ class CameraViewModel : ViewModel() {
     /**
      * MediaStoreから全ての写真を取得
      */
-    private fun getAllPhotosFromDevice(context: Context): List<PhotoItem> {
-        val photos = mutableListOf<PhotoItem>()
-
-        val projection = arrayOf(
-            MediaStore.Images.Media._ID,
-            MediaStore.Images.Media.DISPLAY_NAME,
-            MediaStore.Images.Media.DATE_ADDED,
-            MediaStore.Images.Media.SIZE,
-            MediaStore.Images.Media.MIME_TYPE,
-        )
-
-        val sortOrder = "${MediaStore.Images.Media.DATE_ADDED} DESC"
-
-        try {
-            context.contentResolver.query(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                projection,
-                null,
-                null,
-                sortOrder,
-            )?.use { cursor ->
-                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
-                val displayNameColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
-                val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_ADDED)
-                val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.SIZE)
-                val mimeTypeColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.MIME_TYPE)
-
-                while (cursor.moveToNext()) {
-                    val id = cursor.getLong(idColumn)
-                    val displayName = cursor.getString(displayNameColumn) ?: ""
-                    val dateAdded = cursor.getLong(dateAddedColumn)
-                    val size = cursor.getLong(sizeColumn)
-                    val mimeType = cursor.getString(mimeTypeColumn) ?: ""
-
-                    val uri = Uri.withAppendedPath(
-                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                        id.toString(),
-                    )
-
-                    photos.add(
-                        PhotoItem(
-                            id = id,
-                            uri = uri,
-                            displayName = displayName,
-                            dateAdded = dateAdded * 1000, // 秒からミリ秒に変換
-                            size = size,
-                            mimeType = mimeType,
-                        ),
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("CameraViewModel", "写真の取得中にエラーが発生しました", e)
-        }
-
-        return photos
-    }
 
     /**
      * 写真の選択状態を切り替え
@@ -410,12 +304,13 @@ class CameraViewModel : ViewModel() {
      * 全選択/全選択解除
      */
     fun toggleSelectAll() {
-        if (_selectedPhotos.value.size == _allPhotos.value.size) {
+        val photosList = allPhotos.value
+        if (_selectedPhotos.value.size == photosList.size) {
             // 全選択されている場合は全選択解除
             _selectedPhotos.value = emptySet()
         } else {
             // そうでなければ全選択
-            _selectedPhotos.value = _allPhotos.value.map { it.uri }.toSet()
+            _selectedPhotos.value = photosList.map { it.uri }.toSet()
         }
     }
 
@@ -430,9 +325,9 @@ class CameraViewModel : ViewModel() {
     /**
      * 選択された写真を削除
      */
-    fun deleteSelectedPhotos(context: Context): Int {
+    fun deleteSelectedPhotos(onResult: (Int) -> Unit) {
         val selectedUris = _selectedPhotos.value.toList()
-        return deleteMultiplePhotos(context, selectedUris)
+        deleteMultiplePhotos(selectedUris, onResult)
     }
 
     /**
@@ -451,9 +346,10 @@ class CameraViewModel : ViewModel() {
      */
     fun goToNextPhoto() {
         val currentPhoto = _currentViewingPhoto.value ?: return
-        val currentIndex = _allPhotos.value.indexOfFirst { it.id == currentPhoto.id }
-        if (currentIndex >= 0 && currentIndex < _allPhotos.value.size - 1) {
-            _currentViewingPhoto.value = _allPhotos.value[currentIndex + 1]
+        val photosList = allPhotos.value
+        val currentIndex = photosList.indexOfFirst { it.id == currentPhoto.id }
+        if (currentIndex >= 0 && currentIndex < photosList.size - 1) {
+            _currentViewingPhoto.value = photosList[currentIndex + 1]
         }
     }
 
@@ -462,14 +358,19 @@ class CameraViewModel : ViewModel() {
      */
     fun goToPreviousPhoto() {
         val currentPhoto = _currentViewingPhoto.value ?: return
-        val currentIndex = _allPhotos.value.indexOfFirst { it.id == currentPhoto.id }
+        val photosList = allPhotos.value
+        val currentIndex = photosList.indexOfFirst { it.id == currentPhoto.id }
         if (currentIndex > 0) {
-            _currentViewingPhoto.value = _allPhotos.value[currentIndex - 1]
+            _currentViewingPhoto.value = photosList[currentIndex - 1]
         }
     }
 
     fun onCameraRebound() {
         // カメラが再バインドされたらフラグをリセット
         _needsCameraRebind.value = false
+    }
+
+    fun initializePhotos() {
+        refreshPhotos()
     }
 }

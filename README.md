@@ -275,12 +275,14 @@ id 'org.jetbrains.kotlin.plugin.compose' version '2.2.0'
 
 ### Recent Changes
 
-#### 📅 2025-08-23: Tap-to-Focus and Permission Request Screen
+#### 📅 2025-09-03: Hilt Dependency Injection (DI) Implementation
 
 **🎯 Key Changes**
-- **Tap-to-Focus**: Added focus handling and focus point display in `CameraViewModel`.
-- **Gesture Support**: Enabled tap focus in `CameraScreen` and `ModernCameraGestures`.
-- **Permission UI**: Introduced `PermissionRequestComponent` and `PhotoPreviewComponent` for permission requests and post-capture preview.
+- **DI Architecture**: Complete implementation of Hilt-based Dependency Injection system
+- **Repository Pattern**: Introduction of `CameraRepository` and `MediaRepository` for data layer abstraction
+- **ViewModel Refactoring**: `@HiltViewModel` with constructor injection, eliminating Context dependencies
+- **Testing Enhancement**: Comprehensive unit tests with mocked dependencies using Mockito Kotlin
+- **Architecture Improvement**: Clear separation of concerns between UI, business logic, and data layers
 
 ### Major Milestones
 - ✅ **Basic Camera Functions** - Implementation of capture, preview, and save features

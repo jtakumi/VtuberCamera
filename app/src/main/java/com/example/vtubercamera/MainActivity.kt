@@ -10,7 +10,9 @@ import androidx.compose.ui.Modifier
 import com.example.vtubercamera.ui.screens.CameraScreen
 import com.example.vtubercamera.ui.theme.VTuberCameraTheme
 import com.example.vtubercamera.utils.initializeAndroid15
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

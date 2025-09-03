@@ -63,9 +63,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vtubercamera.R
 import com.example.vtubercamera.ui.components.AsyncImage
 import com.example.vtubercamera.ui.components.DeleteConfirmDialog
@@ -81,7 +81,7 @@ import com.example.vtubercamera.utils.PermissionUtils
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CameraScreen(
-    viewModel: CameraViewModel = viewModel()
+    viewModel: CameraViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -160,7 +160,7 @@ fun CameraScreen(
 
     LaunchedEffect(hasMediaPermissions) {
         if (hasMediaPermissions) {
-            viewModel.loadAllPhotos(context)
+            viewModel.initializePhotos()
         }
     }
 
@@ -176,32 +176,34 @@ fun CameraScreen(
             onDismiss = { showDeleteConfirmDialog = false },
             onConfirm = {
                 if (isSelectionMode && selectedPhotos.isNotEmpty()) {
-                    val deletedCount = viewModel.deleteSelectedPhotos(context)
-                    Toast.makeText(
-                        context,
-                        context.resources.getQuantityString(
-                            R.plurals.photos_deleted_count,
-                            deletedCount,
-                            deletedCount
-                        ),
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    viewModel.deleteSelectedPhotos { deletedCount ->
+                        Toast.makeText(
+                            context,
+                            context.resources.getQuantityString(
+                                R.plurals.photos_deleted_count,
+                                deletedCount,
+                                deletedCount
+                            ),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 } else {
                     lastCapturedImageUri?.let { uri ->
-                        val success = viewModel.deletePhoto(context, uri)
-                        if (success) {
-                            Toast.makeText(
-                                context,
-                                R.string.photo_deleted_successfully,
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            viewModel.clearLastCapturedImage(context)
-                        } else {
-                            Toast.makeText(
-                                context,
-                                R.string.photo_deletion_failed,
-                                Toast.LENGTH_SHORT
-                            ).show()
+                        viewModel.deletePhoto(uri) { success ->
+                            if (success) {
+                                Toast.makeText(
+                                    context,
+                                    R.string.photo_deleted_successfully,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                viewModel.clearLastCapturedImage()
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    R.string.photo_deletion_failed,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
                         }
                     }
                 }
@@ -317,11 +319,16 @@ fun CameraScreen(
                         photo = currentViewingPhoto!!,
                         onBack = { viewModel.setCurrentViewingPhoto(null) },
                         onDelete = { photo ->
-                            val success = viewModel.deletePhoto(context, photo.uri)
-                            if (success) {
-                                Toast.makeText(context, "写真を削除しました", Toast.LENGTH_SHORT)
-                                    .show()
-                                viewModel.setCurrentViewingPhoto(null)
+                            viewModel.deletePhoto(photo.uri) { success ->
+                                if (success) {
+                                    Toast.makeText(
+                                        context,
+                                        "写真を削除しました",
+                                        Toast.LENGTH_SHORT
+                                    )
+                                        .show()
+                                    viewModel.setCurrentViewingPhoto(null)
+                                }
                             }
                         },
                         onNext = { viewModel.goToNextPhoto() },
@@ -533,7 +540,6 @@ fun CameraScreen(
                                 imageCapture?.let { capture ->
                                     viewModel.takePhoto(
                                         imageCapture = capture,
-                                        context = context,
                                         onPhotoSaved = { },
                                         onError = { msg ->
                                             Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()

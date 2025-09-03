@@ -23,7 +23,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.example.vtubercamera.ui.viewmodels.PhotoItem
+import com.example.vtubercamera.data.PhotoItem
 
 @Composable
 fun GalleryView(
