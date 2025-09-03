@@ -63,9 +63,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.vtubercamera.R
 import com.example.vtubercamera.ui.components.AsyncImage
 import com.example.vtubercamera.ui.components.DeleteConfirmDialog
@@ -75,11 +75,8 @@ import com.example.vtubercamera.ui.components.PermissionRequestComponent
 import com.example.vtubercamera.ui.components.PhotoDetailView
 import com.example.vtubercamera.ui.components.PhotoPreviewComponent
 import com.example.vtubercamera.ui.modifiers.modernCameraGestures
-import com.example.vtubercamera.data.PhotoItem
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 import com.example.vtubercamera.utils.PermissionUtils
-import kotlin.collections.indexOfFirst
-import kotlin.collections.isNotEmpty
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -324,7 +321,11 @@ fun CameraScreen(
                         onDelete = { photo ->
                             viewModel.deletePhoto(photo.uri) { success ->
                                 if (success) {
-                                    Toast.makeText(context, "写真を削除しました", Toast.LENGTH_SHORT)
+                                    Toast.makeText(
+                                        context,
+                                        "写真を削除しました",
+                                        Toast.LENGTH_SHORT
+                                    )
                                         .show()
                                     viewModel.setCurrentViewingPhoto(null)
                                 }

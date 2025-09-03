@@ -14,7 +14,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.vtubercamera.data.CameraRepository
 import com.example.vtubercamera.data.MediaRepository
 import com.example.vtubercamera.data.PhotoItem
-import com.example.vtubercamera.managers.PermissionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +26,6 @@ import javax.inject.Inject
 class CameraViewModel @Inject constructor(
     private val cameraRepository: CameraRepository,
     private val mediaRepository: MediaRepository,
-    private val permissionManager: PermissionManager
 ) : ViewModel() {
 
     private val _cameraSelector = MutableStateFlow(CameraSelector.DEFAULT_BACK_CAMERA)
@@ -112,7 +110,7 @@ class CameraViewModel @Inject constructor(
             zoom.coerceIn(1.0f, _camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 1.0f)
         _camera?.cameraControl?.setZoomRatio(_zoomRatio.value)
     }
-    
+
     fun smoothZoomTo(targetZoom: Float, duration: Long = 300) {
         val currentZoom = _zoomRatio.value
         val animator = ValueAnimator.ofFloat(currentZoom, targetZoom)
@@ -124,7 +122,7 @@ class CameraViewModel @Inject constructor(
         }
         animator.start()
     }
-    
+
     fun resetZoom() {
         smoothZoomTo(1.0f)
     }
@@ -134,7 +132,7 @@ class CameraViewModel @Inject constructor(
         val point = factory.createPoint(x, y)
         val action = FocusMeteringAction.Builder(point).build()
         _camera?.cameraControl?.startFocusAndMetering(action)
-        
+
         // フォーカスポイントを設定し、1秒後に消す
         _focusPoint.value = Pair(x, y)
         viewModelScope.launch {
@@ -146,6 +144,7 @@ class CameraViewModel @Inject constructor(
     fun setMaxZoomRatio(maxZoomRatio: Float) {
         _maxZoomRatio.value = maxZoomRatio
     }
+
     fun setMinZoomRatio(minZoomRatio: Float) {
         _minZoomRatio.value = minZoomRatio
     }
@@ -197,7 +196,6 @@ class CameraViewModel @Inject constructor(
 
     /**
      * 指定されたURIの写真をストレージから削除
-     * @param context コンテキスト
      * @param uri 削除する写真のURI
      * @return 削除が成功したかどうか
      */
@@ -226,7 +224,6 @@ class CameraViewModel @Inject constructor(
 
     /**
      * 複数の写真を一括削除
-     * @param context コンテキスト
      * @param uris 削除する写真のURIリスト
      * @return 削除に成功した写真の数
      */
@@ -256,7 +253,7 @@ class CameraViewModel @Inject constructor(
                 // Update last captured image URI with the latest photo
                 val photos = allPhotos.value
                 _lastCapturedImageUri.value = photos.firstOrNull()?.uri
-            } catch (e: Exception) {
+            } catch (_: Exception) {
             } finally {
                 _isLoadingPhotos.value = false
             }
