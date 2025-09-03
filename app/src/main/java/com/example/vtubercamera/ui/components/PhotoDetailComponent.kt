@@ -18,7 +18,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.vtubercamera.R
-import com.example.vtubercamera.ui.viewmodels.PhotoItem
+import com.example.vtubercamera.data.PhotoItem
 
 @Composable
 fun PhotoDetailView(
