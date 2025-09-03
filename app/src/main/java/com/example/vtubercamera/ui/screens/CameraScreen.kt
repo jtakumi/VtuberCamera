@@ -78,6 +78,8 @@ import com.example.vtubercamera.ui.modifiers.modernCameraGestures
 import com.example.vtubercamera.data.PhotoItem
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 import com.example.vtubercamera.utils.PermissionUtils
+import kotlin.collections.indexOfFirst
+import kotlin.collections.isNotEmpty
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
