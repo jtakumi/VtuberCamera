@@ -23,4 +23,13 @@ interface CameraRepository {
         onPhotoSaved: (Uri) -> Unit,
         onError: (String) -> Unit
     )
+    
+    fun switchToCamera(
+        lifecycleOwner: LifecycleOwner,
+        cameraProvider: ProcessCameraProvider,
+        newCameraSelector: CameraSelector,
+        flashMode: Int,
+        onImageCaptureCreated: (ImageCapture) -> Unit,
+        onCameraCreated: (Camera) -> Unit
+    ): Camera?
 }
