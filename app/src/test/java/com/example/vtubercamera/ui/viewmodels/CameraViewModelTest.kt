@@ -5,6 +5,7 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import com.example.vtubercamera.data.CameraRepository
 import com.example.vtubercamera.data.MediaRepository
+import com.example.vtubercamera.utils.CameraCapabilityManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -32,6 +33,9 @@ class CameraViewModelTest {
 
     @Mock
     private lateinit var mockMediaRepository: MediaRepository
+
+    @Mock
+    private lateinit var mockCameraCapabilityManager: CameraCapabilityManager
     
 
     private lateinit var viewModel: CameraViewModel
@@ -48,6 +52,7 @@ class CameraViewModelTest {
         viewModel = CameraViewModel(
             cameraRepository = mockCameraRepository,
             mediaRepository = mockMediaRepository,
+            cameraCapabilityManager = mockCameraCapabilityManager,
         )
     }
 
