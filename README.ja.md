@@ -68,7 +68,7 @@ Jetpack Compose を用いた Android 向けカメラアプリ。CameraX によ�
 ## 🏗️ 技術スタック
 
 ### コア技術
-- **Language**: Kotlin 2.2.0
+- **Language**: Kotlin 1.9.25
 - **UI Framework**: Jetpack Compose 1.7.8
 - **Camera**: CameraX 1.4.2
 - **Architecture**: MVVM + StateFlow
@@ -77,12 +77,12 @@ Jetpack Compose を用いた Android 向けカメラアプリ。CameraX によ�
 - **Dependency Management**: Dependabot Automation
 
 ### 開発環境
-- **Android Studio**: Hedgehog以上推奨 (Kotlin 2.2.0対応)
-- **Gradle**: 8.5+ (Kotlin 2.2.0必須要件)
-- **Min SDK**: 24 (Android 7.0+)
-- **Target SDK**: 35 (Android 15)
-- **Compile SDK**: 35 (Android 15対応)
-- **JDK**: 11+ (Kotlin 2.2.0推奨)
+- **Android Studio**: Koala以上推奨 (Kotlin 1.9.25対応)
+- **Gradle**: 8.12+ (Android Gradle Plugin 8.12.1)
+- **Min SDK**: 25 (Android 7.1+)
+- **Target SDK**: 36 (Android 16)
+- **Compile SDK**: 36 (Android 16対応)
+- **JDK**: 11+ (Kotlin 1.9.25推奨)
 
 ## 🚀 使用方法
 
@@ -147,9 +147,9 @@ Jetpack Compose を用いた Android 向けカメラアプリ。CameraX によ�
 │   └── dependabot.yml                        # 依存関係自動更新設定
 │
 ├── 🔧 プロジェクト設定ファイル
-│   ├── build.gradle                           # プロジェクトレベルビルド設定 (Kotlin 2.2.0)
+│   ├── build.gradle                           # プロジェクトレベルビルド設定 (Kotlin 1.9.25)
 │   ├── settings.gradle                        # Gradle設定
-│   ├── gradle.properties                      # Gradleプロパティ (Kotlin 2.2.0最適化)
+│   ├── gradle.properties                      # Gradleプロパティ (Kotlin 1.9.25最適化)
 │   ├── local.properties                       # ローカル環境設定
 │   └── README.md                              # プロジェクト概要（このファイル）
 │
@@ -194,10 +194,10 @@ Jetpack Compose を用いた Android 向けカメラアプリ。CameraX によ�
 ## 🔧 セットアップ
 
 ### 前提条件
-- Android Studio Hedgehog以上 (Kotlin 2.2.0必須要件)
-- JDK 11以上 (Kotlin 2.2.0推奨)
-- Gradle 8.5以上 (Kotlin 2.2.0必須要件)
-- Android SDK 24以上
+- Android Studio Koala以上 (Kotlin 1.9.25必須要件)
+- JDK 11以上
+- Gradle 8.12以上
+- Android SDK 25以上
 
 ### インストール手順
 1. **リポジトリをクローン**
@@ -243,13 +243,14 @@ implementation "androidx.activity:activity-compose:1.10.1"
 
 // ViewModel & StateFlow (2.9.2)
 implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.9.2"
-implementation "androidx.core:core-ktx:1.16.0"
+implementation "androidx.core:core-ktx:1.17.0"
 
 // 画像処理 (2.7.0)
 implementation "io.coil-kt:coil-compose:2.7.0"
 
-// Kotlin 2.2.0 + Compose Compiler Plugin
-id 'org.jetbrains.kotlin.plugin.compose' version '2.2.0'
+// Kotlin 1.9.25 + Compose Compiler 1.5.15
+id 'org.jetbrains.kotlin.android' version '1.9.25'
+kotlinCompilerExtensionVersion = "1.5.15"
 ```
 
 ## 📈 パフォーマンス
