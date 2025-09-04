@@ -70,6 +70,9 @@ import com.example.vtubercamera.R
 import com.example.vtubercamera.ui.components.AsyncImage
 import com.example.vtubercamera.ui.components.DeleteConfirmDialog
 import com.example.vtubercamera.ui.components.GalleryView
+import com.example.vtubercamera.ui.components.LensIndicator
+import com.example.vtubercamera.ui.components.LensSwitchFeedback
+import com.example.vtubercamera.ui.components.LensSwitchHint
 import com.example.vtubercamera.ui.components.PartialAccessDialog
 import com.example.vtubercamera.ui.components.PermissionRequestComponent
 import com.example.vtubercamera.ui.components.PhotoDetailView
@@ -109,6 +112,9 @@ fun CameraScreen(
     val selectedPhotos by viewModel.selectedPhotos.collectAsStateWithLifecycle()
     val isSelectionMode by viewModel.isSelectionMode.collectAsStateWithLifecycle()
     val currentViewingPhoto by viewModel.currentViewingPhoto.collectAsStateWithLifecycle()
+    val canSwitchLens by viewModel.canSwitchLens.collectAsStateWithLifecycle()
+    val currentLensType by viewModel.currentLensType.collectAsStateWithLifecycle()
+    val lensDisplayName by viewModel.lensDisplayName.collectAsStateWithLifecycle()
 
     var imageCapture: ImageCapture? by remember { mutableStateOf(null) }
     var camera: Camera? by remember { mutableStateOf(null) }
@@ -118,6 +124,8 @@ fun CameraScreen(
     var showPartialAccessDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var showGalleryView by remember { mutableStateOf(false) }
+    var showLensSwitchFeedback by remember { mutableStateOf(false) }
+    var lensSwitchFeedbackName by remember { mutableStateOf("") }
 
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -418,11 +426,18 @@ fun CameraScreen(
                                             )
                                         }
                                     },
+                                    onLensSwitch = {
+                                        viewModel.switchLens()
+                                        lensSwitchFeedbackName = lensDisplayName
+                                        showLensSwitchFeedback = true
+                                    },
                                     currentZoom = zoomRatio,
                                     minZoom = minZoomRatio,
                                     maxZoom = maxZoomRatio,
+                                    canSwitchLens = canSwitchLens,
                                     enableHapticFeedback = true,
-                                    zoomSensitivity = 2.4f
+                                    zoomSensitivity = 2.4f,
+                                    lensSwitchThreshold = 1.8f
                                 )
                         ) { view ->
                             if (cameraProvider == null) {
@@ -582,6 +597,41 @@ fun CameraScreen(
                                     contentScale = ContentScale.Crop
                                 )
                             }
+                        }
+
+                        // Lens switching indicators and feedback
+                        LensIndicator(
+                            lensType = currentLensType,
+                            lensDisplayName = lensDisplayName,
+                            canSwitchLens = canSwitchLens,
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(16.dp)
+                        )
+
+                        // Lens switch hint (shown when switching is available)
+                        if (canSwitchLens) {
+                            LensSwitchHint(
+                                canSwitchLens = canSwitchLens,
+                                modifier = Modifier
+                                    .align(Alignment.TopCenter)
+                                    .padding(top = 60.dp)
+                            )
+                        }
+
+                        // Lens switch feedback overlay
+                        LensSwitchFeedback(
+                            isVisible = showLensSwitchFeedback,
+                            newLensName = lensSwitchFeedbackName,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
+
+                    // Auto-hide lens switch feedback after delay
+                    LaunchedEffect(showLensSwitchFeedback) {
+                        if (showLensSwitchFeedback) {
+                            kotlinx.coroutines.delay(1500)
+                            showLensSwitchFeedback = false
                         }
                     }
                 }

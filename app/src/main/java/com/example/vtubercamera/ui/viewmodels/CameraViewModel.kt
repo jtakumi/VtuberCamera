@@ -14,6 +14,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.vtubercamera.data.CameraRepository
 import com.example.vtubercamera.data.MediaRepository
 import com.example.vtubercamera.data.PhotoItem
+import com.example.vtubercamera.utils.CameraCapabilityManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +27,7 @@ import javax.inject.Inject
 class CameraViewModel @Inject constructor(
     private val cameraRepository: CameraRepository,
     private val mediaRepository: MediaRepository,
+    private val cameraCapabilityManager: CameraCapabilityManager,
 ) : ViewModel() {
 
     private val _cameraSelector = MutableStateFlow(CameraSelector.DEFAULT_BACK_CAMERA)
@@ -67,6 +69,9 @@ class CameraViewModel @Inject constructor(
                 _allPhotos.value = photos
             }
         }
+        
+        // Initialize camera capabilities
+        initializeCameraCapabilities()
     }
 
     private val _isLoadingPhotos = MutableStateFlow(false)
@@ -80,6 +85,16 @@ class CameraViewModel @Inject constructor(
 
     private val _currentViewingPhoto = MutableStateFlow<PhotoItem?>(null)
     val currentViewingPhoto: StateFlow<PhotoItem?> = _currentViewingPhoto.asStateFlow()
+
+    // Lens switching capabilities
+    private val _canSwitchLens = MutableStateFlow(false)
+    val canSwitchLens: StateFlow<Boolean> = _canSwitchLens.asStateFlow()
+
+    private val _currentLensType = MutableStateFlow(CameraCapabilityManager.LensType.NORMAL)
+    val currentLensType: StateFlow<CameraCapabilityManager.LensType> = _currentLensType.asStateFlow()
+
+    private val _lensDisplayName = MutableStateFlow("Camera")
+    val lensDisplayName: StateFlow<String> = _lensDisplayName.asStateFlow()
 
     private var _camera: Camera? = null
 
@@ -372,5 +387,86 @@ class CameraViewModel @Inject constructor(
 
     fun initializePhotos() {
         refreshPhotos()
+    }
+
+    private fun initializeCameraCapabilities() {
+        viewModelScope.launch {
+            try {
+                val success = cameraCapabilityManager.detectCameraCapabilities()
+                if (success) {
+                    _canSwitchLens.value = cameraCapabilityManager.canSwitchLens()
+                    updateLensDisplayInfo()
+                    Log.d("CameraViewModel", "Camera capabilities initialized. Can switch lens: ${_canSwitchLens.value}")
+                }
+            } catch (e: Exception) {
+                Log.e("CameraViewModel", "Failed to initialize camera capabilities", e)
+            }
+        }
+    }
+
+    private fun updateLensDisplayInfo() {
+        _currentLensType.value = cameraCapabilityManager.getLensType(_cameraSelector.value)
+        _lensDisplayName.value = cameraCapabilityManager.getLensDisplayName(_cameraSelector.value)
+    }
+
+    /**
+     * Switch between normal and wide-angle lenses using pinch gesture with error handling
+     */
+    fun switchLens() {
+        try {
+            if (!_canSwitchLens.value) {
+                Log.w("CameraViewModel", "Lens switching not supported on this device")
+                return
+            }
+
+            val currentSelector = _cameraSelector.value
+            val alternateSelector = cameraCapabilityManager.getAlternateRearCamera(currentSelector)
+            
+            if (alternateSelector != null && alternateSelector != currentSelector) {
+                val previousLensName = _lensDisplayName.value
+                _cameraSelector.value = alternateSelector
+                updateLensDisplayInfo()
+                _needsCameraRebind.value = true
+                
+                Log.d("CameraViewModel", "Switched from '$previousLensName' to '${_lensDisplayName.value}'")
+            } else {
+                Log.w("CameraViewModel", "No alternate camera available or already using the alternate camera")
+            }
+        } catch (e: Exception) {
+            Log.e("CameraViewModel", "Failed to switch lens", e)
+        }
+    }
+
+    /**
+     * Check if device supports multiple rear cameras and lens switching
+     */
+    fun isLensSwitchingAvailable(): Boolean = _canSwitchLens.value
+
+    /**
+     * Get current lens information for debugging
+     */
+    fun getCurrentLensInfo(): String {
+        return "${_lensDisplayName.value} (${_currentLensType.value})"
+    }
+
+    /**
+     * Get camera switch callback for use in camera binding
+     */
+    fun getCameraSwitchCallback(): (
+        lifecycleOwner: androidx.lifecycle.LifecycleOwner,
+        cameraProvider: androidx.camera.lifecycle.ProcessCameraProvider,
+        imageCapture: androidx.camera.core.ImageCapture,
+        onCamera: (Camera) -> Unit
+    ) -> Camera? {
+        return { lifecycleOwner, cameraProvider, imageCapture, onCamera ->
+            cameraRepository.switchToCamera(
+                lifecycleOwner = lifecycleOwner,
+                cameraProvider = cameraProvider,
+                newCameraSelector = _cameraSelector.value,
+                flashMode = _flashMode.value,
+                onImageCaptureCreated = { imageCapture },
+                onCameraCreated = onCamera
+            )
+        }
     }
 }
