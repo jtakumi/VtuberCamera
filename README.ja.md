@@ -136,7 +136,7 @@ Jetpack Compose を用いた Android 向けカメラアプリ。CameraX によ�
 │   └── proguard-rules.pro                     # ProGuard設定（リリース用）
 │
 ├── 📚 docs/                                    # プロジェクトドキュメント
-│   ├── CHANGE_LOG.md                          # 詳細な変更履歴
+│   ├── CHANGE_LOG.ja.md                        # 詳細な変更履歴
 │   └── images/                                # スクリーンショット
 │       ├── camera_preview.png                 # カメラプレビュー画面（日本語）
 │       ├── photo_preview.png                  # 写真プレビュー画面（日本語）
@@ -272,7 +272,7 @@ kotlinCompilerExtensionVersion = "1.5.15"
 
 ### 📋 詳細な変更履歴
 
-**詳細な開発履歴と技術的な変更点については、[CHANGE_LOG.md](docs/CHANGE_LOG.md) をご覧ください。**
+**詳細な開発履歴と技術的な変更点については、[CHANGE_LOG.ja.md](docs/CHANGE_LOG.ja.md) をご覧ください。**
 
 ### 最近の変更
 
