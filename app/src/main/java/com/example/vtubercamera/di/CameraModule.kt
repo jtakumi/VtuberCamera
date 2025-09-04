@@ -6,6 +6,7 @@ import com.example.vtubercamera.data.CameraRepository
 import com.example.vtubercamera.data.CameraRepositoryImpl
 import com.example.vtubercamera.data.MediaRepository
 import com.example.vtubercamera.data.MediaRepositoryImpl
+import com.example.vtubercamera.utils.CameraCapabilityManager
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -37,6 +38,14 @@ abstract class CameraModule {
             @ApplicationContext context: Context
         ): ProcessCameraProvider {
             return ProcessCameraProvider.getInstance(context).get()
+        }
+
+        @Provides
+        @Singleton
+        fun provideCameraCapabilityManager(
+            @ApplicationContext context: Context
+        ): CameraCapabilityManager {
+            return CameraCapabilityManager(context)
         }
     }
 }
