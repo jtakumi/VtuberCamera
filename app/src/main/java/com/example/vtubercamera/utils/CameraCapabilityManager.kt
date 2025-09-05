@@ -63,10 +63,9 @@ class CameraCapabilityManager(private val context: Context) {
                 var hasNormal = false
 
                 // Strategy 1: Try to detect using Camera2 API for detailed camera characteristics
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-                    try {
-                        val cameraManager = context.getSystemService(android.content.Context.CAMERA_SERVICE) 
-                            as android.hardware.camera2.CameraManager
+                try {
+                    val cameraManager = context.getSystemService(android.content.Context.CAMERA_SERVICE) 
+                        as android.hardware.camera2.CameraManager
                         
                         for (cameraId in cameraManager.cameraIdList) {
                             val characteristics = cameraManager.getCameraCharacteristics(cameraId)
@@ -113,9 +112,8 @@ class CameraCapabilityManager(private val context: Context) {
                                 }
                             }
                         }
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Camera2 API detection failed, falling back to CameraX detection: ${e.message}")
-                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Camera2 API detection failed, falling back to CameraX detection: ${e.message}")
                 }
 
                 // Strategy 2: Fallback to basic CameraX detection if Camera2 failed or insufficient cameras found
@@ -245,19 +243,17 @@ class CameraCapabilityManager(private val context: Context) {
     ): LensType {
         return try {
             // Method 1: Check lens intrinsic calibration for field of view indicators
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                val lensPoseRotation = characteristics.get(android.hardware.camera2.CameraCharacteristics.LENS_POSE_ROTATION)
-                val lensIntrinsicCalibration = characteristics.get(android.hardware.camera2.CameraCharacteristics.LENS_INTRINSIC_CALIBRATION)
+            val lensPoseRotation = characteristics.get(android.hardware.camera2.CameraCharacteristics.LENS_POSE_ROTATION)
+            val lensIntrinsicCalibration = characteristics.get(android.hardware.camera2.CameraCharacteristics.LENS_INTRINSIC_CALIBRATION)
                 
                 // Wide-angle cameras often have different intrinsic calibration parameters
-                if (lensIntrinsicCalibration != null && lensIntrinsicCalibration.size >= 2) {
-                    val fx = lensIntrinsicCalibration[0] // Focal length in pixels (x-direction)
-                    val fy = lensIntrinsicCalibration[1] // Focal length in pixels (y-direction)
-                    
-                    // Lower focal length in pixels often indicates wide-angle lens
-                    if (fx < 1000f || fy < 1000f) {
-                        return LensType.WIDE_ANGLE
-                    }
+            if (lensIntrinsicCalibration != null && lensIntrinsicCalibration.size >= 2) {
+                val fx = lensIntrinsicCalibration[0] // Focal length in pixels (x-direction)
+                val fy = lensIntrinsicCalibration[1] // Focal length in pixels (y-direction)
+                
+                // Lower focal length in pixels often indicates wide-angle lens
+                if (fx < 1000f || fy < 1000f) {
+                    return LensType.WIDE_ANGLE
                 }
             }
             
