@@ -14,6 +14,8 @@ import kotlinx.coroutines.withContext
  * Manages camera capability detection for multiple lenses
  * Detects available cameras including wide-angle and normal lenses
  */
+@Suppress("UnsafeOptInUsageError")
+@OptIn(androidx.camera.core.ExperimentalCameraInfo::class, androidx.camera.camera2.interop.ExperimentalCamera2Interop::class)
 class CameraCapabilityManager(private val context: Context) {
 
     data class CameraCapability(
@@ -45,6 +47,7 @@ class CameraCapabilityManager(private val context: Context) {
     /**
      * Detect all available cameras and their capabilities with enhanced compatibility checks
      */
+    @OptIn(androidx.camera.core.ExperimentalCameraInfo::class, androidx.camera.camera2.interop.ExperimentalCamera2Interop::class)
     suspend fun detectCameraCapabilities(): Boolean {
         return withContext(Dispatchers.IO) {
             // Check camera permissions first
@@ -134,12 +137,16 @@ class CameraCapabilityManager(private val context: Context) {
                                 // Skip if we already have this camera
                                 if (detectedCameras.any { it.cameraSelector == selector }) continue
 
-                                val cameraInfo = cameraProvider.getCameraInfo(selector)
+                                val cameraInfo = run {
+                                    @OptIn(androidx.camera.core.ExperimentalCameraInfo::class)
+                                    cameraProvider.getCameraInfo(selector)
+                                }
                                 
                                 var focalLength: Float? = null
                                 var lensType = if (index == 0) LensType.NORMAL else LensType.WIDE_ANGLE
                                 
                                 try {
+                                    @OptIn(androidx.camera.camera2.interop.ExperimentalCamera2Interop::class)
                                     val camera2CameraInfo = Camera2CameraInfo.from(cameraInfo)
                                     val characteristics = camera2CameraInfo.getCameraCharacteristic(
                                         android.hardware.camera2.CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS
