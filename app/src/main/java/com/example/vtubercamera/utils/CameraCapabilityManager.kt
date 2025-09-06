@@ -306,7 +306,7 @@ class CameraCapabilityManager(private val context: Context) {
         }
         
         return if (focalLength != null && lensType != LensType.FRONT) {
-            "$baseName (${String.format("%.1f", focalLength)}mm)"
+            "$baseName (${String.format(java.util.Locale.US, "%.1f", focalLength)}mm)"
         } else {
             baseName
         }
