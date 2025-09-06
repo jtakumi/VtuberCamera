@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.camera.camera2.interop.Camera2CameraInfo
+import androidx.camera.core.CameraFilter
 import androidx.camera.core.CameraSelector
 import androidx.camera.lifecycle.ProcessCameraProvider
 import kotlinx.coroutines.Dispatchers
@@ -81,9 +82,19 @@ class CameraCapabilityManager(private val context: Context) {
                                 
                                 val focalLength = focalLengths?.firstOrNull()
                                 
-                                // Build CameraSelector for this camera
+                                // Build CameraSelector for this specific camera using CameraFilter
                                 val selector = CameraSelector.Builder()
                                     .requireLensFacing(CameraSelector.LENS_FACING_BACK)
+                                    .addCameraFilter { cameraInfos ->
+                                        cameraInfos.filter { cameraInfo ->
+                                            try {
+                                                val camera2Info = Camera2CameraInfo.from(cameraInfo)
+                                                camera2Info.cameraId == cameraId
+                                            } catch (e: Exception) {
+                                                false
+                                            }
+                                        }
+                                    }
                                     .build()
 
                                 // Enhanced lens type detection with multiple criteria
@@ -119,28 +130,51 @@ class CameraCapabilityManager(private val context: Context) {
                     Log.w(TAG, "Camera2 API detection failed, falling back to CameraX detection: ${e.message}")
                 }
 
-                // Strategy 2: Fallback to basic CameraX detection if Camera2 failed or insufficient cameras found
+                // Strategy 2: Fallback to CameraX detection using available cameras if Camera2 failed or insufficient cameras found
                 if (!hasWideAngle || !hasNormal) {
-                    val backCameras = listOf(
-                        CameraSelector.DEFAULT_BACK_CAMERA,
-                        // Attempt to create alternative back camera selectors
-                        try {
-                            CameraSelector.Builder()
-                                .requireLensFacing(CameraSelector.LENS_FACING_BACK)
-                                .build()
-                        } catch (e: Exception) { CameraSelector.DEFAULT_BACK_CAMERA }
-                    )
+                    try {
+                        // Get all available cameras that face back
+                        val availableCameras = cameraProvider.availableCameraInfos.filter { cameraInfo ->
+                            try {
+                                @OptIn(androidx.camera.camera2.interop.ExperimentalCamera2Interop::class)
+                                val camera2Info = Camera2CameraInfo.from(cameraInfo)
+                                val characteristics = camera2Info.getCameraCharacteristic(
+                                    android.hardware.camera2.CameraCharacteristics.LENS_FACING
+                                )
+                                characteristics == android.hardware.camera2.CameraCharacteristics.LENS_FACING_BACK
+                            } catch (e: Exception) {
+                                false
+                            }
+                        }
 
-                    for ((index, selector) in backCameras.distinct().withIndex()) {
-                        try {
-                            if (cameraProvider.hasCamera(selector)) {
+                        for ((index, cameraInfo) in availableCameras.withIndex()) {
+                            try {
+                                @OptIn(androidx.camera.camera2.interop.ExperimentalCamera2Interop::class)
+                                val camera2Info = Camera2CameraInfo.from(cameraInfo)
+                                val cameraId = camera2Info.cameraId
+                                
+                                // Create specific camera selector using camera ID
+                                val selector = CameraSelector.Builder()
+                                    .requireLensFacing(CameraSelector.LENS_FACING_BACK)
+                                    .addCameraFilter { cameraInfos ->
+                                        cameraInfos.filter { cameraInfoFilter ->
+                                            try {
+                                                val camera2InfoFilter = Camera2CameraInfo.from(cameraInfoFilter)
+                                                camera2InfoFilter.cameraId == cameraId
+                                            } catch (e: Exception) {
+                                                false
+                                            }
+                                        }
+                                    }
+                                    .build()
+
                                 // Skip if we already have this camera
-                                if (detectedCameras.any { it.cameraSelector == selector }) continue
-
-                                val cameraInfo = run {
-                                    @OptIn(androidx.camera.core.ExperimentalCameraInfo::class)
-                                    cameraProvider.getCameraInfo(selector)
-                                }
+                                if (detectedCameras.any { 
+                                    try {
+                                        val existingCamera2Info = Camera2CameraInfo.from(cameraProvider.getCameraInfo(it.cameraSelector))
+                                        existingCamera2Info.cameraId == cameraId
+                                    } catch (e: Exception) { false }
+                                }) continue
                                 
                                 var focalLength: Float? = null
                                 var lensType = if (index == 0) LensType.NORMAL else LensType.WIDE_ANGLE
@@ -183,11 +217,13 @@ class CameraCapabilityManager(private val context: Context) {
                                     else -> {}
                                 }
 
-                                Log.d(TAG, "Detected camera (CameraX fallback): ${capability.displayName} (focal length: ${focalLength}mm)")
+                                Log.d(TAG, "Detected camera (CameraX fallback): ${capability.displayName} (focal length: ${focalLength}mm, ID: $cameraId)")
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Failed to analyze camera in fallback detection: ${e.message}")
                             }
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Failed to analyze camera in fallback detection: ${e.message}")
                         }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Fallback camera detection failed: ${e.message}")
                     }
                 }
 
