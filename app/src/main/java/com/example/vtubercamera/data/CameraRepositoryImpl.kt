@@ -117,4 +117,33 @@ class CameraRepositoryImpl @Inject constructor(
             }
         )
     }
+
+    override fun switchToCamera(
+        lifecycleOwner: LifecycleOwner,
+        cameraProvider: ProcessCameraProvider,
+        newCameraSelector: CameraSelector,
+        flashMode: Int,
+        onImageCaptureCreated: (ImageCapture) -> Unit,
+        onCameraCreated: (Camera) -> Unit
+    ): Camera? {
+        return try {
+            Log.d("CameraRepository", "Switching to new camera lens")
+            
+            // Unbind current camera
+            cameraProvider.unbindAll()
+            
+            // Bind to new camera with same logic as bindCamera
+            bindCamera(
+                lifecycleOwner,
+                cameraProvider,
+                newCameraSelector,
+                flashMode,
+                onImageCaptureCreated,
+                onCameraCreated
+            )
+        } catch (e: Exception) {
+            Log.e("CameraRepository", "Failed to switch camera", e)
+            null
+        }
+    }
 }

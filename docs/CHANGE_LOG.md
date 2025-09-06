@@ -2,6 +2,7 @@
 
 This document summarizes the major updates of this project by date. For a detailed history, please refer to previous versions.
 
+- 2025-09-04: Implemented pinch-to-switch lens functionality (normal ⇔ wide-angle switching)
 - 2025-09-03: Introduced DI with Hilt, refactored ViewModel and UI, and updated dependencies
 - 2025-08-31 (later): Improved code quality and debugging features
 - 2025-08-31: Added gallery screen and detail view features

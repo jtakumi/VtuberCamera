@@ -276,14 +276,14 @@ kotlinCompilerExtensionVersion = "1.5.15"
 
 ### Recent Changes
 
-#### 📅 2025-09-03: Hilt Dependency Injection (DI) Implementation
+#### 📅 2025-09-04: Pinch-to-Switch Lens Functionality
 
 **🎯 Key Changes**
-- **DI Architecture**: Complete implementation of Hilt-based Dependency Injection system
-- **Repository Pattern**: Introduction of `CameraRepository` and `MediaRepository` for data layer abstraction
-- **ViewModel Refactoring**: `@HiltViewModel` with constructor injection, eliminating Context dependencies
-- **Testing Enhancement**: Comprehensive unit tests with mocked dependencies using Mockito Kotlin
-- **Architecture Improvement**: Clear separation of concerns between UI, business logic, and data layers
+- **Multi-Camera Support**: Camera capability detection system using Camera2 API and CameraX
+- **Pinch Gesture Control**: Pinch out to switch to wide-angle lens, pinch in for normal lens
+- **Lens Switching UI**: Current lens indicator and smooth switching feedback
+- **Device Compatibility**: Proper fallback for devices without multiple cameras
+- **Error Handling**: Permission checks and exception handling for stable operation
 
 ### Major Milestones
 - ✅ **Basic Camera Functions** - Implementation of capture, preview, and save features
