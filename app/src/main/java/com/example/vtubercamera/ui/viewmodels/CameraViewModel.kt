@@ -100,6 +100,38 @@ class CameraViewModel @Inject constructor(
 
     fun setCamera(camera: Camera?) {
         _camera = camera
+        
+        // Update zoom range based on actual camera capabilities
+        camera?.let { cam ->
+            try {
+                val zoomState = cam.cameraInfo.zoomState.value
+                zoomState?.let { state ->
+                    val actualMinZoom = state.minZoomRatio
+                    val actualMaxZoom = state.maxZoomRatio
+                    
+                    _minZoomRatio.value = actualMinZoom
+                    _maxZoomRatio.value = actualMaxZoom
+                    
+                    // Adjust current zoom to fit within the new range
+                    val currentZoom = _zoomRatio.value
+                    val adjustedZoom = when {
+                        currentZoom < actualMinZoom -> actualMinZoom
+                        currentZoom > actualMaxZoom -> actualMaxZoom
+                        else -> currentZoom
+                    }
+                    
+                    if (adjustedZoom != currentZoom) {
+                        _zoomRatio.value = adjustedZoom
+                        cam.cameraControl.setZoomRatio(adjustedZoom)
+                        Log.d("CameraViewModel", "Adjusted zoom from ${currentZoom}x to ${adjustedZoom}x")
+                    }
+                    
+                    Log.d("CameraViewModel", "Updated zoom range: ${actualMinZoom}x - ${actualMaxZoom}x")
+                }
+            } catch (e: Exception) {
+                Log.w("CameraViewModel", "Failed to get zoom range from camera: ${e.message}")
+            }
+        }
     }
 
     fun switchCamera() {
@@ -121,8 +153,9 @@ class CameraViewModel @Inject constructor(
     }
 
     fun setZoom(zoom: Float) {
-        _zoomRatio.value =
-            zoom.coerceIn(1.0f, _camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 1.0f)
+        val minZoom = _minZoomRatio.value
+        val maxZoom = _camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: _maxZoomRatio.value
+        _zoomRatio.value = zoom.coerceIn(minZoom, maxZoom)
         _camera?.cameraControl?.setZoomRatio(_zoomRatio.value)
     }
 
