@@ -276,14 +276,13 @@ kotlinCompilerExtensionVersion = "1.5.15"
 
 ### Recent Changes
 
-#### 📅 2025-09-04: Pinch-to-Switch Lens Functionality
+#### 📅 2025-09-06: Core Fixes and Improvements
 
 **🎯 Key Changes**
-- **Multi-Camera Support**: Camera capability detection system using Camera2 API and CameraX
-- **Pinch Gesture Control**: Pinch out to switch to wide-angle lens, pinch in for normal lens
-- **Lens Switching UI**: Current lens indicator and smooth switching feedback
-- **Device Compatibility**: Proper fallback for devices without multiple cameras
-- **Error Handling**: Permission checks and exception handling for stable operation
+- **DefaultLocale Fix**: Resolved lint warning by specifying explicit locale for string formatting
+- **Lens Switching Enhancement**: Fixed camera selectors to use specific camera IDs for proper lens switching
+- **Ultra-Wide Support**: Fixed zoom range to support 0.5x magnification on ultra-wide cameras
+- **Pinch Gesture Reset**: Enhanced gesture logic to allow repeated lens switching without tapping
 
 ### Major Milestones
 - ✅ **Basic Camera Functions** - Implementation of capture, preview, and save features
