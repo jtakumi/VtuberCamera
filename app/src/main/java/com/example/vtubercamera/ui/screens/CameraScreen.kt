@@ -437,7 +437,7 @@ fun CameraScreen(
                                     canSwitchLens = canSwitchLens,
                                     enableHapticFeedback = true,
                                     zoomSensitivity = 2.4f,
-                                    lensSwitchThreshold = 1.8f
+                                    lensSwitchThreshold = 1.0f
                                 )
                         ) { view ->
                             if (cameraProvider == null) {
