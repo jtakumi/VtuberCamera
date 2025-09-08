@@ -91,7 +91,7 @@ dependencies {
     // Core libraries（Android 15対応）
     implementation 'androidx.core:core-ktx:1.17.0'  // 更新
     implementation 'androidx.appcompat:appcompat:1.7.1'  // 更新
-    implementation 'com.google.android.material:material:1.12.0'  // 更新
+    implementation 'com.google.android.material:material:1.13.0'  // 更新
 
     // Support libraries
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
