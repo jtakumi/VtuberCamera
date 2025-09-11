@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.test.rule.GrantPermissionRule
 import com.example.vtubercamera.R
 import com.example.vtubercamera.utils.PermissionUtils
+import org.junit.ClassRule
 import org.junit.Rule
 import org.junit.Test
 
@@ -16,12 +17,15 @@ class CameraScreenIconTest {
     @get:Rule
     val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
-    // Automatically grant camera and gallery permissions before each test
-    @get:Rule
-    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
-        Manifest.permission.CAMERA,
-        *PermissionUtils.getRequiredMediaPermissions()
-    )
+    companion object {
+        // Grant camera and gallery permissions once for all tests
+        @JvmField
+        @ClassRule
+        val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
+            Manifest.permission.CAMERA,
+            *PermissionUtils.getRequiredMediaPermissions()
+        )
+    }
 
     @Test
     fun switchCameraIcon_isDisplayed() {
