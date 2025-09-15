@@ -84,14 +84,14 @@ android {
 
 dependencies {
     implementation 'androidx.lifecycle:lifecycle-viewmodel-android:2.9.2'
-    implementation 'androidx.wear.compose:compose-material3:1.5.0'
+    implementation 'androidx.wear.compose:compose-material3:1.5.1'
     def camerax_version = "1.4.2"
     def compose_version = "1.7.8"
 
     // Core libraries（Android 15対応）
     implementation 'androidx.core:core-ktx:1.17.0'  // 更新
     implementation 'androidx.appcompat:appcompat:1.7.1'  // 更新
-    implementation 'com.google.android.material:material:1.12.0'  // 更新
+    implementation 'com.google.android.material:material:1.13.0'  // 更新
 
     // Support libraries
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
