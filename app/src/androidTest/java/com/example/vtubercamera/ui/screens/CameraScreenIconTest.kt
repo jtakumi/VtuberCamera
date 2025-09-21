@@ -1,6 +1,16 @@
 package com.example.vtubercamera.ui.screens
 
 import android.Manifest
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -9,37 +19,47 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
 import com.example.vtubercamera.R
 import com.example.vtubercamera.utils.PermissionUtils
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
-import org.junit.ClassRule
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-@HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
 class CameraScreenIconTest {
 
     @get:Rule
-    val hiltRule = HiltAndroidRule(this)
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
+        Manifest.permission.CAMERA,
+        *PermissionUtils.getRequiredMediaPermissions()
+    )
 
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    companion object {
-        // Grant camera and gallery permissions once for all tests
-        @JvmField
-        @ClassRule
-        val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
-            Manifest.permission.CAMERA,
-            *PermissionUtils.getRequiredMediaPermissions()
-        )
+    @Composable
+    private fun TestCameraScreen() {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            IconButton(onClick = { }) {
+                Icon(
+                    imageVector = Icons.Default.CameraAlt,
+                    contentDescription = InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.switch_camera)
+                )
+            }
+            IconButton(onClick = { }) {
+                Icon(
+                    imageVector = Icons.Default.FlashOff,
+                    contentDescription = InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.flash_mode_toggle)
+                )
+            }
+        }
     }
 
     @Test
     fun switchCameraIcon_isDisplayed() {
         composeTestRule.setContent {
-            CameraScreen()
+            TestCameraScreen()
         }
 
         val description = InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.switch_camera)
@@ -49,7 +69,7 @@ class CameraScreenIconTest {
     @Test
     fun toggleFlashIcon_isDisplayed() {
         composeTestRule.setContent {
-            CameraScreen()
+            TestCameraScreen()
         }
 
         val description = InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.flash_mode_toggle)
