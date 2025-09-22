@@ -7,7 +7,7 @@
   - _Requirements: 6.1, 6.4_
 
 - [ ] 2. データモデルとエンティティの実装
-  - [ ] 2.1 VRMモデル関連のデータクラスを作成
+  - [x] 2.1 VRMモデル関連のデータクラスを作成
     - VRMModel、Expression、Pose、AvatarInfoデータクラスを実装
     - Transform、Vector3、Quaternionの数学ライブラリクラスを作成
     - VRMMetadataとValidationResultクラスを実装
