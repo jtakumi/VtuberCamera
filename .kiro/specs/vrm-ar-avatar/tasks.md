@@ -1,6 +1,6 @@
 # Implementation Plan
 
-- [ ] 1. プロジェクト基盤とライブラリ統合の準備
+- [x] 1. プロジェクト基盤とライブラリ統合の準備
   - build.gradleにARCore、Filament、VRM関連の依存関係を追加
   - AndroidManifest.xmlにARCore必須設定とカメラ権限を追加
   - ProGuardルールでVRM/AR関連クラスの難読化除外設定を追加

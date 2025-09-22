@@ -110,6 +110,83 @@
 -dontwarn androidx.**
 
 # =============================================================================
+# ARCore関連
+# =============================================================================
+
+# ARCore SDKを保護
+-keep class com.google.ar.core.** { *; }
+-dontwarn com.google.ar.core.**
+
+# ARCore Session関連
+-keep class com.google.ar.core.Session { *; }
+-keep class com.google.ar.core.Frame { *; }
+-keep class com.google.ar.core.Camera { *; }
+-keep class com.google.ar.core.Pose { *; }
+-keep class com.google.ar.core.Anchor { *; }
+
+# =============================================================================
+# Filament 3Dレンダリングエンジン関連
+# =============================================================================
+
+# Filamentエンジンを保護
+-keep class com.google.android.filament.** { *; }
+-dontwarn com.google.android.filament.**
+
+# Filament JNI関連
+-keep class com.google.android.filament.Engine { *; }
+-keep class com.google.android.filament.Renderer { *; }
+-keep class com.google.android.filament.Scene { *; }
+-keep class com.google.android.filament.Camera { *; }
+-keep class com.google.android.filament.View { *; }
+
+# GLTF IO関連
+-keep class com.google.android.filament.gltfio.** { *; }
+-dontwarn com.google.android.filament.gltfio.**
+
+# =============================================================================
+# VRM関連
+# =============================================================================
+
+# VRMカスタム実装を保護
+-keep class com.example.vtubercamera.vrm.** { *; }
+-dontwarn com.example.vtubercamera.vrm.**
+
+# VRMモデル関連のカスタムクラス
+-keep class com.example.vtubercamera.data.VRMModel { *; }
+-keep class com.example.vtubercamera.data.VRMLoader { *; }
+-keep class com.example.vtubercamera.data.VRMParser { *; }
+
+# VRM表情・ポーズデータ
+-keepclassmembers class com.example.vtubercamera.data.Expression { *; }
+-keepclassmembers class com.example.vtubercamera.data.Pose { *; }
+
+# =============================================================================
+# 数学ライブラリ関連
+# =============================================================================
+
+# JOML (Java OpenGL Math Library)
+-keep class org.joml.** { *; }
+-dontwarn org.joml.**
+
+# 3D変換関連のクラス
+-keep class org.joml.Vector3f { *; }
+-keep class org.joml.Quaternionf { *; }
+-keep class org.joml.Matrix4f { *; }
+
+# =============================================================================
+# JSON処理関連
+# =============================================================================
+
+# Gson (VRMメタデータ用)
+-keep class com.google.gson.** { *; }
+-dontwarn com.google.gson.**
+
+# VRMメタデータクラスのシリアライゼーション
+-keepclassmembers class com.example.vtubercamera.data.VRMMetadata { *; }
+-keepclassmembers class com.example.vtubercamera.data.Expression { *; }
+-keepclassmembers class com.example.vtubercamera.data.Pose { *; }
+
+# =============================================================================
 # アプリケーション固有
 # =============================================================================
 
