@@ -13,7 +13,7 @@
     - VRMMetadataとValidationResultクラスを実装
     - _Requirements: 1.2, 4.2_
 
-  - [ ] 2.2 AR関連のデータモデルを作成
+  - [x] 2.2 AR関連のデータモデルを作成
     - ARSessionState、AvatarStateデータクラスを実装
     - VRMLoadingError、ARErrorの例外クラスを定義
     - ARカメラ状態管理用のStateFlowモデルを作成
