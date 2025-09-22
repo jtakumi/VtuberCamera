@@ -132,10 +132,11 @@ dependencies {
     // ARCore
     implementation 'com.google.ar:core:1.45.0'
     
-    // Filament 3D Rendering Engine
-    implementation 'com.google.android.filament:filament-android:1.54.1'
-    implementation 'com.google.android.filament:filament-utils-android:1.54.1'
-    implementation 'com.google.android.filament:gltfio-android:1.54.1'
+    // Filament 3D Rendering Engine - Temporarily commented out due to dependency issues
+    // TODO: Add Filament dependencies using the correct repository or version
+    // implementation 'com.google.android.filament:filament-android:1.17.1'
+    // implementation 'com.google.android.filament:filament-utils-android:1.17.1'
+    // implementation 'com.google.android.filament:gltfio-android:1.17.1'
     
     // VRM Support (using alternative VRM libraries)
     // Note: VRM support will be implemented using custom parsers with GLTF base
