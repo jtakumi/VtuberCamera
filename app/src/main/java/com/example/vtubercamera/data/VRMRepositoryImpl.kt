@@ -10,6 +10,9 @@ import com.example.vtubercamera.data.vrm.ValidationError
 import com.example.vtubercamera.data.vrm.ValidationResult
 import com.example.vtubercamera.data.vrm.VRMMetadata
 import com.example.vtubercamera.data.vrm.VRMValidator
+import com.example.vtubercamera.data.vrm.AvatarThumbnailGenerator
+import com.example.vtubercamera.data.vrm.AvatarLibraryStats
+import com.example.vtubercamera.data.vrm.CleanupResult
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -29,7 +32,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class VRMRepositoryImpl @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val thumbnailGenerator: AvatarThumbnailGenerator
 ) : VRMRepository {
     
     companion object {
@@ -107,11 +111,15 @@ class VRMRepositoryImpl @Inject constructor(
                 output.write(vrmModel.meshData)
             }
             
+            // Generate thumbnail
+            val thumbnailPath = thumbnailGenerator.generateThumbnail(vrmModel, avatarId)
+            
             // Create avatar info
             val avatarInfo = AvatarInfo(
                 id = avatarId,
                 name = avatarName,
                 originalFileName = vrmModel.name,
+                thumbnailPath = thumbnailPath ?: "",
                 filePath = avatarFile.absolutePath,
                 fileSize = vrmModel.meshData.size.toLong(),
                 metadata = vrmModel.metadata,
@@ -185,6 +193,9 @@ class VRMRepositoryImpl @Inject constructor(
             if (avatarFile.exists()) {
                 avatarFile.delete()
             }
+            
+            // Delete thumbnail
+            thumbnailGenerator.deleteThumbnail(avatarId)
             
             // Remove from library
             val currentLibrary = _avatarLibrary.value.toMutableList()
@@ -262,6 +273,248 @@ class VRMRepositoryImpl @Inject constructor(
         val avatarInfo = getAvatarById(avatarId) ?: return
         val updatedInfo = avatarInfo.withUsage()
         updateAvatarInfo(updatedInfo)
+    }
+    
+    /**
+     * Rename an avatar
+     * 
+     * @param avatarId The ID of the avatar to rename
+     * @param newName The new name for the avatar
+     * @return Result indicating success or error
+     */
+    override suspend fun renameAvatar(avatarId: String, newName: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val avatarInfo = getAvatarById(avatarId)
+                ?: return@withContext Result.failure(VRMLoadingError.FileNotFound)
+            
+            val updatedInfo = avatarInfo.withName(newName.trim())
+            updateAvatarInfo(updatedInfo)
+            
+            Log.d(TAG, "Successfully renamed avatar $avatarId to: $newName")
+            Result.success(Unit)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error renaming avatar", e)
+            Result.failure(VRMLoadingError.IOError(e.message ?: "Failed to rename avatar"))
+        }
+    }
+    
+    /**
+     * Toggle favorite status of an avatar
+     * 
+     * @param avatarId The ID of the avatar
+     * @param isFavorite The new favorite status
+     * @return Result indicating success or error
+     */
+    override suspend fun setAvatarFavorite(avatarId: String, isFavorite: Boolean): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val avatarInfo = getAvatarById(avatarId)
+                ?: return@withContext Result.failure(VRMLoadingError.FileNotFound)
+            
+            val updatedInfo = avatarInfo.withFavorite(isFavorite)
+            updateAvatarInfo(updatedInfo)
+            
+            Log.d(TAG, "Successfully updated favorite status for avatar $avatarId: $isFavorite")
+            Result.success(Unit)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating avatar favorite status", e)
+            Result.failure(VRMLoadingError.IOError(e.message ?: "Failed to update favorite status"))
+        }
+    }
+    
+    /**
+     * Add tags to an avatar
+     * 
+     * @param avatarId The ID of the avatar
+     * @param tags The tags to add
+     * @return Result indicating success or error
+     */
+    override suspend fun addAvatarTags(avatarId: String, tags: Set<String>): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val avatarInfo = getAvatarById(avatarId)
+                ?: return@withContext Result.failure(VRMLoadingError.FileNotFound)
+            
+            val cleanTags = tags.map { it.trim().lowercase() }.filter { it.isNotBlank() }.toSet()
+            val updatedInfo = avatarInfo.withTags(avatarInfo.tags + cleanTags)
+            updateAvatarInfo(updatedInfo)
+            
+            Log.d(TAG, "Successfully added tags to avatar $avatarId: $cleanTags")
+            Result.success(Unit)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error adding avatar tags", e)
+            Result.failure(VRMLoadingError.IOError(e.message ?: "Failed to add tags"))
+        }
+    }
+    
+    /**
+     * Remove tags from an avatar
+     * 
+     * @param avatarId The ID of the avatar
+     * @param tags The tags to remove
+     * @return Result indicating success or error
+     */
+    override suspend fun removeAvatarTags(avatarId: String, tags: Set<String>): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val avatarInfo = getAvatarById(avatarId)
+                ?: return@withContext Result.failure(VRMLoadingError.FileNotFound)
+            
+            val tagsToRemove = tags.map { it.trim().lowercase() }.toSet()
+            val updatedInfo = avatarInfo.withTags(avatarInfo.tags - tagsToRemove)
+            updateAvatarInfo(updatedInfo)
+            
+            Log.d(TAG, "Successfully removed tags from avatar $avatarId: $tagsToRemove")
+            Result.success(Unit)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error removing avatar tags", e)
+            Result.failure(VRMLoadingError.IOError(e.message ?: "Failed to remove tags"))
+        }
+    }
+    
+    /**
+     * Regenerate thumbnail for an avatar
+     * 
+     * @param avatarId The ID of the avatar
+     * @return Result containing the new thumbnail path or error
+     */
+    override suspend fun regenerateThumbnail(avatarId: String): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val avatarInfo = getAvatarById(avatarId)
+                ?: return@withContext Result.failure(VRMLoadingError.FileNotFound)
+            
+            // Load the VRM model
+            val vrmResult = loadAvatarFromLibrary(avatarId)
+            if (vrmResult.isFailure) {
+                return@withContext Result.failure(vrmResult.exceptionOrNull() ?: VRMLoadingError.ParseError("Failed to load VRM"))
+            }
+            
+            val vrmModel = vrmResult.getOrThrow()
+            
+            // Delete old thumbnail
+            thumbnailGenerator.deleteThumbnail(avatarId)
+            
+            // Generate new thumbnail
+            val thumbnailPath = thumbnailGenerator.generateThumbnail(vrmModel, avatarId)
+                ?: return@withContext Result.failure(VRMLoadingError.IOError("Failed to generate thumbnail"))
+            
+            // Update avatar info with new thumbnail path
+            val updatedInfo = avatarInfo.copy(thumbnailPath = thumbnailPath)
+            updateAvatarInfo(updatedInfo)
+            
+            Log.d(TAG, "Successfully regenerated thumbnail for avatar $avatarId")
+            Result.success(thumbnailPath)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error regenerating thumbnail", e)
+            Result.failure(VRMLoadingError.IOError(e.message ?: "Failed to regenerate thumbnail"))
+        }
+    }
+    
+    /**
+     * Get avatar library statistics
+     * 
+     * @return AvatarLibraryStats containing library information
+     */
+    override suspend fun getLibraryStatistics(): AvatarLibraryStats = withContext(Dispatchers.IO) {
+        val avatars = _avatarLibrary.value
+        val totalSize = avatars.sumOf { it.fileSize }
+        val thumbnailSize = thumbnailGenerator.getTotalThumbnailSize()
+        val favoriteCount = avatars.count { it.isFavorite }
+        val recentlyUsedCount = avatars.count { it.isRecentlyUsed() }
+        val newlyAddedCount = avatars.count { it.isNewlyAdded() }
+        val withExpressionsCount = avatars.count { it.hasExpressions() }
+        val withPosesCount = avatars.count { it.hasPoses() }
+        
+        val allTags = avatars.flatMap { it.tags }.distinct()
+        val usageFrequencies = avatars.groupBy { it.getUsageFrequency() }
+            .mapValues { it.value.size }
+        
+        AvatarLibraryStats(
+            totalAvatars = avatars.size,
+            totalFileSize = totalSize,
+            totalThumbnailSize = thumbnailSize,
+            favoriteCount = favoriteCount,
+            recentlyUsedCount = recentlyUsedCount,
+            newlyAddedCount = newlyAddedCount,
+            withExpressionsCount = withExpressionsCount,
+            withPosesCount = withPosesCount,
+            availableTags = allTags,
+            usageFrequencies = usageFrequencies
+        )
+    }
+    
+    /**
+     * Cleanup library (remove orphaned files, validate avatars, etc.)
+     * 
+     * @return CleanupResult containing information about the cleanup operation
+     */
+    override suspend fun cleanupLibrary(): CleanupResult = withContext(Dispatchers.IO) {
+        try {
+            val avatars = _avatarLibrary.value.toMutableList()
+            var removedAvatars = 0
+            var fixedAvatars = 0
+            
+            // Check for missing files and remove invalid entries
+            val validAvatars = avatars.filter { avatar ->
+                val file = File(avatar.filePath)
+                if (!file.exists()) {
+                    Log.w(TAG, "Removing avatar with missing file: ${avatar.name}")
+                    thumbnailGenerator.deleteThumbnail(avatar.id)
+                    removedAvatars++
+                    false
+                } else {
+                    true
+                }
+            }
+            
+            // Update library if any avatars were removed
+            if (removedAvatars > 0) {
+                _avatarLibrary.value = validAvatars
+                saveAvatarLibraryToDisk()
+            }
+            
+            // Clean up orphaned thumbnails
+            val existingAvatarIds = validAvatars.map { it.id }.toSet()
+            val orphanedThumbnails = thumbnailGenerator.cleanupOrphanedThumbnails(existingAvatarIds)
+            
+            // Fix missing thumbnails
+            validAvatars.forEach { avatar ->
+                if (avatar.thumbnailPath.isEmpty() || !thumbnailGenerator.hasThumbnail(avatar.id)) {
+                    try {
+                        val vrmResult = loadAvatarFromLibrary(avatar.id)
+                        if (vrmResult.isSuccess) {
+                            val thumbnailPath = thumbnailGenerator.generateThumbnail(vrmResult.getOrThrow(), avatar.id)
+                            if (thumbnailPath != null) {
+                                val updatedAvatar = avatar.copy(thumbnailPath = thumbnailPath)
+                                updateAvatarInfo(updatedAvatar)
+                                fixedAvatars++
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to fix thumbnail for avatar: ${avatar.name}", e)
+                    }
+                }
+            }
+            
+            CleanupResult(
+                removedAvatars = removedAvatars,
+                fixedThumbnails = fixedAvatars,
+                orphanedThumbnails = orphanedThumbnails,
+                success = true
+            )
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during library cleanup", e)
+            CleanupResult(
+                removedAvatars = 0,
+                fixedThumbnails = 0,
+                orphanedThumbnails = 0,
+                success = false,
+                error = e.message
+            )
+        }
     }
     
     /**

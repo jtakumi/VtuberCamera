@@ -2,6 +2,8 @@ package com.example.vtubercamera.data
 
 import android.net.Uri
 import com.example.vtubercamera.data.vrm.AvatarInfo
+import com.example.vtubercamera.data.vrm.AvatarLibraryStats
+import com.example.vtubercamera.data.vrm.CleanupResult
 import com.example.vtubercamera.data.vrm.VRMModel
 import com.example.vtubercamera.data.vrm.ValidationResult
 import kotlinx.coroutines.flow.Flow
@@ -117,4 +119,62 @@ interface VRMRepository {
      * @param avatarId The ID of the avatar that was used
      */
     suspend fun recordAvatarUsage(avatarId: String)
+    
+    /**
+     * Rename an avatar
+     * 
+     * @param avatarId The ID of the avatar to rename
+     * @param newName The new name for the avatar
+     * @return Result indicating success or error
+     */
+    suspend fun renameAvatar(avatarId: String, newName: String): Result<Unit>
+    
+    /**
+     * Toggle favorite status of an avatar
+     * 
+     * @param avatarId The ID of the avatar
+     * @param isFavorite The new favorite status
+     * @return Result indicating success or error
+     */
+    suspend fun setAvatarFavorite(avatarId: String, isFavorite: Boolean): Result<Unit>
+    
+    /**
+     * Add tags to an avatar
+     * 
+     * @param avatarId The ID of the avatar
+     * @param tags The tags to add
+     * @return Result indicating success or error
+     */
+    suspend fun addAvatarTags(avatarId: String, tags: Set<String>): Result<Unit>
+    
+    /**
+     * Remove tags from an avatar
+     * 
+     * @param avatarId The ID of the avatar
+     * @param tags The tags to remove
+     * @return Result indicating success or error
+     */
+    suspend fun removeAvatarTags(avatarId: String, tags: Set<String>): Result<Unit>
+    
+    /**
+     * Regenerate thumbnail for an avatar
+     * 
+     * @param avatarId The ID of the avatar
+     * @return Result containing the new thumbnail path or error
+     */
+    suspend fun regenerateThumbnail(avatarId: String): Result<String>
+    
+    /**
+     * Get avatar library statistics
+     * 
+     * @return AvatarLibraryStats containing library information
+     */
+    suspend fun getLibraryStatistics(): AvatarLibraryStats
+    
+    /**
+     * Cleanup library (remove orphaned files, validate avatars, etc.)
+     * 
+     * @return CleanupResult containing information about the cleanup operation
+     */
+    suspend fun cleanupLibrary(): CleanupResult
 }

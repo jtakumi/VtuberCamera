@@ -6,6 +6,10 @@ import com.example.vtubercamera.data.CameraRepository
 import com.example.vtubercamera.data.CameraRepositoryImpl
 import com.example.vtubercamera.data.MediaRepository
 import com.example.vtubercamera.data.MediaRepositoryImpl
+import com.example.vtubercamera.data.VRMRepository
+import com.example.vtubercamera.data.VRMRepositoryImpl
+import com.example.vtubercamera.data.vrm.AvatarThumbnailGenerator
+import com.example.vtubercamera.data.vrm.AvatarLibraryManager
 import com.example.vtubercamera.utils.CameraCapabilityManager
 import dagger.Binds
 import dagger.Module
@@ -31,6 +35,12 @@ abstract class CameraModule {
         mediaRepositoryImpl: MediaRepositoryImpl
     ): MediaRepository
 
+    @Binds
+    @Singleton
+    abstract fun bindVRMRepository(
+        vrmRepositoryImpl: VRMRepositoryImpl
+    ): VRMRepository
+
     companion object {
         @Provides
         @Singleton
@@ -46,6 +56,14 @@ abstract class CameraModule {
             @ApplicationContext context: Context
         ): CameraCapabilityManager {
             return CameraCapabilityManager(context)
+        }
+
+        @Provides
+        @Singleton
+        fun provideAvatarThumbnailGenerator(
+            @ApplicationContext context: Context
+        ): AvatarThumbnailGenerator {
+            return AvatarThumbnailGenerator(context)
         }
     }
 }
