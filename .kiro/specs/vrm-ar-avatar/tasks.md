@@ -20,7 +20,7 @@
     - _Requirements: 6.1, 6.3_
 
 - [ ] 3. VRMファイル処理システムの実装
-  - [ ] 3.1 VRMRepositoryインターフェースと実装クラスを作成
+  - [x] 3.1 VRMRepositoryインターフェースと実装クラスを作成
     - VRMRepositoryインターフェースを定義
     - VRMRepositoryImplでファイル読み込み機能を実装
     - VRMファイルバリデーション機能を実装
