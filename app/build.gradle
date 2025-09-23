@@ -129,6 +129,25 @@ dependencies {
     kapt 'com.google.dagger:hilt-android-compiler:2.52'
     implementation 'androidx.hilt:hilt-navigation-compose:1.2.0'
     
+    // ARCore
+    implementation 'com.google.ar:core:1.45.0'
+    
+    // Filament 3D Rendering Engine - Temporarily commented out due to dependency issues
+    // TODO: Add Filament dependencies using the correct repository or version
+    // implementation 'com.google.android.filament:filament-android:1.17.1'
+    // implementation 'com.google.android.filament:filament-utils-android:1.17.1'
+    // implementation 'com.google.android.filament:gltfio-android:1.17.1'
+    
+    // VRM Support (using alternative VRM libraries)
+    // Note: VRM support will be implemented using custom parsers with GLTF base
+    // implementation 'io.github.ux-builder:vrm4j:1.0.0'  // Commented out due to availability
+    
+    // Additional math and 3D utilities
+    implementation 'org.joml:joml:1.10.5'  // Java OpenGL Math Library
+    
+    // JSON parsing for VRM metadata
+    implementation 'com.google.code.gson:gson:2.10.1'
+    
     // Unit Testing - 基本的なテストのみ
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'androidx.arch.core:core-testing:2.2.0'
