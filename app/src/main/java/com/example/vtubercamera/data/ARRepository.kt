@@ -6,8 +6,6 @@ import kotlinx.coroutines.flow.Flow
 import com.example.vtubercamera.data.vrm.ARSessionState
 import com.example.vtubercamera.data.vrm.ARCameraState
 import com.example.vtubercamera.data.vrm.ARError
-import com.example.vtubercamera.data.vrm.TrackingState
-import com.example.vtubercamera.data.vrm.LightEstimate
 
 interface ARRepository {
     
@@ -28,9 +26,9 @@ interface ARRepository {
     
     val cameraState: Flow<ARCameraState>
     
-    val trackingState: Flow<TrackingState>
+    val trackingState: Flow<com.example.vtubercamera.data.vrm.TrackingState>
     
-    val lightEstimate: Flow<LightEstimate?>
+    val lightEstimate: Flow<com.example.vtubercamera.data.vrm.LightEstimate?>
     
     fun enablePlaneDetection(enabled: Boolean)
     
@@ -40,13 +38,13 @@ interface ARRepository {
     
     fun isSessionInitialized(): Boolean
     
-    fun getCurrentTrackingState(): TrackingState
+    fun getCurrentTrackingState(): com.example.vtubercamera.data.vrm.TrackingState
     
     fun getCurrentCameraState(): ARCameraState
     
-    fun getCurrentLightEstimate(): LightEstimate?
+    fun getCurrentLightEstimate(): com.example.vtubercamera.data.vrm.LightEstimate?
     
-    fun setTrackingStateListener(listener: (TrackingState) -> Unit)
+    fun setTrackingStateListener(listener: (com.example.vtubercamera.data.vrm.TrackingState) -> Unit)
     
     fun removeTrackingStateListener()
     

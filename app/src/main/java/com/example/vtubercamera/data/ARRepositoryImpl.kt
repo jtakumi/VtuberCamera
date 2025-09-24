@@ -13,12 +13,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
-import com.example.vtubercamera.data.vrm.*
+import com.example.vtubercamera.data.vrm.ARSessionState
+import com.example.vtubercamera.data.vrm.ARCameraState
+import com.example.vtubercamera.data.vrm.ARError
 import com.example.vtubercamera.data.vrm.math.Vector3
 import com.example.vtubercamera.data.vrm.math.Quaternion
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
+
 
 @Singleton
 class ARRepositoryImpl @Inject constructor() : ARRepository {
@@ -162,7 +165,12 @@ class ARRepositoryImpl @Inject constructor() : ARRepository {
     
     override fun enableEnvironmentalHDR(enabled: Boolean) {
         sessionConfig?.let { config ->
-            if (arSession?.isSupported(Config.LightEstimationMode.ENVIRONMENTAL_HDR) == true) {
+            // Check if Environmental HDR is supported by creating a test config
+            val testConfig = Config(arSession!!).apply {
+                lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
+            }
+            
+            if (arSession?.isSupported(testConfig) == true) {
                 config.lightEstimationMode = if (enabled) {
                     Config.LightEstimationMode.ENVIRONMENTAL_HDR
                 } else {
@@ -181,9 +189,16 @@ class ARRepositoryImpl @Inject constructor() : ARRepository {
     override fun enableLightEstimation(enabled: Boolean) {
         sessionConfig?.let { config ->
             config.lightEstimationMode = if (enabled) {
-                if (_sessionState.value.environmentalHDR && 
-                    arSession?.isSupported(Config.LightEstimationMode.ENVIRONMENTAL_HDR) == true) {
-                    Config.LightEstimationMode.ENVIRONMENTAL_HDR
+                if (_sessionState.value.environmentalHDR) {
+                    // Check if Environmental HDR is supported
+                    val testConfig = Config(arSession!!).apply {
+                        lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
+                    }
+                    if (arSession?.isSupported(testConfig) == true) {
+                        Config.LightEstimationMode.ENVIRONMENTAL_HDR
+                    } else {
+                        Config.LightEstimationMode.AMBIENT_INTENSITY
+                    }
                 } else {
                     Config.LightEstimationMode.AMBIENT_INTENSITY
                 }
@@ -232,9 +247,9 @@ class ARRepositoryImpl @Inject constructor() : ARRepository {
     fun updateSessionState(frame: Frame) {
         try {
             val camera = frame.camera
-            val trackingState = camera.trackingState
+            val cameraTrackingState = camera.trackingState
             
-            updateTrackingState(trackingState)
+            updateTrackingState(cameraTrackingState)
             updateCameraState(camera)
             updateLightEstimate(frame)
             
@@ -266,9 +281,9 @@ class ARRepositoryImpl @Inject constructor() : ARRepository {
         val fovDegrees = 60.0f
         
         val trackingQuality = when (camera.trackingState) {
-            Camera.TrackingState.TRACKING -> TrackingQuality.GOOD
-            Camera.TrackingState.PAUSED -> TrackingQuality.POOR
-            Camera.TrackingState.STOPPED -> TrackingQuality.UNKNOWN
+            Camera.TrackingState.TRACKING -> com.example.vtubercamera.data.vrm.TrackingQuality.GOOD
+            Camera.TrackingState.PAUSED -> com.example.vtubercamera.data.vrm.TrackingQuality.POOR
+            Camera.TrackingState.STOPPED -> com.example.vtubercamera.data.vrm.TrackingQuality.UNKNOWN
         }
         
         val newCameraState = _cameraState.value.copy(
