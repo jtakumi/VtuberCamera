@@ -2,9 +2,7 @@ package com.example.vtubercamera.data
 
 import android.content.Context
 import android.util.Log
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.*
 import com.example.vtubercamera.data.vrm.*
 import com.example.vtubercamera.data.vrm.math.Vector3
 import com.example.vtubercamera.data.vrm.math.Quaternion
@@ -305,7 +303,7 @@ class ARFallbackManager @Inject constructor() {
         override val sessionState = _sessionState.asStateFlow()
         override val cameraState = _cameraState.asStateFlow()
         override val trackingState = _trackingState.asStateFlow()
-        override val lightEstimate = _lightEstimate.asStateFlow()
+        override val lightEstimate: Flow<LightEstimate?> = _lightEstimate.asStateFlow()
         
         override fun enablePlaneDetection(enabled: Boolean) {
             _sessionState.value = _sessionState.value.copy(planeDetection = enabled)

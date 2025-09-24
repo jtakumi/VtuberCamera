@@ -113,10 +113,8 @@ class ARPermissionManager @Inject constructor(
                     currentActivity?.let { activity ->
                         if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)) {
                             shouldShowRationale.add(permission)
-                        } else {
-                            if (hasPermissionBeenRequestedBefore(permission)) {
-                                permanentlyDeniedPermissions.add(permission)
-                            }
+                        } else if (hasPermissionBeenRequestedBefore(permission)) {
+                            permanentlyDeniedPermissions.add(permission)
                         }
                     }
                 }

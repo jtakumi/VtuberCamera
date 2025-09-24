@@ -204,13 +204,25 @@ object ARDeviceCompatibility {
             supportedFeatures.add(ARFeature.LIGHT_ESTIMATION)
             
             // 環境HDRのサポート確認
-            if (session.isSupported(Config.LightEstimationMode.ENVIRONMENTAL_HDR)) {
-                supportedFeatures.add(ARFeature.ENVIRONMENTAL_HDR)
+            try {
+                val config = Config(session)
+                config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
+                if (session.isSupported(config)) {
+                    supportedFeatures.add(ARFeature.ENVIRONMENTAL_HDR)
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not check Environmental HDR support", e)
             }
             
             // インスタント配置のサポート確認
-            if (session.isSupported(Config.InstantPlacementMode.LOCAL_Y_UP)) {
-                supportedFeatures.add(ARFeature.INSTANT_PLACEMENT)
+            try {
+                val config = Config(session)
+                config.instantPlacementMode = Config.InstantPlacementMode.LOCAL_Y_UP
+                if (session.isSupported(config)) {
+                    supportedFeatures.add(ARFeature.INSTANT_PLACEMENT)
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not check Instant Placement support", e)
             }
             
             // その他の高度な機能

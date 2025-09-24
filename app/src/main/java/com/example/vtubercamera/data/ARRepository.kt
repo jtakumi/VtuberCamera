@@ -30,7 +30,7 @@ interface ARRepository {
     
     val trackingState: Flow<TrackingState>
     
-    val lightEstimate: Flow<LightEstimate>
+    val lightEstimate: Flow<LightEstimate?>
     
     fun enablePlaneDetection(enabled: Boolean)
     
