@@ -124,9 +124,38 @@ class AvatarController @Inject constructor() {
             scaleVector.y.coerceIn(minScale, maxScale),
             scaleVector.z.coerceIn(minScale, maxScale)
         )
-        
+
         val newTransform = currentState.transform.withScale(clampedScale)
         _avatarState.value = currentState.copy(transform = newTransform)
+    }
+
+    /**
+     * Set complete transform
+     * @param transform New transform to apply
+     */
+    fun setTransform(transform: Transform) {
+        val currentState = _avatarState.value
+
+        // Apply limits to the transform components
+        val clampedPosition = Vector3(
+            transform.position.x.coerceIn(-positionLimits.x, positionLimits.x),
+            transform.position.y.coerceIn(-positionLimits.y, positionLimits.y),
+            transform.position.z.coerceIn(-positionLimits.z, positionLimits.z)
+        )
+
+        val clampedScale = Vector3(
+            transform.scale.x.coerceIn(minScale, maxScale),
+            transform.scale.y.coerceIn(minScale, maxScale),
+            transform.scale.z.coerceIn(minScale, maxScale)
+        )
+
+        val clampedTransform = Transform(
+            position = clampedPosition,
+            rotation = transform.rotation, // Rotation doesn't need clamping
+            scale = clampedScale
+        )
+
+        _avatarState.value = currentState.copy(transform = clampedTransform)
     }
     
     /**

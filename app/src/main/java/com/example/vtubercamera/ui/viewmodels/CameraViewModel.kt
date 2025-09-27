@@ -812,8 +812,10 @@ class CameraViewModel @Inject constructor(
      * Update avatar transform (position, rotation, scale)
      */
     fun updateAvatarTransform(transform: Transform) {
-        _avatarTransform.value = transform
-        _avatarState.value = _avatarState.value.copy(transform = transform)
+        // Update AvatarController (single source of truth)
+        // Local state will be automatically synchronized via the observer
+        avatarController.setTransform(transform)
+
         Log.d("CameraViewModel", "Avatar transform updated: $transform")
     }
 
@@ -836,7 +838,11 @@ class CameraViewModel @Inject constructor(
      */
     fun toggleAvatarVisibility() {
         val newVisibility = !_avatarState.value.isVisible
-        _avatarState.value = _avatarState.value.copy(isVisible = newVisibility)
+
+        // Update AvatarController (single source of truth)
+        // Local state will be automatically synchronized via the observer
+        avatarController.setVisible(newVisibility)
+
         Log.d("CameraViewModel", "Avatar visibility toggled: $newVisibility")
     }
 
@@ -845,7 +851,10 @@ class CameraViewModel @Inject constructor(
      */
     fun resetAvatarTransform() {
         val defaultTransform = Transform.identity()
-        updateAvatarTransform(defaultTransform)
+
+        // Update AvatarController (single source of truth)
+        avatarController.setTransform(defaultTransform)
+
         Log.d("CameraViewModel", "Avatar transform reset to default")
     }
 
@@ -1216,6 +1225,18 @@ class CameraViewModel @Inject constructor(
      * Initialize avatar control observers
      */
     private fun initializeAvatarControlObservers() {
+        // Observe avatar controller state (single source of truth for avatar state)
+        viewModelScope.launch {
+            avatarController.avatarState.collect { avatarControllerState ->
+                // Sync local avatar state with controller state
+                _avatarState.value = avatarControllerState
+                _avatarTransform.value = avatarControllerState.transform
+                _currentAvatar.value = avatarControllerState.model
+                _currentExpression.value = avatarControllerState.currentExpression
+                _currentPose.value = avatarControllerState.currentPose
+            }
+        }
+
         // Observe expression controller state
         viewModelScope.launch {
             expressionController.currentExpression.collect { expression ->
