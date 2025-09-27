@@ -1,6 +1,7 @@
 package com.example.vtubercamera.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
+import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import com.example.vtubercamera.data.vrm.AvatarInfo
 import com.example.vtubercamera.data.vrm.AvatarLibraryManager
@@ -91,6 +92,54 @@ class AvatarLibraryViewModel @Inject constructor(
     fun refreshLibrary() {
         loadAvatars()
         loadLibraryStats()
+    }
+
+    /**
+     * Import an avatar from a Uri (VRM file)
+     */
+    fun importAvatar(uri: Uri) {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isLoading = true, error = null) }
+
+                // Load VRM from the given Uri
+                val loadResult = vrmRepository.loadVRMFromUri(uri)
+                loadResult.fold(
+                    onSuccess = { model ->
+                        // Save to library
+                        val saveResult = vrmRepository.saveVRMToLibrary(model)
+                        if (saveResult.isSuccess) {
+                            // Refresh library and stats
+                            refreshLibrary()
+                        } else {
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    error = "Failed to save avatar: ${saveResult.exceptionOrNull()?.message}"
+                                )
+                            }
+                        }
+                    },
+                    onFailure = { error ->
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                error = "Failed to load VRM: ${error.message}"
+                            )
+                        }
+                    }
+                )
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "Avatar import failed: ${e.message}"
+                    )
+                }
+            } finally {
+                hideImportDialog()
+            }
+        }
     }
 
     /**
@@ -219,7 +268,12 @@ class AvatarLibraryViewModel @Inject constructor(
     fun renameAvatar(avatarId: String, newName: String) {
         viewModelScope.launch {
             try {
-                val result = vrmRepository.renameAvatar(avatarId, newName)
+                val trimmed = newName.trim()
+                if (trimmed.isEmpty()) {
+                    _uiState.update { it.copy(error = "Name cannot be empty") }
+                    return@launch
+                }
+                val result = vrmRepository.renameAvatar(avatarId, trimmed)
                 if (result.isFailure) {
                     _uiState.update { 
                         it.copy(error = "Failed to rename avatar: ${result.exceptionOrNull()?.message}")
