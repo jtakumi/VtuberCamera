@@ -115,6 +115,8 @@ class ARPermissionManager @Inject constructor(
                             shouldShowRationale.add(permission)
                         } else if (hasPermissionBeenRequestedBefore(permission)) {
                             permanentlyDeniedPermissions.add(permission)
+                        } else {
+                            // First time requesting this permission
                         }
                     }
                 }
