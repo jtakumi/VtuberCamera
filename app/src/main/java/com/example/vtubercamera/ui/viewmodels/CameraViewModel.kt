@@ -31,6 +31,10 @@ import com.example.vtubercamera.data.vrm.AvatarSortBy
 import com.example.vtubercamera.data.vrm.AvatarController
 import com.example.vtubercamera.data.vrm.ExpressionController
 import com.example.vtubercamera.data.vrm.PoseController
+import com.example.vtubercamera.data.vrm.LightingSystem
+import com.example.vtubercamera.data.vrm.LightingSettings
+import com.example.vtubercamera.data.vrm.LightingPreset
+import com.example.vtubercamera.data.vrm.EnvironmentLighting
 import com.example.vtubercamera.utils.CameraCapabilityManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -52,6 +56,7 @@ class CameraViewModel @Inject constructor(
     private val avatarController: AvatarController,
     private val expressionController: ExpressionController,
     private val poseController: PoseController,
+    private val lightingSystem: LightingSystem,
 ) : ViewModel() {
 
     private val _cameraSelector = MutableStateFlow(CameraSelector.DEFAULT_BACK_CAMERA)
@@ -225,6 +230,13 @@ class CameraViewModel @Inject constructor(
 
     private val _autoResetOnAvatarChange = MutableStateFlow(true)
     val autoResetOnAvatarChange: StateFlow<Boolean> = _autoResetOnAvatarChange.asStateFlow()
+
+    // Lighting System State
+    val lightingSettings: StateFlow<LightingSettings> = lightingSystem.lightingSettings
+    val environmentLighting: StateFlow<EnvironmentLighting?> = lightingSystem.environmentLighting
+
+    private val _lightingPresets = MutableStateFlow(lightingSystem.getLightingPresets())
+    val lightingPresets: StateFlow<List<LightingPreset>> = _lightingPresets.asStateFlow()
 
     fun setCamera(camera: Camera?) {
         _camera = camera
@@ -1424,5 +1436,41 @@ class CameraViewModel @Inject constructor(
     fun updateAvatarTransitions(deltaTime: Float) {
         expressionController.updateTransition(deltaTime)
         poseController.updateTransition(deltaTime)
+    }
+
+    // ========== Lighting Control Functions ==========
+
+    /**
+     * Update lighting settings
+     */
+    fun updateLightingSettings(settings: LightingSettings) {
+        viewModelScope.launch {
+            lightingSystem.updateLightingSettings(settings)
+        }
+    }
+
+    /**
+     * Select a lighting preset
+     */
+    fun selectLightingPreset(preset: LightingPreset) {
+        viewModelScope.launch {
+            lightingSystem.updateLightingSettings(preset.settings)
+        }
+    }
+
+    /**
+     * Reset lighting settings to defaults
+     */
+    fun resetLightingToDefaults() {
+        viewModelScope.launch {
+            lightingSystem.resetToDefaults()
+        }
+    }
+
+    /**
+     * Get available lighting presets
+     */
+    fun getLightingPresets(): List<LightingPreset> {
+        return lightingSystem.getLightingPresets()
     }
 }
