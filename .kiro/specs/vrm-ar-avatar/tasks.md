@@ -117,7 +117,7 @@
     - _Requirements: 4.1, 4.2, 4.5_
 
 - [ ] 8. Compose UIコンポーネントの実装
-  - [ ] 8.1 ARCameraScreenの基本UI実装
+  - [x] 8.1 ARCameraScreenの基本UI実装
     - ARプレビュー表示コンポーネントを作成
     - AR/通常モード切り替えボタンを実装
     - アバター操作用のジェスチャーハンドリングを追加

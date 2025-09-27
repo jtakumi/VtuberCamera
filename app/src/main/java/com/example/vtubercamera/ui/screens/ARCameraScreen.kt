@@ -48,6 +48,9 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.vtubercamera.R
 import com.example.vtubercamera.ui.components.ExpressionControlPanel
+import com.example.vtubercamera.ui.components.ExpressionSelectionMenu
+import com.example.vtubercamera.ui.components.PoseSelectionMenu
+import com.example.vtubercamera.ui.components.AvatarTransformPanel
 import com.example.vtubercamera.ui.components.LightingControlPanel
 import com.example.vtubercamera.ui.components.PermissionRequestComponent
 import com.example.vtubercamera.ui.components.PoseControlPanel
@@ -92,6 +95,7 @@ fun ARCameraScreen(
     var showExpressionControls by remember { mutableStateOf(false) }
     var showPoseControls by remember { mutableStateOf(false) }
     var showLightingControls by remember { mutableStateOf(false) }
+    var showTransformControls by remember { mutableStateOf(false) }
     var showAvatarInfo by remember { mutableStateOf(false) }
 
     // Permission handling
@@ -153,6 +157,51 @@ fun ARCameraScreen(
                     }
                 },
                 actions = {
+                    var showExpressionMenu by remember { mutableStateOf(false) }
+                    var showPoseMenu by remember { mutableStateOf(false) }
+
+                    if (currentAvatar != null) {
+                        // Expression quick menu
+                        Box {
+                            IconButton(onClick = { showExpressionMenu = !showExpressionMenu }) {
+                                Icon(
+                                    imageVector = Icons.Default.EmojiEmotions,
+                                    contentDescription = "Select Expression"
+                                )
+                            }
+                            ExpressionSelectionMenu(
+                                expressionData = currentAvatar!!.getExpressionData(),
+                                currentExpression = currentExpression,
+                                expanded = showExpressionMenu,
+                                onDismissRequest = { showExpressionMenu = false },
+                                onExpressionSelected = { expr ->
+                                    showExpressionMenu = false
+                                    if (expr == null) viewModel.clearExpression() else viewModel.selectExpression(expr)
+                                }
+                            )
+                        }
+
+                        // Pose quick menu
+                        Box {
+                            IconButton(onClick = { showPoseMenu = !showPoseMenu }) {
+                                Icon(
+                                    imageVector = Icons.Default.Accessibility,
+                                    contentDescription = "Select Pose"
+                                )
+                            }
+                            PoseSelectionMenu(
+                                poseData = currentAvatar!!.getPoseData(),
+                                currentPose = currentPose,
+                                expanded = showPoseMenu,
+                                onDismissRequest = { showPoseMenu = false },
+                                onPoseSelected = { pose ->
+                                    showPoseMenu = false
+                                    if (pose == null) viewModel.clearPose() else viewModel.selectPose(pose)
+                                }
+                            )
+                        }
+                    }
+
                     // Avatar library access
                     IconButton(onClick = onNavigateToAvatarLibrary) {
                         Icon(
@@ -232,6 +281,21 @@ fun ARCameraScreen(
                     Icon(
                         imageVector = Icons.Default.Face,
                         contentDescription = "Expression Controls"
+                    )
+                }
+
+                // Transform controls
+                FloatingActionButton(
+                    onClick = { showTransformControls = !showTransformControls },
+                    containerColor = if (showTransformControls) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.OpenWith,
+                        contentDescription = "Transform Controls"
                     )
                 }
 
@@ -344,6 +408,24 @@ fun ARCameraScreen(
                             .padding(16.dp)
                     )
                 }
+            }
+
+            // Transform panel
+            AnimatedVisibility(
+                visible = showTransformControls && currentAvatar != null,
+                enter = slideInVertically { it } + fadeIn(),
+                exit = slideOutVertically { it } + fadeOut(),
+                modifier = Modifier.align(Alignment.BottomCenter)
+            ) {
+                val avatarTransform by viewModel.avatarTransform.collectAsStateWithLifecycle()
+                AvatarTransformPanel(
+                    transform = avatarTransform,
+                    onTransformChange = viewModel::updateAvatarTransform,
+                    onReset = viewModel::resetAvatarTransform,
+                    modifier = Modifier
+                        .width(380.dp)
+                        .padding(16.dp)
+                )
             }
 
             AnimatedVisibility(
