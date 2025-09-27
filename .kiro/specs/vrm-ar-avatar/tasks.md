@@ -52,7 +52,7 @@
     - _Requirements: 6.1, 6.2, 6.3_
 
 - [ ] 5. Filament 3Dレンダリングエンジンの統合
-  - [ ] 5.1 FilamentARRendererの基本実装
+  - [x] 5.1 FilamentARRendererの基本実装
     - ARRendererインターフェースを定義
     - FilamentエンジンとARCoreの統合基盤を作成
     - 基本的な3Dシーン設定とカメラ設定を実装
