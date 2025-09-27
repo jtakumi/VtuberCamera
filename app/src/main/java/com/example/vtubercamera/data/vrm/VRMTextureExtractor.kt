@@ -270,9 +270,9 @@ class VRMTextureExtractor {
         return when (mimeType.lowercase()) {
             "image/png" -> TextureFormat.PNG
             "image/jpeg", "image/jpg" -> TextureFormat.JPEG
-            "image/webp" -> TextureFormat.WEBP
-            "image/ktx2" -> TextureFormat.KTX2
-            "image/basis" -> TextureFormat.BASIS
+            "image/webp" -> TextureFormat.PNG // WEBP not supported yet, fallback to PNG
+            "image/ktx2" -> TextureFormat.PNG // KTX2 not supported yet, fallback to PNG
+            "image/basis" -> TextureFormat.PNG // BASIS not supported yet, fallback to PNG
             else -> TextureFormat.PNG
         }
     }
@@ -496,10 +496,6 @@ data class MaterialTextureMapping(
 enum class TextureFormat {
     PNG,
     JPEG,
-    WEBP,
-    KTX2,
-    BASIS,
-    DDS,
     UNKNOWN
 }
 
