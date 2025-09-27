@@ -364,7 +364,7 @@ private fun ExpressionComplexityIndicator(expression: Expression) {
     val color = when {
         complexity == 0 -> Color.Gray
         complexity <= 5 -> Color.Green
-        complexity <= 15 -> Color.Orange
+        complexity <= 15 -> Color(0xFFFFA500)
         else -> Color.Red
     }
     

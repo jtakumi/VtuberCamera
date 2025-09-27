@@ -400,7 +400,7 @@ private fun PoseComplexityIndicator(pose: Pose) {
     val color = when (complexity) {
         0 -> Color.Gray
         1 -> Color.Green
-        2, 3 -> Color.Orange
+        2, 3 -> Color(0xFFFFA500)
         else -> Color.Red
     }
     

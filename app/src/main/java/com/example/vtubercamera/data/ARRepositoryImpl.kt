@@ -5,7 +5,12 @@ import android.util.Log
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
-import com.google.ar.core.*
+import com.google.ar.core.ArCoreApk
+import com.google.ar.core.Config
+import com.google.ar.core.Frame
+import com.google.ar.core.Session
+import com.google.ar.core.Camera as ArCamera
+import com.google.ar.core.TrackingState as ArTrackingState
 import com.google.ar.core.exceptions.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -260,11 +265,13 @@ class ARRepositoryImpl @Inject constructor() : ARRepository {
         }
     }
     
-    private fun updateTrackingState(cameraTrackingState: Camera.TrackingState) {
-        val newState = when (cameraTrackingState) {
-            Camera.TrackingState.PAUSED -> com.example.vtubercamera.data.vrm.TrackingState.PAUSED
-            Camera.TrackingState.STOPPED -> com.example.vtubercamera.data.vrm.TrackingState.STOPPED
-            Camera.TrackingState.TRACKING -> com.example.vtubercamera.data.vrm.TrackingState.TRACKING
+    private fun updateTrackingState(cameraTrackingState: ArTrackingState) {
+        // Map ARCore tracking state to our internal tracking state
+        val newState = when (cameraTrackingState.name) {
+            "PAUSED" -> com.example.vtubercamera.data.vrm.TrackingState.PAUSED
+            "STOPPED" -> com.example.vtubercamera.data.vrm.TrackingState.STOPPED
+            "TRACKING" -> com.example.vtubercamera.data.vrm.TrackingState.TRACKING
+            else -> com.example.vtubercamera.data.vrm.TrackingState.STOPPED
         }
         
         if (_trackingState.value != newState) {
@@ -274,7 +281,7 @@ class ARRepositoryImpl @Inject constructor() : ARRepository {
         }
     }
     
-    private fun updateCameraState(camera: Camera) {
+    private fun updateCameraState(camera: ArCamera) {
         val pose = camera.pose
         val position = Vector3(pose.tx(), pose.ty(), pose.tz())
         val rotation = Quaternion(pose.qx(), pose.qy(), pose.qz(), pose.qw())
@@ -282,17 +289,18 @@ class ARRepositoryImpl @Inject constructor() : ARRepository {
         // Default FOV when intrinsics are not available
         val fovDegrees = 60.0f
         
-        val trackingQuality = when (camera.trackingState) {
-            Camera.TrackingState.TRACKING -> TrackingQuality.GOOD
-            Camera.TrackingState.PAUSED -> TrackingQuality.POOR
-            Camera.TrackingState.STOPPED -> TrackingQuality.UNKNOWN
+        val trackingQuality = when (camera.trackingState.name) {
+            "TRACKING" -> TrackingQuality.GOOD
+            "PAUSED" -> TrackingQuality.POOR
+            "STOPPED" -> TrackingQuality.UNKNOWN
+            else -> TrackingQuality.UNKNOWN
         }
         
         val newCameraState = _cameraState.value.copy(
             position = position,
             rotation = rotation,
             fieldOfView = fovDegrees,
-            isTracking = camera.trackingState == Camera.TrackingState.TRACKING,
+            isTracking = camera.trackingState.name == "TRACKING",
             trackingQuality = trackingQuality,
             lastUpdateTimestamp = System.currentTimeMillis()
         )

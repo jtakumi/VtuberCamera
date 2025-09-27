@@ -5,10 +5,19 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import com.example.vtubercamera.data.CameraRepository
 import com.example.vtubercamera.data.MediaRepository
+import com.example.vtubercamera.data.ARRepository
+import com.example.vtubercamera.data.VRMRepository
+import com.example.vtubercamera.data.vrm.AvatarLibraryManager
+import com.example.vtubercamera.data.vrm.AvatarController
+import com.example.vtubercamera.data.vrm.ExpressionController
+import com.example.vtubercamera.data.vrm.PoseController
+import com.example.vtubercamera.data.vrm.AvatarState
+import com.example.vtubercamera.data.vrm.AvatarSortBy
 import com.example.vtubercamera.utils.CameraCapabilityManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -21,6 +30,7 @@ import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CameraViewModelTest {
@@ -36,6 +46,24 @@ class CameraViewModelTest {
 
     @Mock
     private lateinit var mockCameraCapabilityManager: CameraCapabilityManager
+
+    @Mock
+    private lateinit var mockARRepository: ARRepository
+
+    @Mock
+    private lateinit var mockVRMRepository: VRMRepository
+
+    @Mock
+    private lateinit var mockAvatarLibraryManager: AvatarLibraryManager
+
+    @Mock
+    private lateinit var mockAvatarController: AvatarController
+
+    @Mock
+    private lateinit var mockExpressionController: ExpressionController
+
+    @Mock
+    private lateinit var mockPoseController: PoseController
     
 
     private lateinit var viewModel: CameraViewModel
@@ -49,10 +77,33 @@ class CameraViewModelTest {
         // Setup mock returns
         whenever(mockMediaRepository.getAllPhotos()).thenReturn(flowOf(emptyList()))
 
+        // Setup avatar library manager mock returns
+        whenever(mockAvatarLibraryManager.getAvatarsSortedBy(org.mockito.kotlin.any())).thenReturn(flowOf(emptyList()))
+
+        // Setup controller mock returns
+        whenever(mockExpressionController.currentExpression).thenReturn(MutableStateFlow(null))
+        whenever(mockExpressionController.activeBlendShapes).thenReturn(MutableStateFlow(emptyMap()))
+        whenever(mockExpressionController.isTransitioning).thenReturn(MutableStateFlow(false))
+        whenever(mockExpressionController.transitionProgress).thenReturn(MutableStateFlow(0f))
+
+        whenever(mockPoseController.currentPose).thenReturn(MutableStateFlow(null))
+        whenever(mockPoseController.activeBoneTransforms).thenReturn(MutableStateFlow(emptyMap()))
+        whenever(mockPoseController.boneLocks).thenReturn(MutableStateFlow(emptySet()))
+        whenever(mockPoseController.isTransitioning).thenReturn(MutableStateFlow(false))
+        whenever(mockPoseController.transitionProgress).thenReturn(MutableStateFlow(0f))
+
+        whenever(mockAvatarController.avatarState).thenReturn(MutableStateFlow(AvatarState()))
+
         viewModel = CameraViewModel(
             cameraRepository = mockCameraRepository,
             mediaRepository = mockMediaRepository,
             cameraCapabilityManager = mockCameraCapabilityManager,
+            arRepository = mockARRepository,
+            vrmRepository = mockVRMRepository,
+            avatarLibraryManager = mockAvatarLibraryManager,
+            avatarController = mockAvatarController,
+            expressionController = mockExpressionController,
+            poseController = mockPoseController
         )
     }
 

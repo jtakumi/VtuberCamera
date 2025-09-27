@@ -18,6 +18,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.vtubercamera.ui.components.ExpressionControlPanel
 import com.example.vtubercamera.ui.components.PoseControlPanel
 import com.example.vtubercamera.ui.viewmodels.AvatarControlViewModel
+import com.example.vtubercamera.ui.viewmodels.AvatarControlUiState
 
 /**
  * Main avatar control screen that combines expression and pose controls

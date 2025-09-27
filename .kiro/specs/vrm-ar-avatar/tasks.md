@@ -104,13 +104,13 @@
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
 - [ ] 7. ARCameraViewModelの拡張実装
-  - [ ] 7.1 既存CameraViewModelのAR機能拡張
+  - [x] 7.1 既存CameraViewModelのAR機能拡張
     - ARモード切り替え機能を既存ViewModelに追加
     - アバター状態管理のStateFlowを実装
     - AR撮影機能と既存撮影機能の統合を実装
     - _Requirements: 1.4, 2.5_
 
-  - [ ] 7.2 アバター管理機能をViewModelに統合
+  - [x] 7.2 アバター管理機能をViewModelに統合
     - アバター読み込み・切り替え機能をViewModelに実装
     - アバターライブラリ状態管理を追加
     - エラーハンドリングとユーザー通知機能を実装
