@@ -1,5 +1,8 @@
 package com.example.vtubercamera.data.vrm
 
+// Import required classes for UI data structures
+// These imports are for the getExpressionData() and getPoseData() methods
+
 /**
  * Main VRM model data class containing all VRM data
  */
@@ -234,8 +237,180 @@ data class VRMModel(
     /**
      * Create a copy without a specific pose
      */
-    fun withoutPose(poseName: String): VRMModel = 
+    fun withoutPose(poseName: String): VRMModel =
         copy(poses = poses.filter { it.name != poseName })
+
+    /**
+     * Get expression data for UI components
+     */
+    fun getExpressionData(): ExpressionData {
+        val presetExpressions = expressions.filter { isPresetExpression(it.name) }
+        val customExpressions = expressions - presetExpressions.toSet()
+
+        val blendShapeGroups = createBlendShapeGroups(expressions)
+
+        return ExpressionData(
+            expressions = expressions,
+            blendShapeGroups = blendShapeGroups,
+            presetExpressions = presetExpressions,
+            customExpressions = customExpressions
+        )
+    }
+
+    /**
+     * Get pose data for UI components
+     */
+    fun getPoseData(): PoseData {
+        val staticPoses = poses.filter { !isPoseAnimation(it) }
+        val animationPoses = poses.filter { isPoseAnimation(it) }
+
+        // Create basic bone mapping from available data
+        val boneMapping = createBoneMappingFromBoneNames()
+
+        return PoseData(
+            poses = poses,
+            animations = animationClips.map { clip ->
+                AnimationData(
+                    name = clip.name,
+                    channels = emptyList(), // Would be populated from actual animation data
+                    duration = clip.duration,
+                    isLooping = clip.isLooping,
+                    frameRate = clip.frameRate
+                )
+            },
+            boneMapping = boneMapping,
+            staticPoses = staticPoses,
+            loopingAnimations = animationPoses
+        )
+    }
+
+    /**
+     * Create blend shape groups for expression organization
+     */
+    private fun createBlendShapeGroups(expressions: List<Expression>): List<BlendShapeGroup> {
+        val groups = mutableListOf<BlendShapeGroup>()
+
+        // Group by category
+        val faceExpressions = expressions.filter { expr ->
+            listOf("happy", "sad", "angry", "surprised", "relaxed").any {
+                expr.name.contains(it, ignoreCase = true)
+            }
+        }
+
+        val eyeExpressions = expressions.filter { expr ->
+            listOf("blink", "look", "eye").any {
+                expr.name.contains(it, ignoreCase = true)
+            }
+        }
+
+        val mouthExpressions = expressions.filter { expr ->
+            listOf("aa", "ih", "ou", "ee", "oh", "mouth").any {
+                expr.name.contains(it, ignoreCase = true)
+            }
+        }
+
+        val customExpressions = expressions.filter { expr ->
+            !faceExpressions.contains(expr) &&
+            !eyeExpressions.contains(expr) &&
+            !mouthExpressions.contains(expr)
+        }
+
+        if (faceExpressions.isNotEmpty()) {
+            groups.add(BlendShapeGroup(
+                name = "Face Expressions",
+                expressions = faceExpressions,
+                category = BlendShapeCategory.EMOTION
+            ))
+        }
+
+        if (eyeExpressions.isNotEmpty()) {
+            groups.add(BlendShapeGroup(
+                name = "Eye Expressions",
+                expressions = eyeExpressions,
+                category = BlendShapeCategory.EYE
+            ))
+        }
+
+        if (mouthExpressions.isNotEmpty()) {
+            groups.add(BlendShapeGroup(
+                name = "Mouth Expressions",
+                expressions = mouthExpressions,
+                category = BlendShapeCategory.MOUTH
+            ))
+        }
+
+        if (customExpressions.isNotEmpty()) {
+            groups.add(BlendShapeGroup(
+                name = "Custom Expressions",
+                expressions = customExpressions,
+                category = BlendShapeCategory.CUSTOM
+            ))
+        }
+
+        return groups
+    }
+
+    /**
+     * Create basic bone mapping from bone names
+     */
+    private fun createBoneMappingFromBoneNames(): BoneMapping {
+        val bones = boneNames.mapIndexed { index, boneName ->
+            boneName to BoneInfo(
+                name = boneName,
+                nodeIndex = index,
+                transform = com.example.vtubercamera.data.vrm.math.Transform.identity(),
+                isHumanoidBone = isHumanoidBoneName(boneName)
+            )
+        }.toMap()
+
+        val humanoidBones = bones.filter { it.value.isHumanoidBone }
+        val rootBone = bones.keys.find { it.contains("hips", ignoreCase = true) || it.contains("root", ignoreCase = true) }
+
+        return BoneMapping(
+            bones = bones,
+            humanoidBones = humanoidBones,
+            rootBone = rootBone
+        )
+    }
+
+    /**
+     * Check if bone name is a humanoid bone
+     */
+    private fun isHumanoidBoneName(name: String): Boolean {
+        val humanoidBones = setOf(
+            "hips", "spine", "chest", "upperChest", "neck", "head",
+            "leftShoulder", "leftUpperArm", "leftLowerArm", "leftHand",
+            "rightShoulder", "rightUpperArm", "rightLowerArm", "rightHand",
+            "leftUpperLeg", "leftLowerLeg", "leftFoot", "leftToes",
+            "rightUpperLeg", "rightLowerLeg", "rightFoot", "rightToes"
+        )
+
+        return humanoidBones.any { humanoidBone ->
+            name.contains(humanoidBone, ignoreCase = true)
+        }
+    }
+
+    /**
+     * Check if expression name is a preset
+     */
+    private fun isPresetExpression(name: String): Boolean {
+        val presetExpressions = setOf(
+            "happy", "angry", "sad", "relaxed", "surprised",
+            "aa", "ih", "ou", "ee", "oh",
+            "blink", "blinkLeft", "blinkRight",
+            "lookUp", "lookDown", "lookLeft", "lookRight",
+            "neutral"
+        )
+        return presetExpressions.contains(name.lowercase())
+    }
+
+    /**
+     * Check if pose is an animation
+     */
+    private fun isPoseAnimation(pose: Pose): Boolean {
+        // Simple heuristic: if pose has multiple keyframes or duration > 0, it's an animation
+        return pose.duration > 0f || pose.name.contains("anim", ignoreCase = true)
+    }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

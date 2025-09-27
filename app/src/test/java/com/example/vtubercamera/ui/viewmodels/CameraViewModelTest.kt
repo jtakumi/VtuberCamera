@@ -11,6 +11,7 @@ import com.example.vtubercamera.data.vrm.AvatarLibraryManager
 import com.example.vtubercamera.data.vrm.AvatarController
 import com.example.vtubercamera.data.vrm.ExpressionController
 import com.example.vtubercamera.data.vrm.PoseController
+import com.example.vtubercamera.data.vrm.LightingSystem
 import com.example.vtubercamera.data.vrm.AvatarState
 import com.example.vtubercamera.data.vrm.AvatarSortBy
 import com.example.vtubercamera.utils.CameraCapabilityManager
@@ -64,6 +65,9 @@ class CameraViewModelTest {
 
     @Mock
     private lateinit var mockPoseController: PoseController
+
+    @Mock
+    private lateinit var mockLightingSystem: LightingSystem
     
 
     private lateinit var viewModel: CameraViewModel
@@ -94,6 +98,11 @@ class CameraViewModelTest {
 
         whenever(mockAvatarController.avatarState).thenReturn(MutableStateFlow(AvatarState()))
 
+        // Setup lighting system mock returns
+        whenever(mockLightingSystem.lightingSettings).thenReturn(MutableStateFlow(org.mockito.kotlin.mock()))
+        whenever(mockLightingSystem.environmentLighting).thenReturn(MutableStateFlow(null))
+        whenever(mockLightingSystem.getLightingPresets()).thenReturn(emptyList())
+
         viewModel = CameraViewModel(
             cameraRepository = mockCameraRepository,
             mediaRepository = mockMediaRepository,
@@ -103,7 +112,8 @@ class CameraViewModelTest {
             avatarLibraryManager = mockAvatarLibraryManager,
             avatarController = mockAvatarController,
             expressionController = mockExpressionController,
-            poseController = mockPoseController
+            poseController = mockPoseController,
+            lightingSystem = mockLightingSystem
         )
     }
 

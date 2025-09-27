@@ -18,6 +18,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.vtubercamera.R
 import com.example.vtubercamera.data.vrm.AvatarInfo
 import com.example.vtubercamera.ui.viewmodels.AvatarLibraryViewModel
+import com.example.vtubercamera.ui.components.AvatarListMode
+import com.example.vtubercamera.ui.components.AvatarListView
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 
 /**
  * Screen for managing the avatar library
@@ -29,6 +33,18 @@ fun AvatarLibraryScreen(
     viewModel: AvatarLibraryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    // File picker for VRM import
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.importAvatar(uri)
+        } else {
+            viewModel.hideImportDialog()
+        }
+    }
     
     Scaffold(
         topBar = {
@@ -43,7 +59,15 @@ fun AvatarLibraryScreen(
                     IconButton(onClick = { viewModel.refreshLibrary() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
-                    IconButton(onClick = { viewModel.showImportDialog() }) {
+                    IconButton(onClick = {
+                        viewModel.showImportDialog()
+                        importLauncher.launch(arrayOf(
+                            "model/gltf-binary",
+                            "application/octet-stream",
+                            "application/vrm",
+                            "application/*"
+                        ))
+                    }) {
                         Icon(Icons.Default.Add, contentDescription = "Import Avatar")
                     }
                 }
@@ -51,7 +75,15 @@ fun AvatarLibraryScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { viewModel.showImportDialog() }
+                onClick = {
+                    viewModel.showImportDialog()
+                    importLauncher.launch(arrayOf(
+                        "model/gltf-binary",
+                        "application/octet-stream",
+                        "application/vrm",
+                        "application/*"
+                    ))
+                }
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Import Avatar")
             }
@@ -89,20 +121,35 @@ fun AvatarLibraryScreen(
                 }
                 
                 else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(uiState.avatars) { avatar ->
-                            AvatarListItem(
-                                avatar = avatar,
-                                onAvatarClick = { viewModel.selectAvatar(avatar.id) },
-                                onFavoriteClick = { viewModel.toggleFavorite(avatar.id) },
-                                onDeleteClick = { viewModel.deleteAvatar(avatar.id) },
-                                onRenameClick = { viewModel.showRenameDialog(avatar.id) }
-                            )
-                        }
+                    var pendingDeleteId by remember { mutableStateOf<String?>(null) }
+                    AvatarListView(
+                        avatars = uiState.avatars,
+                        selectedAvatarId = uiState.selectedAvatarId,
+                        mode = AvatarListMode.LIST,
+                        onAvatarClick = { viewModel.selectAvatar(it.id) },
+                        onFavoriteClick = { viewModel.toggleFavorite(it.id) },
+                        onRenameClick = { viewModel.showRenameDialog(it.id) },
+                        onDeleteClick = { pendingDeleteId = it.id },
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                    // Delete confirmation dialog
+                    if (pendingDeleteId != null) {
+                        AlertDialog(
+                            onDismissRequest = { pendingDeleteId = null },
+                            title = { Text("Delete Avatar") },
+                            text = { Text("Are you sure you want to delete this avatar?") },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    val id = pendingDeleteId
+                                    pendingDeleteId = null
+                                    if (id != null) viewModel.deleteAvatar(id)
+                                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { pendingDeleteId = null }) { Text("Cancel") }
+                            }
+                        )
                     }
                 }
             }
@@ -114,6 +161,31 @@ fun AvatarLibraryScreen(
         LaunchedEffect(error) {
             // Show error snackbar or dialog
         }
+    }
+
+    // Rename dialog
+    if (uiState.showRenameDialog && uiState.renameAvatarId != null) {
+        var newName by remember(uiState.renameCurrentName) { mutableStateOf(uiState.renameCurrentName) }
+        AlertDialog(
+            onDismissRequest = { viewModel.hideRenameDialog() },
+            title = { Text("Rename Avatar") },
+            text = {
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                val disabled = newName.trim().isEmpty()
+                TextButton(onClick = {
+                    viewModel.renameAvatar(uiState.renameAvatarId, newName.trim())
+                }, enabled = !disabled) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.hideRenameDialog() }) { Text("Cancel") }
+            }
+        )
     }
 }
 
