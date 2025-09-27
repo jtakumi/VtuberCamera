@@ -112,4 +112,13 @@ sealed class ARError : Exception() {
     data class TrackingError(val details: String) : ARError() {
         override val message: String = "Tracking error: $details"
     }
+    
+    /**
+     * Avatar loading or processing error
+     * 
+     * @param details Detailed error information
+     */
+    data class AvatarError(val details: String) : ARError() {
+        override val message: String = "Avatar error: $details"
+    }
 }

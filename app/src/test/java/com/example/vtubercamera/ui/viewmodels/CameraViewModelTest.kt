@@ -22,6 +22,7 @@ import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class CameraViewModelTest {
 
@@ -53,6 +54,8 @@ class CameraViewModelTest {
             cameraRepository = mockCameraRepository,
             mediaRepository = mockMediaRepository,
             cameraCapabilityManager = mockCameraCapabilityManager,
+            arRepository = org.mockito.kotlin.mock(),
+            vrmRepository = org.mockito.kotlin.mock()
         )
     }
 

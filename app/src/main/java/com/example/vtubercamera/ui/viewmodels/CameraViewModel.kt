@@ -14,6 +14,16 @@ import androidx.lifecycle.viewModelScope
 import com.example.vtubercamera.data.CameraRepository
 import com.example.vtubercamera.data.MediaRepository
 import com.example.vtubercamera.data.PhotoItem
+import com.example.vtubercamera.data.ARRepository
+import com.example.vtubercamera.data.VRMRepository
+import com.example.vtubercamera.data.vrm.AvatarState
+import com.example.vtubercamera.data.vrm.ARSessionState
+import com.example.vtubercamera.data.vrm.ARCameraState
+import com.example.vtubercamera.data.vrm.ARError
+import com.example.vtubercamera.data.vrm.VRMModel
+import com.example.vtubercamera.data.vrm.Expression
+import com.example.vtubercamera.data.vrm.Pose
+import com.example.vtubercamera.data.vrm.math.Transform
 import com.example.vtubercamera.utils.CameraCapabilityManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -28,6 +38,8 @@ class CameraViewModel @Inject constructor(
     private val cameraRepository: CameraRepository,
     private val mediaRepository: MediaRepository,
     private val cameraCapabilityManager: CameraCapabilityManager,
+    private val arRepository: ARRepository,
+    private val vrmRepository: VRMRepository,
 ) : ViewModel() {
 
     private val _cameraSelector = MutableStateFlow(CameraSelector.DEFAULT_BACK_CAMERA)
@@ -72,6 +84,9 @@ class CameraViewModel @Inject constructor(
         
         // Initialize camera capabilities
         initializeCameraCapabilities()
+        
+        // Initialize AR state observation
+        initializeARStateObservation()
     }
 
     private val _isLoadingPhotos = MutableStateFlow(false)
@@ -97,6 +112,42 @@ class CameraViewModel @Inject constructor(
     val lensDisplayName: StateFlow<String> = _lensDisplayName.asStateFlow()
 
     private var _camera: Camera? = null
+
+    // AR Mode State
+    private val _isARMode = MutableStateFlow(false)
+    val isARMode: StateFlow<Boolean> = _isARMode.asStateFlow()
+
+    // Avatar State Management
+    private val _avatarState = MutableStateFlow(AvatarState())
+    val avatarState: StateFlow<AvatarState> = _avatarState.asStateFlow()
+
+    // AR Session State
+    private val _arSessionState = MutableStateFlow(ARSessionState())
+    val arSessionState: StateFlow<ARSessionState> = _arSessionState.asStateFlow()
+
+    // AR Camera State
+    private val _arCameraState = MutableStateFlow(ARCameraState.default())
+    val arCameraState: StateFlow<ARCameraState> = _arCameraState.asStateFlow()
+
+    // AR Error State
+    private val _arError = MutableStateFlow<ARError?>(null)
+    val arError: StateFlow<ARError?> = _arError.asStateFlow()
+
+    // Avatar Transform for user manipulation
+    private val _avatarTransform = MutableStateFlow(Transform.identity())
+    val avatarTransform: StateFlow<Transform> = _avatarTransform.asStateFlow()
+
+    // Current Avatar Model
+    private val _currentAvatar = MutableStateFlow<VRMModel?>(null)
+    val currentAvatar: StateFlow<VRMModel?> = _currentAvatar.asStateFlow()
+
+    // Avatar Expression State
+    private val _currentExpression = MutableStateFlow<Expression?>(null)
+    val currentExpression: StateFlow<Expression?> = _currentExpression.asStateFlow()
+
+    // Avatar Pose State
+    private val _currentPose = MutableStateFlow<Pose?>(null)
+    val currentPose: StateFlow<Pose?> = _currentPose.asStateFlow()
 
     fun setCamera(camera: Camera?) {
         _camera = camera
@@ -500,6 +551,342 @@ class CameraViewModel @Inject constructor(
                 onImageCaptureCreated = { imageCapture },
                 onCameraCreated = onCamera
             )
+        }
+    }
+
+    /**
+     * Initialize AR state observation
+     */
+    private fun initializeARStateObservation() {
+        // This will be called when AR mode is enabled
+        // The actual observation starts in observeARStates()
+    }
+
+    // ========== AR Mode Functions ==========
+
+    /**
+     * Enable AR mode and initialize AR session
+     */
+    fun enableARMode(
+        context: android.content.Context,
+        lifecycleOwner: androidx.lifecycle.LifecycleOwner
+    ) {
+        if (_isARMode.value) {
+            Log.d("CameraViewModel", "AR mode already enabled")
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                Log.d("CameraViewModel", "Enabling AR mode...")
+                _isARMode.value = true
+                _needsCameraRebind.value = true
+
+                // Initialize AR session
+                arRepository.initializeSession(
+                    context = context,
+                    lifecycleOwner = lifecycleOwner,
+                    onSessionReady = {
+                        Log.d("CameraViewModel", "AR session ready")
+                        // Start observing AR state flows
+                        observeARStates()
+                    },
+                    onError = { error ->
+                        Log.e("CameraViewModel", "AR session initialization failed: $error")
+                        _arError.value = error
+                        // Fallback to normal camera mode
+                        disableARMode()
+                    }
+                )
+            } catch (e: Exception) {
+                Log.e("CameraViewModel", "Failed to enable AR mode", e)
+                _arError.value = ARError.SessionError("Failed to enable AR mode: ${e.message}")
+                disableARMode()
+            }
+        }
+    }
+
+    /**
+     * Disable AR mode and return to normal camera
+     */
+    fun disableARMode() {
+        if (!_isARMode.value) {
+            Log.d("CameraViewModel", "AR mode already disabled")
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                Log.d("CameraViewModel", "Disabling AR mode...")
+                
+                // Destroy AR session
+                arRepository.destroySession()
+                
+                // Reset AR states
+                _isARMode.value = false
+                _arSessionState.value = ARSessionState()
+                _arCameraState.value = ARCameraState.default()
+                _arError.value = null
+                
+                // Reset avatar state but keep the loaded model
+                _avatarState.value = _avatarState.value.copy(
+                    transform = Transform.identity(),
+                    isVisible = false
+                )
+                _avatarTransform.value = Transform.identity()
+                
+                // Trigger camera rebind to return to normal mode
+                _needsCameraRebind.value = true
+                
+                Log.d("CameraViewModel", "AR mode disabled")
+            } catch (e: Exception) {
+                Log.e("CameraViewModel", "Error disabling AR mode", e)
+            }
+        }
+    }
+
+    /**
+     * Toggle between AR mode and normal camera mode
+     */
+    fun toggleARMode(
+        context: android.content.Context,
+        lifecycleOwner: androidx.lifecycle.LifecycleOwner
+    ) {
+        if (_isARMode.value) {
+            disableARMode()
+        } else {
+            enableARMode(context, lifecycleOwner)
+        }
+    }
+
+    // ========== Avatar Management Functions ==========
+
+    /**
+     * Load VRM avatar from URI
+     */
+    fun loadAvatar(uri: Uri) {
+        viewModelScope.launch {
+            try {
+                Log.d("CameraViewModel", "Loading avatar from URI: $uri")
+                
+                // Set loading state
+                _avatarState.value = _avatarState.value.copy(
+                    isLoading = true,
+                    loadingProgress = 0.0f
+                )
+
+                // Load VRM model
+                val result = vrmRepository.loadVRMFromUri(uri)
+                
+                result.fold(
+                    onSuccess = { vrmModel ->
+                        Log.d("CameraViewModel", "Avatar loaded successfully: ${vrmModel.name}")
+                        
+                        // Update avatar state
+                        _currentAvatar.value = vrmModel
+                        _avatarState.value = AvatarState(
+                            model = vrmModel,
+                            transform = _avatarTransform.value,
+                            currentExpression = _currentExpression.value,
+                            currentPose = _currentPose.value,
+                            isVisible = _isARMode.value,
+                            isLoading = false,
+                            loadingProgress = 1.0f
+                        )
+                        
+                        // Reset expression and pose to defaults if available
+                        if (vrmModel.expressions.isNotEmpty()) {
+                            setAvatarExpression(vrmModel.expressions.first())
+                        }
+                        if (vrmModel.poses.isNotEmpty()) {
+                            setAvatarPose(vrmModel.poses.first())
+                        }
+                    },
+                    onFailure = { error ->
+                        Log.e("CameraViewModel", "Failed to load avatar", error)
+                        _avatarState.value = _avatarState.value.copy(
+                            isLoading = false,
+                            loadingProgress = 0.0f
+                        )
+                        _arError.value = ARError.AvatarError("Failed to load avatar: ${error.message}")
+                    }
+                )
+            } catch (e: Exception) {
+                Log.e("CameraViewModel", "Error loading avatar", e)
+                _avatarState.value = _avatarState.value.copy(
+                    isLoading = false,
+                    loadingProgress = 0.0f
+                )
+                _arError.value = ARError.AvatarError("Error loading avatar: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Update avatar transform (position, rotation, scale)
+     */
+    fun updateAvatarTransform(transform: Transform) {
+        _avatarTransform.value = transform
+        _avatarState.value = _avatarState.value.copy(transform = transform)
+        Log.d("CameraViewModel", "Avatar transform updated: $transform")
+    }
+
+    /**
+     * Set avatar expression
+     */
+    fun setAvatarExpression(expression: Expression?) {
+        _currentExpression.value = expression
+        _avatarState.value = _avatarState.value.copy(currentExpression = expression)
+        Log.d("CameraViewModel", "Avatar expression set: ${expression?.name ?: "none"}")
+    }
+
+    /**
+     * Set avatar pose
+     */
+    fun setAvatarPose(pose: Pose?) {
+        _currentPose.value = pose
+        _avatarState.value = _avatarState.value.copy(currentPose = pose)
+        Log.d("CameraViewModel", "Avatar pose set: ${pose?.name ?: "none"}")
+    }
+
+    /**
+     * Toggle avatar visibility
+     */
+    fun toggleAvatarVisibility() {
+        val newVisibility = !_avatarState.value.isVisible
+        _avatarState.value = _avatarState.value.copy(isVisible = newVisibility)
+        Log.d("CameraViewModel", "Avatar visibility toggled: $newVisibility")
+    }
+
+    /**
+     * Reset avatar transform to default
+     */
+    fun resetAvatarTransform() {
+        val defaultTransform = Transform.identity()
+        updateAvatarTransform(defaultTransform)
+        Log.d("CameraViewModel", "Avatar transform reset to default")
+    }
+
+    // ========== AR Photo Capture Functions ==========
+
+    /**
+     * Capture AR photo with avatar composite
+     */
+    fun captureARPhoto(
+        imageCapture: ImageCapture,
+        onPhotoSaved: (String) -> Unit = {},
+        onError: (String) -> Unit = {}
+    ) {
+        if (!_isARMode.value) {
+            onError("AR mode is not enabled")
+            return
+        }
+
+        if (!_avatarState.value.shouldRender) {
+            onError("No avatar is loaded or visible")
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                Log.d("CameraViewModel", "Capturing AR photo...")
+                
+                // Use existing photo capture functionality
+                // The AR rendering will be handled by the AR renderer during capture
+                cameraRepository.capturePhoto(
+                    imageCapture = imageCapture,
+                    onPhotoSaved = { uri ->
+                        val msg = "AR写真を保存しました: $uri"
+                        _lastCapturedImageUri.value = uri
+                        onPhotoSaved(msg)
+                        refreshPhotos()
+                        Log.d("CameraViewModel", "AR photo captured successfully")
+                    },
+                    onError = { errorMsg ->
+                        Log.e("CameraViewModel", "AR photo capture failed: $errorMsg")
+                        onError(errorMsg)
+                    }
+                )
+            } catch (e: Exception) {
+                Log.e("CameraViewModel", "Error capturing AR photo", e)
+                onError("AR photo capture error: ${e.message}")
+            }
+        }
+    }
+
+    // ========== AR State Observation ==========
+
+    /**
+     * Start observing AR repository state flows
+     */
+    private fun observeARStates() {
+        viewModelScope.launch {
+            // Observe AR session state
+            arRepository.sessionState.collect { sessionState ->
+                _arSessionState.value = sessionState
+            }
+        }
+
+        viewModelScope.launch {
+            // Observe AR camera state
+            arRepository.cameraState.collect { cameraState ->
+                _arCameraState.value = cameraState
+            }
+        }
+
+        viewModelScope.launch {
+            // Observe tracking state changes
+            arRepository.trackingState.collect { trackingState ->
+                Log.d("CameraViewModel", "AR tracking state changed: $trackingState")
+                // Update avatar visibility based on tracking state
+                if (_avatarState.value.model != null) {
+                    val shouldShow = trackingState == com.example.vtubercamera.data.vrm.TrackingState.TRACKING
+                    if (_avatarState.value.isVisible != shouldShow) {
+                        _avatarState.value = _avatarState.value.copy(isVisible = shouldShow)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Clear AR error state
+     */
+    fun clearARError() {
+        _arError.value = null
+    }
+
+    /**
+     * Check if AR mode is available (device supports ARCore)
+     */
+    fun isARModeAvailable(context: android.content.Context): Boolean {
+        return try {
+            val availability = com.google.ar.core.ArCoreApk.getInstance().checkAvailability(context)
+            availability == com.google.ar.core.ArCoreApk.Availability.SUPPORTED_INSTALLED
+        } catch (e: Exception) {
+            Log.w("CameraViewModel", "Could not check ARCore availability", e)
+            false
+        }
+    }
+
+    /**
+     * Get current avatar statistics for debugging
+     */
+    fun getAvatarDebugInfo(): String {
+        val avatar = _currentAvatar.value
+        val state = _avatarState.value
+        
+        return if (avatar != null) {
+            """
+            Avatar: ${avatar.name}
+            Expressions: ${avatar.expressions.size}
+            Poses: ${avatar.poses.size}
+            Visible: ${state.isVisible}
+            Loading: ${state.isLoading}
+            Transform: ${state.transform}
+            """.trimIndent()
+        } else {
+            "No avatar loaded"
         }
     }
 }
