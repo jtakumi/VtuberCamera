@@ -85,4 +85,31 @@ sealed class ARError : Exception() {
     data class ConfigurationError(val details: String) : ARError() {
         override val message: String = "AR configuration error: $details"
     }
+    
+    /**
+     * Device is not compatible with AR features
+     * 
+     * @param details Detailed error information
+     */
+    data class UnsupportedDevice(val details: String) : ARError() {
+        override val message: String = "Unsupported device: $details"
+    }
+    
+    /**
+     * AR session error
+     * 
+     * @param details Detailed error information
+     */
+    data class SessionError(val details: String) : ARError() {
+        override val message: String = "Session error: $details"
+    }
+    
+    /**
+     * AR tracking error
+     * 
+     * @param details Detailed error information
+     */
+    data class TrackingError(val details: String) : ARError() {
+        override val message: String = "Tracking error: $details"
+    }
 }
