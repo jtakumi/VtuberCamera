@@ -24,12 +24,20 @@ import com.example.vtubercamera.data.vrm.VRMModel
 import com.example.vtubercamera.data.vrm.Expression
 import com.example.vtubercamera.data.vrm.Pose
 import com.example.vtubercamera.data.vrm.math.Transform
+import com.example.vtubercamera.data.vrm.AvatarInfo
+import com.example.vtubercamera.data.vrm.AvatarLibraryManager
+import com.example.vtubercamera.data.vrm.AvatarLibraryStats
+import com.example.vtubercamera.data.vrm.AvatarSortBy
+import com.example.vtubercamera.data.vrm.AvatarController
+import com.example.vtubercamera.data.vrm.ExpressionController
+import com.example.vtubercamera.data.vrm.PoseController
 import com.example.vtubercamera.utils.CameraCapabilityManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -40,6 +48,10 @@ class CameraViewModel @Inject constructor(
     private val cameraCapabilityManager: CameraCapabilityManager,
     private val arRepository: ARRepository,
     private val vrmRepository: VRMRepository,
+    private val avatarLibraryManager: AvatarLibraryManager,
+    private val avatarController: AvatarController,
+    private val expressionController: ExpressionController,
+    private val poseController: PoseController,
 ) : ViewModel() {
 
     private val _cameraSelector = MutableStateFlow(CameraSelector.DEFAULT_BACK_CAMERA)
@@ -81,12 +93,18 @@ class CameraViewModel @Inject constructor(
                 _allPhotos.value = photos
             }
         }
-        
+
         // Initialize camera capabilities
         initializeCameraCapabilities()
-        
+
         // Initialize AR state observation
         initializeARStateObservation()
+
+        // Initialize avatar library
+        initializeAvatarLibrary()
+
+        // Initialize avatar control observers
+        initializeAvatarControlObservers()
     }
 
     private val _isLoadingPhotos = MutableStateFlow(false)
@@ -148,6 +166,65 @@ class CameraViewModel @Inject constructor(
     // Avatar Pose State
     private val _currentPose = MutableStateFlow<Pose?>(null)
     val currentPose: StateFlow<Pose?> = _currentPose.asStateFlow()
+
+    // Avatar Library Management State
+    private val _avatarLibrary = MutableStateFlow<List<AvatarInfo>>(emptyList())
+    val avatarLibrary: StateFlow<List<AvatarInfo>> = _avatarLibrary.asStateFlow()
+
+    private val _avatarLibraryStats = MutableStateFlow<AvatarLibraryStats?>(null)
+    val avatarLibraryStats: StateFlow<AvatarLibraryStats?> = _avatarLibraryStats.asStateFlow()
+
+    private val _isLoadingAvatarLibrary = MutableStateFlow(false)
+    val isLoadingAvatarLibrary: StateFlow<Boolean> = _isLoadingAvatarLibrary.asStateFlow()
+
+    private val _avatarLibraryError = MutableStateFlow<String?>(null)
+    val avatarLibraryError: StateFlow<String?> = _avatarLibraryError.asStateFlow()
+
+    private val _selectedAvatarId = MutableStateFlow<String?>(null)
+    val selectedAvatarId: StateFlow<String?> = _selectedAvatarId.asStateFlow()
+
+    private val _avatarSortBy = MutableStateFlow(AvatarSortBy.DATE_ADDED_DESC)
+    val avatarSortBy: StateFlow<AvatarSortBy> = _avatarSortBy.asStateFlow()
+
+    private val _showImportDialog = MutableStateFlow(false)
+    val showImportDialog: StateFlow<Boolean> = _showImportDialog.asStateFlow()
+
+    private val _showRenameDialog = MutableStateFlow(false)
+    val showRenameDialog: StateFlow<Boolean> = _showRenameDialog.asStateFlow()
+
+    private val _renameAvatarId = MutableStateFlow<String?>(null)
+    val renameAvatarId: StateFlow<String?> = _renameAvatarId.asStateFlow()
+
+    private val _renameCurrentName = MutableStateFlow("")
+    val renameCurrentName: StateFlow<String> = _renameCurrentName.asStateFlow()
+
+    // Avatar Control State
+    private val _activeBlendShapes = MutableStateFlow<Map<String, Float>>(emptyMap())
+    val activeBlendShapes: StateFlow<Map<String, Float>> = _activeBlendShapes.asStateFlow()
+
+    private val _isExpressionTransitioning = MutableStateFlow(false)
+    val isExpressionTransitioning: StateFlow<Boolean> = _isExpressionTransitioning.asStateFlow()
+
+    private val _expressionTransitionProgress = MutableStateFlow(0f)
+    val expressionTransitionProgress: StateFlow<Float> = _expressionTransitionProgress.asStateFlow()
+
+    private val _activeBoneTransforms = MutableStateFlow<Map<String, Transform>>(emptyMap())
+    val activeBoneTransforms: StateFlow<Map<String, Transform>> = _activeBoneTransforms.asStateFlow()
+
+    private val _boneLocks = MutableStateFlow<Set<String>>(emptySet())
+    val boneLocks: StateFlow<Set<String>> = _boneLocks.asStateFlow()
+
+    private val _isPoseTransitioning = MutableStateFlow(false)
+    val isPoseTransitioning: StateFlow<Boolean> = _isPoseTransitioning.asStateFlow()
+
+    private val _poseTransitionProgress = MutableStateFlow(0f)
+    val poseTransitionProgress: StateFlow<Float> = _poseTransitionProgress.asStateFlow()
+
+    private val _smoothTransitions = MutableStateFlow(true)
+    val smoothTransitions: StateFlow<Boolean> = _smoothTransitions.asStateFlow()
+
+    private val _autoResetOnAvatarChange = MutableStateFlow(true)
+    val autoResetOnAvatarChange: StateFlow<Boolean> = _autoResetOnAvatarChange.asStateFlow()
 
     fun setCamera(camera: Camera?) {
         _camera = camera
@@ -681,7 +758,7 @@ class CameraViewModel @Inject constructor(
                 result.fold(
                     onSuccess = { vrmModel ->
                         Log.d("CameraViewModel", "Avatar loaded successfully: ${vrmModel.name}")
-                        
+
                         // Update avatar state
                         _currentAvatar.value = vrmModel
                         _avatarState.value = AvatarState(
@@ -693,13 +770,22 @@ class CameraViewModel @Inject constructor(
                             isLoading = false,
                             loadingProgress = 1.0f
                         )
-                        
-                        // Reset expression and pose to defaults if available
-                        if (vrmModel.expressions.isNotEmpty()) {
-                            setAvatarExpression(vrmModel.expressions.first())
-                        }
-                        if (vrmModel.poses.isNotEmpty()) {
-                            setAvatarPose(vrmModel.poses.first())
+
+                        // Load avatar into controllers
+                        avatarController.loadModel(vrmModel)
+
+                        // Auto-reset if enabled
+                        if (_autoResetOnAvatarChange.value) {
+                            clearExpression()
+                            clearPose()
+                        } else {
+                            // Reset expression and pose to defaults if available
+                            if (vrmModel.expressions.isNotEmpty()) {
+                                selectExpression(vrmModel.expressions.first())
+                            }
+                            if (vrmModel.poses.isNotEmpty()) {
+                                selectPose(vrmModel.poses.first())
+                            }
                         }
                     },
                     onFailure = { error ->
@@ -732,21 +818,17 @@ class CameraViewModel @Inject constructor(
     }
 
     /**
-     * Set avatar expression
+     * Set avatar expression (legacy method - redirects to new system)
      */
     fun setAvatarExpression(expression: Expression?) {
-        _currentExpression.value = expression
-        _avatarState.value = _avatarState.value.copy(currentExpression = expression)
-        Log.d("CameraViewModel", "Avatar expression set: ${expression?.name ?: "none"}")
+        selectExpression(expression)
     }
 
     /**
-     * Set avatar pose
+     * Set avatar pose (legacy method - redirects to new system)
      */
     fun setAvatarPose(pose: Pose?) {
-        _currentPose.value = pose
-        _avatarState.value = _avatarState.value.copy(currentPose = pose)
-        Log.d("CameraViewModel", "Avatar pose set: ${pose?.name ?: "none"}")
+        selectPose(pose)
     }
 
     /**
@@ -875,7 +957,7 @@ class CameraViewModel @Inject constructor(
     fun getAvatarDebugInfo(): String {
         val avatar = _currentAvatar.value
         val state = _avatarState.value
-        
+
         return if (avatar != null) {
             """
             Avatar: ${avatar.name}
@@ -888,5 +970,438 @@ class CameraViewModel @Inject constructor(
         } else {
             "No avatar loaded"
         }
+    }
+
+    // ========== Avatar Library Management Functions ==========
+
+    /**
+     * Initialize avatar library and load avatars
+     */
+    private fun initializeAvatarLibrary() {
+        loadAvatarsFromLibrary()
+        loadAvatarLibraryStats()
+    }
+
+    /**
+     * Load avatars from the library
+     */
+    private fun loadAvatarsFromLibrary() {
+        viewModelScope.launch {
+            _isLoadingAvatarLibrary.value = true
+            _avatarLibraryError.value = null
+
+            try {
+                avatarLibraryManager.getAvatarsSortedBy(_avatarSortBy.value)
+                    .catch { error: Throwable ->
+                        _avatarLibraryError.value = error.message ?: "Failed to load avatars"
+                        _isLoadingAvatarLibrary.value = false
+                    }
+                    .collect { avatars: List<AvatarInfo> ->
+                        _avatarLibrary.value = avatars
+                        _isLoadingAvatarLibrary.value = false
+                        _avatarLibraryError.value = null
+                    }
+            } catch (e: Exception) {
+                _avatarLibraryError.value = e.message ?: "Unknown error occurred"
+                _isLoadingAvatarLibrary.value = false
+            }
+        }
+    }
+
+    /**
+     * Load library statistics
+     */
+    private fun loadAvatarLibraryStats() {
+        viewModelScope.launch {
+            try {
+                val stats = vrmRepository.getLibraryStatistics()
+                _avatarLibraryStats.value = stats
+            } catch (e: Exception) {
+                Log.w("CameraViewModel", "Failed to load avatar library statistics: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Refresh the avatar library
+     */
+    fun refreshAvatarLibrary() {
+        loadAvatarsFromLibrary()
+        loadAvatarLibraryStats()
+    }
+
+    /**
+     * Select an avatar from the library and load it
+     */
+    fun selectAvatarFromLibrary(avatarId: String) {
+        viewModelScope.launch {
+            try {
+                // Record usage
+                vrmRepository.recordAvatarUsage(avatarId)
+
+                // Update selected avatar
+                _selectedAvatarId.value = avatarId
+
+                // Find avatar info and load the model
+                val avatarInfo = _avatarLibrary.value.find { it.id == avatarId }
+                if (avatarInfo != null) {
+                    // Load the avatar from its file path
+                    loadAvatar(android.net.Uri.fromFile(java.io.File(avatarInfo.filePath)))
+                    Log.d("CameraViewModel", "Selected and loading avatar: ${avatarInfo.name}")
+                } else {
+                    _avatarLibraryError.value = "Avatar not found in library"
+                }
+
+                // Refresh to show updated usage
+                refreshAvatarLibrary()
+            } catch (e: Exception) {
+                _avatarLibraryError.value = "Failed to select avatar: ${e.message}"
+                Log.e("CameraViewModel", "Failed to select avatar", e)
+            }
+        }
+    }
+
+    /**
+     * Toggle favorite status of an avatar
+     */
+    fun toggleAvatarFavorite(avatarId: String) {
+        viewModelScope.launch {
+            try {
+                val avatar = _avatarLibrary.value.find { it.id == avatarId }
+                if (avatar != null) {
+                    val result = vrmRepository.setAvatarFavorite(avatarId, !avatar.isFavorite)
+                    if (result.isFailure) {
+                        _avatarLibraryError.value = "Failed to update favorite: ${result.exceptionOrNull()?.message}"
+                    } else {
+                        refreshAvatarLibrary()
+                        Log.d("CameraViewModel", "Toggled favorite for avatar: ${avatar.name}")
+                    }
+                }
+            } catch (e: Exception) {
+                _avatarLibraryError.value = "Failed to toggle favorite: ${e.message}"
+                Log.e("CameraViewModel", "Failed to toggle favorite", e)
+            }
+        }
+    }
+
+    /**
+     * Delete an avatar from the library
+     */
+    fun deleteAvatarFromLibrary(avatarId: String) {
+        viewModelScope.launch {
+            try {
+                _isLoadingAvatarLibrary.value = true
+
+                val result = vrmRepository.deleteAvatar(avatarId)
+                if (result.isFailure) {
+                    _avatarLibraryError.value = "Failed to delete avatar: ${result.exceptionOrNull()?.message}"
+                    _isLoadingAvatarLibrary.value = false
+                } else {
+                    // If the deleted avatar was the current one, clear it
+                    if (_selectedAvatarId.value == avatarId) {
+                        _selectedAvatarId.value = null
+                        _currentAvatar.value = null
+                        _avatarState.value = AvatarState()
+                    }
+                    refreshAvatarLibrary()
+                    Log.d("CameraViewModel", "Deleted avatar: $avatarId")
+                }
+            } catch (e: Exception) {
+                _avatarLibraryError.value = "Failed to delete avatar: ${e.message}"
+                _isLoadingAvatarLibrary.value = false
+                Log.e("CameraViewModel", "Failed to delete avatar", e)
+            }
+        }
+    }
+
+    /**
+     * Rename an avatar in the library
+     */
+    fun renameAvatarInLibrary(avatarId: String, newName: String) {
+        viewModelScope.launch {
+            try {
+                val result = vrmRepository.renameAvatar(avatarId, newName)
+                if (result.isFailure) {
+                    _avatarLibraryError.value = "Failed to rename avatar: ${result.exceptionOrNull()?.message}"
+                } else {
+                    hideRenameDialog()
+                    refreshAvatarLibrary()
+                    Log.d("CameraViewModel", "Renamed avatar $avatarId to: $newName")
+                }
+            } catch (e: Exception) {
+                _avatarLibraryError.value = "Failed to rename avatar: ${e.message}"
+                Log.e("CameraViewModel", "Failed to rename avatar", e)
+            }
+        }
+    }
+
+    /**
+     * Change avatar library sort order
+     */
+    fun setAvatarSortBy(sortBy: AvatarSortBy) {
+        _avatarSortBy.value = sortBy
+        loadAvatarsFromLibrary()
+    }
+
+    /**
+     * Show import dialog
+     */
+    fun showAvatarImportDialog() {
+        _showImportDialog.value = true
+    }
+
+    /**
+     * Hide import dialog
+     */
+    fun hideAvatarImportDialog() {
+        _showImportDialog.value = false
+    }
+
+    /**
+     * Show rename dialog for avatar
+     */
+    fun showAvatarRenameDialog(avatarId: String) {
+        val avatar = _avatarLibrary.value.find { it.id == avatarId }
+        if (avatar != null) {
+            _showRenameDialog.value = true
+            _renameAvatarId.value = avatarId
+            _renameCurrentName.value = avatar.name
+        }
+    }
+
+    /**
+     * Hide rename dialog
+     */
+    fun hideRenameDialog() {
+        _showRenameDialog.value = false
+        _renameAvatarId.value = null
+        _renameCurrentName.value = ""
+    }
+
+    /**
+     * Cleanup avatar library (remove orphaned files, etc.)
+     */
+    fun cleanupAvatarLibrary() {
+        viewModelScope.launch {
+            try {
+                _isLoadingAvatarLibrary.value = true
+
+                val result = vrmRepository.cleanupLibrary()
+                _isLoadingAvatarLibrary.value = false
+
+                if (result.success) {
+                    refreshAvatarLibrary()
+                    Log.d("CameraViewModel", "Avatar library cleanup completed")
+                } else {
+                    _avatarLibraryError.value = result.error
+                }
+            } catch (e: Exception) {
+                _avatarLibraryError.value = "Failed to cleanup library: ${e.message}"
+                _isLoadingAvatarLibrary.value = false
+                Log.e("CameraViewModel", "Failed to cleanup avatar library", e)
+            }
+        }
+    }
+
+    /**
+     * Clear avatar library error
+     */
+    fun clearAvatarLibraryError() {
+        _avatarLibraryError.value = null
+    }
+
+    // ========== Avatar Control Functions ==========
+
+    /**
+     * Initialize avatar control observers
+     */
+    private fun initializeAvatarControlObservers() {
+        // Observe expression controller state
+        viewModelScope.launch {
+            expressionController.currentExpression.collect { expression ->
+                _currentExpression.value = expression
+            }
+        }
+
+        viewModelScope.launch {
+            expressionController.activeBlendShapes.collect { blendShapes ->
+                _activeBlendShapes.value = blendShapes
+            }
+        }
+
+        viewModelScope.launch {
+            expressionController.isTransitioning.collect { isTransitioning ->
+                _isExpressionTransitioning.value = isTransitioning
+            }
+        }
+
+        viewModelScope.launch {
+            expressionController.transitionProgress.collect { progress ->
+                _expressionTransitionProgress.value = progress
+            }
+        }
+
+        // Observe pose controller state
+        viewModelScope.launch {
+            poseController.currentPose.collect { pose ->
+                _currentPose.value = pose
+            }
+        }
+
+        viewModelScope.launch {
+            poseController.activeBoneTransforms.collect { transforms ->
+                _activeBoneTransforms.value = transforms
+            }
+        }
+
+        viewModelScope.launch {
+            poseController.boneLocks.collect { locks ->
+                _boneLocks.value = locks
+            }
+        }
+
+        viewModelScope.launch {
+            poseController.isTransitioning.collect { isTransitioning ->
+                _isPoseTransitioning.value = isTransitioning
+            }
+        }
+
+        viewModelScope.launch {
+            poseController.transitionProgress.collect { progress ->
+                _poseTransitionProgress.value = progress
+            }
+        }
+    }
+
+    // Expression Control Methods
+
+    /**
+     * Select expression for current avatar
+     */
+    fun selectExpression(expression: Expression?) {
+        if (_smoothTransitions.value && expression != null) {
+            expressionController.transitionToExpression(expression)
+        } else {
+            expressionController.applyExpression(expression)
+        }
+        Log.d("CameraViewModel", "Selected expression: ${expression?.name ?: "none"}")
+    }
+
+    /**
+     * Set blend shape weight
+     */
+    fun setBlendShapeWeight(shapeName: String, weight: Float) {
+        expressionController.setBlendShapeWeight(shapeName, weight)
+    }
+
+    /**
+     * Clear current expression
+     */
+    fun clearExpression() {
+        expressionController.clearExpression()
+        Log.d("CameraViewModel", "Cleared expression")
+    }
+
+    /**
+     * Set expression transition duration
+     */
+    fun setExpressionTransitionDuration(duration: Float) {
+        expressionController.setTransitionDuration(duration)
+    }
+
+    /**
+     * Blend multiple expressions
+     */
+    fun blendExpressions(expressionWeights: Map<Expression, Float>) {
+        expressionController.blendExpressions(expressionWeights)
+    }
+
+    // Pose Control Methods
+
+    /**
+     * Select pose for current avatar
+     */
+    fun selectPose(pose: Pose?) {
+        if (_smoothTransitions.value && pose != null) {
+            poseController.transitionToPose(pose)
+        } else {
+            poseController.applyPose(pose)
+        }
+        Log.d("CameraViewModel", "Selected pose: ${pose?.name ?: "none"}")
+    }
+
+    /**
+     * Set bone transform
+     */
+    fun setBoneTransform(boneName: String, transform: Transform) {
+        poseController.setBoneTransform(boneName, transform)
+    }
+
+    /**
+     * Toggle bone lock
+     */
+    fun toggleBoneLock(boneName: String) {
+        if (poseController.isBoneLocked(boneName)) {
+            poseController.unlockBone(boneName)
+        } else {
+            poseController.lockBone(boneName)
+        }
+        Log.d("CameraViewModel", "Toggled bone lock for: $boneName")
+    }
+
+    /**
+     * Clear current pose
+     */
+    fun clearPose() {
+        poseController.clearPose()
+        Log.d("CameraViewModel", "Cleared pose")
+    }
+
+    /**
+     * Reset to default pose
+     */
+    fun resetToDefaultPose() {
+        poseController.resetToDefaultPose()
+        Log.d("CameraViewModel", "Reset to default pose")
+    }
+
+    /**
+     * Set pose transition duration
+     */
+    fun setPoseTransitionDuration(duration: Float) {
+        poseController.setTransitionDuration(duration)
+    }
+
+    /**
+     * Blend multiple poses
+     */
+    fun blendPoses(poseWeights: Map<Pose, Float>) {
+        poseController.blendPoses(poseWeights)
+    }
+
+    // Avatar Control Settings
+
+    /**
+     * Enable/disable smooth transitions
+     */
+    fun setSmoothTransitions(enabled: Boolean) {
+        _smoothTransitions.value = enabled
+        Log.d("CameraViewModel", "Smooth transitions: $enabled")
+    }
+
+    /**
+     * Enable/disable auto reset on avatar change
+     */
+    fun setAutoResetOnAvatarChange(enabled: Boolean) {
+        _autoResetOnAvatarChange.value = enabled
+        Log.d("CameraViewModel", "Auto reset on avatar change: $enabled")
+    }
+
+    /**
+     * Update expression and pose transitions (called from render loop)
+     */
+    fun updateAvatarTransitions(deltaTime: Float) {
+        expressionController.updateTransition(deltaTime)
+        poseController.updateTransition(deltaTime)
     }
 }
