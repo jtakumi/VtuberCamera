@@ -682,6 +682,30 @@ data class BoneMapping(
     fun getHumanoidBone(humanoidName: String): BoneInfo? {
         return bones.values.find { it.humanoidName == humanoidName }
     }
+    
+    /**
+     * Get all bone names
+     */
+    fun getAllBoneNames(): Set<String> = bones.keys
+    
+    /**
+     * Get bone hierarchy (parent -> children mapping)
+     */
+    fun getBoneHierarchy(): Map<String, List<String>> {
+        val hierarchy = mutableMapOf<String, MutableList<String>>()
+        
+        for (bone in bones.values) {
+            val parentBone = bone.parentIndex?.let { parentIndex ->
+                bones.values.find { it.nodeIndex == parentIndex }?.name
+            }
+            
+            if (parentBone != null) {
+                hierarchy.getOrPut(parentBone) { mutableListOf() }.add(bone.name)
+            }
+        }
+        
+        return hierarchy
+    }
 }
 
 /**

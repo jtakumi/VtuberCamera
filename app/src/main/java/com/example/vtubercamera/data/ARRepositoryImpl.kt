@@ -16,6 +16,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 import com.example.vtubercamera.data.vrm.ARSessionState
 import com.example.vtubercamera.data.vrm.ARCameraState
 import com.example.vtubercamera.data.vrm.ARError
+import com.example.vtubercamera.data.vrm.TrackingQuality
+import com.example.vtubercamera.data.vrm.LightEstimate
 import com.example.vtubercamera.data.vrm.math.Vector3
 import com.example.vtubercamera.data.vrm.math.Quaternion
 import javax.inject.Inject
@@ -281,9 +283,9 @@ class ARRepositoryImpl @Inject constructor() : ARRepository {
         val fovDegrees = 60.0f
         
         val trackingQuality = when (camera.trackingState) {
-            Camera.TrackingState.TRACKING -> com.example.vtubercamera.data.vrm.TrackingQuality.GOOD
-            Camera.TrackingState.PAUSED -> com.example.vtubercamera.data.vrm.TrackingQuality.POOR
-            Camera.TrackingState.STOPPED -> com.example.vtubercamera.data.vrm.TrackingQuality.UNKNOWN
+            Camera.TrackingState.TRACKING -> TrackingQuality.GOOD
+            Camera.TrackingState.PAUSED -> TrackingQuality.POOR
+            Camera.TrackingState.STOPPED -> TrackingQuality.UNKNOWN
         }
         
         val newCameraState = _cameraState.value.copy(
@@ -305,7 +307,7 @@ class ARRepositoryImpl @Inject constructor() : ARRepository {
             
             if (pixelIntensity > 0) {
                 val colorCorrection = floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f) // Default color correction
-                val estimate = com.example.vtubercamera.data.vrm.LightEstimate(
+                val estimate = LightEstimate(
                     pixelIntensity = pixelIntensity,
                     colorCorrection = colorCorrection,
                     timestamp = System.currentTimeMillis()
