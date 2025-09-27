@@ -21,7 +21,9 @@ import javax.inject.Singleton
 class FilamentARRenderer @Inject constructor(
     private val vrmConverter: VRMFilamentConverter,
     private val materialManager: FilamentMaterialManager,
-    private val textureManager: FilamentTextureManager
+    private val textureManager: FilamentTextureManager,
+    private val lightingSystem: LightingSystem,
+    private val shadowSystem: ShadowSystem
 ) : ARRenderer {
     
     companion object {
@@ -59,6 +61,10 @@ class FilamentARRenderer @Inject constructor(
         try {
             this.surface = surface
             this.arSession = arSession
+            
+            // Initialize lighting and shadow systems
+            lightingSystem.resetToDefaults()
+            shadowSystem.initialize()
             
             // TODO: Initialize Filament engine when dependencies are available
             // initializeFilamentEngine()
@@ -145,6 +151,14 @@ class FilamentARRenderer @Inject constructor(
         if (!isInitialized) return
         
         try {
+            // Update lighting system with environment lighting
+            lightingSystem.updateEnvironmentLighting(lightEstimate)
+            
+            // Update shadow system with new lighting
+            val cameraPosition = floatArrayOf(0f, 0f, 5f)
+            val cameraTarget = floatArrayOf(0f, 0f, 0f)
+            shadowSystem.updateShadows(lightingSystem.finalLightingParameters.value, cameraPosition, cameraTarget)
+            
             // TODO: Apply lighting to Filament scene
             // updateSceneLighting(lightEstimate)
             
@@ -180,6 +194,9 @@ class FilamentARRenderer @Inject constructor(
         try {
             // Clear current model resources
             clearCurrentModel()
+            
+            // Cleanup lighting and shadow systems
+            shadowSystem.cleanup()
             
             // Clear texture cache
             textureManager.clearCache()
@@ -318,6 +335,11 @@ class FilamentARRenderer @Inject constructor(
             try {
                 val renderable = createRenderable(mesh)
                 renderableEntities.add(renderable)
+                
+                // Add to shadow system
+                shadowSystem.addShadowCaster(renderable)
+                shadowSystem.addShadowReceiver(renderable)
+                
                 Log.d(TAG, "Created renderable: ${mesh.name}")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to create renderable: ${mesh.name}", e)
@@ -367,9 +389,8 @@ class FilamentARRenderer @Inject constructor(
      * Update material lighting parameters
      */
     private fun updateMaterialLighting() {
-        if (currentLightEstimate == null) return
-        
-        val lightingParams = createLightingParameters(currentLightEstimate!!)
+        // Use lighting system's final parameters instead of creating our own
+        val lightingParams = lightingSystem.finalLightingParameters.value
         
         materialInstances.values.forEach { materialInstance ->
             materialManager.updateLighting(materialInstance, lightingParams)
@@ -396,6 +417,12 @@ class FilamentARRenderer @Inject constructor(
      */
     private fun clearCurrentModel() {
         Log.d(TAG, "Clearing current model resources")
+        
+        // Remove from shadow system
+        renderableEntities.forEach { renderable ->
+            shadowSystem.removeShadowCaster(renderable)
+            shadowSystem.removeShadowReceiver(renderable)
+        }
         
         renderableEntities.clear()
         materialInstances.clear()
@@ -449,6 +476,31 @@ class FilamentARRenderer @Inject constructor(
             totalTriangles = meshData?.totalTriangles ?: 0,
             textureMemoryUsage = textureInstances.values.sumOf { it.getMemoryUsage() }
         )
+    }
+    
+    /**
+     * Get lighting system for external access
+     */
+    fun getLightingSystem(): LightingSystem = lightingSystem
+    
+    /**
+     * Get shadow system for external access
+     */
+    fun getShadowSystem(): ShadowSystem = shadowSystem
+    
+    /**
+     * Update lighting settings
+     */
+    fun updateLightingSettings(settings: LightingSettings) {
+        lightingSystem.updateLightingSettings(settings)
+        updateMaterialLighting()
+    }
+    
+    /**
+     * Set shadow quality
+     */
+    fun setShadowQuality(quality: ShadowQuality) {
+        shadowSystem.setShadowQuality(quality)
     }
     
     // TODO: Filament engine methods (when dependencies are available)

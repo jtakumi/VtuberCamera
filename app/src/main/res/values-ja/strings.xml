@@ -53,4 +53,14 @@
     <plurals name="photos_deleted_count">
         <item quantity="other">%1$d 枚の写真を削除しました</item>
     </plurals>
+    
+    <!-- Lighting Control Strings -->
+    <string name="lighting_controls">照明コントロール</string>
+    <string name="auto_lighting">自動照明</string>
+    <string name="lighting_presets">プリセット</string>
+    <string name="manual_controls">手動コントロール</string>
+    <string name="brightness">明度</string>
+    <string name="color_temperature">色温度</string>
+    <string name="shadow_strength">影の強さ</string>
+    <string name="ambient_light">環境光</string>
 </resources>

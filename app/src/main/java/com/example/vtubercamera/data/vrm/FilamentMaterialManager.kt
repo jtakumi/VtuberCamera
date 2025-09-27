@@ -33,11 +33,13 @@ class FilamentMaterialManager @Inject constructor() {
             uniform mat4 projectionMatrix;
             uniform mat4 normalMatrix;
             uniform mat4 boneMatrices[64];
+            uniform mat4 lightSpaceMatrix;
             
             varying vec3 worldPosition;
             varying vec3 worldNormal;
             varying vec2 texCoord;
             varying vec4 vertexColor;
+            varying vec4 fragPosLightSpace;
             
             void main() {
                 // Bone transformation
@@ -58,6 +60,9 @@ class FilamentMaterialManager @Inject constructor() {
                 // Pass through texture coordinates and vertex color
                 texCoord = uv0;
                 vertexColor = color;
+                
+                // Calculate fragment position in light space for shadow mapping
+                fragPosLightSpace = lightSpaceMatrix * worldPos;
                 
                 // Final position
                 gl_Position = projectionMatrix * viewMatrix * worldPos;
@@ -92,11 +97,65 @@ class FilamentMaterialManager @Inject constructor() {
             uniform float lightIntensity;
             uniform vec3 ambientColor;
             uniform vec3 cameraPosition;
+            uniform float shadowStrength;
+            uniform float colorTemperature;
+            
+            // Shadow mapping uniforms
+            uniform sampler2D shadowMap;
+            uniform mat4 lightSpaceMatrix;
+            uniform float shadowBias;
+            uniform vec2 shadowMapSize;
             
             varying vec3 worldPosition;
             varying vec3 worldNormal;
             varying vec2 texCoord;
             varying vec4 vertexColor;
+            varying vec4 fragPosLightSpace;
+            
+            // Shadow calculation function
+            float calculateShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir) {
+                // Perspective divide
+                vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+                
+                // Transform to [0,1] range
+                projCoords = projCoords * 0.5 + 0.5;
+                
+                // Check if fragment is outside light frustum
+                if (projCoords.z > 1.0 || projCoords.x < 0.0 || projCoords.x > 1.0 || 
+                    projCoords.y < 0.0 || projCoords.y > 1.0) {
+                    return 0.0; // No shadow outside light frustum
+                }
+                
+                // Get closest depth value from shadow map
+                float closestDepth = texture2D(shadowMap, projCoords.xy).r;
+                
+                // Get depth of current fragment from light's perspective
+                float currentDepth = projCoords.z;
+                
+                // Calculate bias to prevent shadow acne
+                float bias = max(shadowBias * (1.0 - dot(normal, lightDir)), shadowBias * 0.1);
+                
+                // PCF (Percentage Closer Filtering) for soft shadows
+                float shadow = 0.0;
+                vec2 texelSize = 1.0 / shadowMapSize;
+                int kernelSize = 3;
+                int halfKernel = kernelSize / 2;
+                
+                for (int x = -halfKernel; x <= halfKernel; ++x) {
+                    for (int y = -halfKernel; y <= halfKernel; ++y) {
+                        vec2 offset = vec2(float(x), float(y)) * texelSize;
+                        float pcfDepth = texture2D(shadowMap, projCoords.xy + offset).r;
+                        shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+                    }
+                }
+                
+                shadow /= float(kernelSize * kernelSize);
+                
+                // Apply shadow strength
+                shadow *= shadowStrength;
+                
+                return shadow;
+            }
             
             // PBR lighting calculation
             vec3 calculatePBR(vec3 albedo, float metallic, float roughness, vec3 normal, vec3 viewDir, vec3 lightDir) {
@@ -169,7 +228,13 @@ class FilamentMaterialManager @Inject constructor() {
                 
                 vec3 color = calculatePBR(baseColor.rgb, metallic, roughness, normal, viewDir, lightDir);
                 
-                // Add ambient lighting
+                // Calculate shadow factor
+                float shadow = calculateShadow(fragPosLightSpace, normal, lightDir);
+                
+                // Apply shadow to direct lighting
+                color = color * (1.0 - shadow);
+                
+                // Add ambient lighting (not affected by shadows)
                 color += baseColor.rgb * ambientColor;
                 
                 // Sample emissive
@@ -335,6 +400,20 @@ class FilamentMaterialManager @Inject constructor() {
             setFloat("lightIntensity", lightingParams.lightIntensity)
             setFloat3("ambientColor", lightingParams.ambientColor)
             setFloat3("cameraPosition", lightingParams.cameraPosition)
+            // Note: shadowStrength and colorTemperature are part of extended LightingParameters
+            // These will be set when the extended parameters are available
+        }
+    }
+    
+    /**
+     * Update shadow mapping parameters
+     */
+    fun updateShadowMapping(materialInstance: FilamentMaterialInstance, shadowMapTexture: FilamentTexture, lightSpaceMatrix: FloatArray) {
+        materialInstance.parameters.apply {
+            setTexture("shadowMap", shadowMapTexture)
+            setMatrix4("lightSpaceMatrix", lightSpaceMatrix)
+            setFloat("shadowBias", 0.005f)
+            setFloat2("shadowMapSize", floatArrayOf(shadowMapTexture.width.toFloat(), shadowMapTexture.height.toFloat()))
         }
     }
     
@@ -414,6 +493,17 @@ class MaterialParameters {
         textureParams[name] = texture
     }
     
+    fun setFloat2(name: String, value: FloatArray) {
+        require(value.size == 2) { "Float2 parameter must have 2 components" }
+        float3Params[name] = value // Reuse float3 storage for float2
+    }
+    
+    fun setMatrix4(name: String, value: FloatArray) {
+        require(value.size == 16) { "Matrix4 parameter must have 16 components" }
+        // Store matrix as a special float array - in real implementation this would be handled differently
+        float4Params[name] = value
+    }
+    
     // Getters
     fun getFloat(name: String): Float? = floatParams[name]
     fun getFloat3(name: String): FloatArray? = float3Params[name]
@@ -430,40 +520,7 @@ class MaterialParameters {
     fun getAllTextures(): Map<String, FilamentTexture> = textureParams.toMap()
 }
 
-/**
- * Lighting parameters for materials
- */
-data class LightingParameters(
-    val lightDirection: FloatArray = floatArrayOf(0f, -1f, 0f),
-    val lightColor: FloatArray = floatArrayOf(1f, 1f, 1f),
-    val lightIntensity: Float = 1f,
-    val ambientColor: FloatArray = floatArrayOf(0.2f, 0.2f, 0.2f),
-    val cameraPosition: FloatArray = floatArrayOf(0f, 0f, 5f)
-) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
 
-        other as LightingParameters
-
-        if (!lightDirection.contentEquals(other.lightDirection)) return false
-        if (!lightColor.contentEquals(other.lightColor)) return false
-        if (lightIntensity != other.lightIntensity) return false
-        if (!ambientColor.contentEquals(other.ambientColor)) return false
-        if (!cameraPosition.contentEquals(other.cameraPosition)) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = lightDirection.contentHashCode()
-        result = 31 * result + lightColor.contentHashCode()
-        result = 31 * result + lightIntensity.hashCode()
-        result = 31 * result + ambientColor.contentHashCode()
-        result = 31 * result + cameraPosition.contentHashCode()
-        return result
-    }
-}
 
 /**
  * Material manager statistics
