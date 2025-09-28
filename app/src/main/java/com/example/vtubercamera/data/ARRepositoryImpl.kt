@@ -31,7 +31,10 @@ import kotlin.coroutines.resume
 
 
 @Singleton
-class ARRepositoryImpl @Inject constructor() : ARRepository {
+class ARRepositoryImpl @Inject constructor(
+    private val errorHandler: com.example.vtubercamera.data.vrm.ErrorHandler,
+    private val errorNotificationManager: com.example.vtubercamera.data.vrm.ErrorNotificationManager
+) : ARRepository {
     
     private companion object {
         private const val TAG = "ARRepositoryImpl"
@@ -97,19 +100,39 @@ class ARRepositoryImpl @Inject constructor() : ARRepository {
             
         } catch (e: UnavailableArcoreNotInstalledException) {
             Log.e(TAG, "ARCore not installed", e)
-            onError(ARError.UnsupportedDevice("ARCore is not installed"))
+            val error = ARError.ARCoreNotInstalled
+            val context = com.example.vtubercamera.data.vrm.ErrorContext.arSession("initialization")
+            val errorState = errorHandler.handleARError(error, context)
+            errorNotificationManager.showErrorNotification(errorState)
+            onError(error)
         } catch (e: UnavailableApkTooOldException) {
             Log.e(TAG, "ARCore APK is too old", e)
-            onError(ARError.UnsupportedDevice("ARCore APK is too old"))
+            val error = ARError.ARCoreOutdated
+            val context = com.example.vtubercamera.data.vrm.ErrorContext.arSession("initialization")
+            val errorState = errorHandler.handleARError(error, context)
+            errorNotificationManager.showErrorNotification(errorState)
+            onError(error)
         } catch (e: UnavailableSdkTooOldException) {
             Log.e(TAG, "SDK is too old", e)
-            onError(ARError.UnsupportedDevice("SDK is too old for ARCore"))
+            val error = ARError.UnsupportedDevice("SDK is too old for ARCore")
+            val context = com.example.vtubercamera.data.vrm.ErrorContext.arSession("initialization")
+            val errorState = errorHandler.handleARError(error, context)
+            errorNotificationManager.showErrorNotification(errorState)
+            onError(error)
         } catch (e: UnavailableDeviceNotCompatibleException) {
             Log.e(TAG, "Device not compatible with ARCore", e)
-            onError(ARError.UnsupportedDevice("Device not compatible with ARCore"))
+            val error = ARError.ARCoreNotSupported
+            val context = com.example.vtubercamera.data.vrm.ErrorContext.arSession("initialization")
+            val errorState = errorHandler.handleARError(error, context)
+            errorNotificationManager.showErrorNotification(errorState)
+            onError(error)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize AR session", e)
-            onError(ARError.SessionError("Failed to initialize AR session: ${e.message}"))
+            val error = ARError.SessionError("Failed to initialize AR session: ${e.message}")
+            val context = com.example.vtubercamera.data.vrm.ErrorContext.arSession("initialization")
+            val errorState = errorHandler.handleARError(error, context)
+            errorNotificationManager.showErrorNotification(errorState)
+            onError(error)
         }
     }
     
