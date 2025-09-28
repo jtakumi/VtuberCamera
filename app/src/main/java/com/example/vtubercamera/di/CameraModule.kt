@@ -10,6 +10,11 @@ import com.example.vtubercamera.data.VRMRepository
 import com.example.vtubercamera.data.VRMRepositoryImpl
 import com.example.vtubercamera.data.vrm.AvatarThumbnailGenerator
 import com.example.vtubercamera.data.vrm.AvatarLibraryManager
+import com.example.vtubercamera.data.performance.PerformanceMonitor
+import com.example.vtubercamera.data.performance.PerformanceOptimizer
+import com.example.vtubercamera.data.performance.BatteryMonitor
+import com.example.vtubercamera.data.performance.FrameRateMonitor
+import com.example.vtubercamera.data.performance.PerformanceManager
 import com.example.vtubercamera.utils.CameraCapabilityManager
 import dagger.Binds
 import dagger.Module
@@ -64,6 +69,50 @@ abstract class CameraModule {
             @ApplicationContext context: Context
         ): AvatarThumbnailGenerator {
             return AvatarThumbnailGenerator(context)
+        }
+
+        @Provides
+        @Singleton
+        fun providePerformanceMonitor(
+            @ApplicationContext context: Context
+        ): PerformanceMonitor {
+            return PerformanceMonitor(context)
+        }
+
+        @Provides
+        @Singleton
+        fun providePerformanceOptimizer(): PerformanceOptimizer {
+            return PerformanceOptimizer()
+        }
+
+        @Provides
+        @Singleton
+        fun provideBatteryMonitor(
+            @ApplicationContext context: Context
+        ): BatteryMonitor {
+            return BatteryMonitor(context)
+        }
+
+        @Provides
+        @Singleton
+        fun provideFrameRateMonitor(): FrameRateMonitor {
+            return FrameRateMonitor()
+        }
+
+        @Provides
+        @Singleton
+        fun providePerformanceManager(
+            performanceMonitor: PerformanceMonitor,
+            performanceOptimizer: PerformanceOptimizer,
+            batteryMonitor: BatteryMonitor,
+            frameRateMonitor: FrameRateMonitor
+        ): PerformanceManager {
+            return PerformanceManager(
+                performanceMonitor,
+                performanceOptimizer,
+                batteryMonitor,
+                frameRateMonitor
+            )
         }
     }
 }
