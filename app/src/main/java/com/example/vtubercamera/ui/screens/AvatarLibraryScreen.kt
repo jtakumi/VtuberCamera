@@ -178,8 +178,11 @@ fun AvatarLibraryScreen(
             },
             confirmButton = {
                 val disabled = newName.trim().isEmpty()
+                val avatarId = uiState.renameAvatarId
                 TextButton(onClick = {
-                    viewModel.renameAvatar(uiState.renameAvatarId, newName.trim())
+                    if (avatarId != null) {
+                        viewModel.renameAvatar(avatarId, newName.trim())
+                    }
                 }, enabled = !disabled) { Text("Save") }
             },
             dismissButton = {

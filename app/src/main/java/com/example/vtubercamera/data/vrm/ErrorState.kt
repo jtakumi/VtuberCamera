@@ -70,6 +70,7 @@ enum class ErrorType {
     NETWORK_NO_CONNECTION,
     NETWORK_TIMEOUT,
     NETWORK_CONNECTION_FAILED,
+    NETWORK_ERROR,
     NETWORK_UNKNOWN,
     
     // File Access Errors

@@ -3,6 +3,7 @@ package com.example.vtubercamera.ui.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -533,6 +534,10 @@ private val AvatarSortBy.displayName: String
         AvatarSortBy.NAME_DESC -> "Name Z-A"
         AvatarSortBy.DATE_ADDED_ASC -> "Oldest First"
         AvatarSortBy.DATE_ADDED_DESC -> "Newest First"
+        AvatarSortBy.DATE_USED_ASC -> "Oldest Used"
+        AvatarSortBy.DATE_USED_DESC -> "Recently Used"
+        AvatarSortBy.SIZE_ASC -> "Smallest First"
+        AvatarSortBy.SIZE_DESC -> "Largest First"
         AvatarSortBy.USAGE_COUNT_ASC -> "Least Used"
         AvatarSortBy.USAGE_COUNT_DESC -> "Most Used"
         AvatarSortBy.FAVORITES_FIRST -> "Favorites First"
