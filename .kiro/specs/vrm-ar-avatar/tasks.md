@@ -172,13 +172,13 @@
     - _Requirements: 6.5_
 
 - [ ] 11. テスト実装とデバッグ機能
-  - [ ] 11.1 ユニットテストの実装
+  - [x] 11.1 ユニットテストの実装
     - VRMRepository、AvatarController、ARRendererのテストを作成
     - ViewModelのAR機能拡張部分のテストを実装
     - データモデルとユーティリティクラスのテストを追加
     - _Requirements: 全要件のテストカバレッジ_
 
-  - [ ] 11.2 統合テストとUIテストの実装
+  - [x] 11.2 統合テストとUIテストの実装
     - ARCore + CameraX統合のテストを作成
     - VRM読み込みから表示までのE2Eテストを実装
     - UI操作とジェスチャーのテストを追加
