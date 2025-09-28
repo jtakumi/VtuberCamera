@@ -5,11 +5,13 @@ import android.net.Uri
 import android.provider.MediaStore
 import android.util.Log
 import com.example.vtubercamera.data.PhotoItem
+import com.example.vtubercamera.data.ARPhotoMetadata
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,6 +24,16 @@ class MediaRepositoryImpl @Inject constructor(
     private val _allPhotos = MutableStateFlow<List<PhotoItem>>(emptyList())
 
     override fun getAllPhotos(): Flow<List<PhotoItem>> = _allPhotos.asStateFlow()
+
+    override fun getARPhotos(): Flow<List<PhotoItem>> =
+        _allPhotos.asStateFlow().map { photos ->
+            photos.filter { it.isARPhoto }
+        }
+
+    override fun getNormalPhotos(): Flow<List<PhotoItem>> =
+        _allPhotos.asStateFlow().map { photos ->
+            photos.filter { !it.isARPhoto }
+        }
 
     override suspend fun refreshPhotos() {
         withContext(Dispatchers.IO) {
@@ -43,6 +55,8 @@ class MediaRepositoryImpl @Inject constructor(
                 val success = deletedRows > 0
 
                 if (success) {
+                    // Also remove AR metadata if it exists
+                    removeARMetadata(uri)
                     Log.d("MediaRepository", "Photo deleted: $uri")
                     refreshPhotos()
                 } else {
@@ -76,6 +90,14 @@ class MediaRepositoryImpl @Inject constructor(
             }
 
             successCount
+        }
+    }
+
+    override suspend fun getPhotosByAvatar(avatarName: String): List<PhotoItem> {
+        return withContext(Dispatchers.IO) {
+            _allPhotos.value.filter { photo ->
+                photo.isARPhoto && photo.avatarName == avatarName
+            }
         }
     }
 
@@ -118,6 +140,9 @@ class MediaRepositoryImpl @Inject constructor(
                         id.toString(),
                     )
 
+                    // Load AR metadata if it exists
+                    val arMetadata = getARMetadata(uri)
+
                     photos.add(
                         PhotoItem(
                             id = id,
@@ -126,6 +151,11 @@ class MediaRepositoryImpl @Inject constructor(
                             dateAdded = dateAdded * 1000,
                             size = size,
                             mimeType = mimeType,
+                            isARPhoto = arMetadata != null || displayName.startsWith("AR_"),
+                            avatarName = arMetadata?.avatarName,
+                            poseName = arMetadata?.poseName,
+                            expressionName = arMetadata?.expressionName,
+                            lightingPreset = arMetadata?.lightingPreset
                         ),
                     )
                 }
@@ -135,5 +165,60 @@ class MediaRepositoryImpl @Inject constructor(
         }
 
         return photos
+    }
+
+    private fun getARMetadata(uri: Uri): ARPhotoMetadata? {
+        return try {
+            val prefs = context.getSharedPreferences("ar_photo_metadata", Context.MODE_PRIVATE)
+            val metadataJson = prefs.getString(uri.toString(), null) ?: return null
+
+            // Simple JSON parsing
+            parseARMetadata(metadataJson)
+        } catch (e: Exception) {
+            Log.e("MediaRepository", "Failed to load AR metadata for $uri", e)
+            null
+        }
+    }
+
+    private fun parseARMetadata(json: String): ARPhotoMetadata? {
+        return try {
+            // Simple manual JSON parsing for AR metadata
+            val avatarName = extractJsonValue(json, "avatarName")
+            val poseName = extractJsonValue(json, "poseName")
+            val expressionName = extractJsonValue(json, "expressionName")
+            val lightingPreset = extractJsonValue(json, "lightingPreset")
+
+            if (avatarName != null || poseName != null || expressionName != null || lightingPreset != null) {
+                ARPhotoMetadata(
+                    avatarName = avatarName,
+                    poseName = poseName,
+                    expressionName = expressionName,
+                    lightingPreset = lightingPreset
+                )
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("MediaRepository", "Failed to parse AR metadata: $json", e)
+            null
+        }
+    }
+
+    private fun extractJsonValue(json: String, key: String): String? {
+        val pattern = "\"$key\":\"([^\"]*)\""
+        val regex = Regex(pattern)
+        return regex.find(json)?.groupValues?.get(1)
+    }
+
+    private fun removeARMetadata(uri: Uri) {
+        try {
+            val prefs = context.getSharedPreferences("ar_photo_metadata", Context.MODE_PRIVATE)
+            val editor = prefs.edit()
+            editor.remove(uri.toString())
+            editor.apply()
+            Log.d("MediaRepository", "Removed AR metadata for: $uri")
+        } catch (e: Exception) {
+            Log.e("MediaRepository", "Failed to remove AR metadata", e)
+        }
     }
 }
