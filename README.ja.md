@@ -100,6 +100,14 @@ Jetpack Compose を用いた Android 向けカメラアプリ。CameraX によ�
   - 左下の+/-ボタン
 - **写真管理**: プレビューモードで削除・保存の選択
 
+## 📚 ドキュメント
+
+### AR Avatar機能
+- **[AR Avatar ドキュメント](docs/AR_AVATAR_DOCUMENTATION.md)** - VRMアバターAR機能の完全ガイド
+- **[VRM要件](docs/VRM_REQUIREMENTS.ja.md)** - VRMファイル仕様と最適化ガイドライン
+- **[AR使用方法ガイド](docs/AR_USER_GUIDE.md)** - AR機能の使用方法ステップバイステップガイド
+- **[トラブルシューティング](docs/TROUBLESHOOTING.md)** - よくある問題と解決方法
+
 ## 📁 プロジェクト構造
 
 ```

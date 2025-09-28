@@ -100,6 +100,14 @@ Jetpack Compose-based Android camera app providing real-time preview and photo c
   - +/- buttons in the bottom left
 - **Photo Management**: Delete or save options in preview mode
 
+## 📚 Documentation
+
+### AR Avatar Feature
+- **[AR Avatar Documentation](docs/AR_AVATAR_DOCUMENTATION.md)** - Complete guide for VRM avatar AR functionality
+- **[VRM Requirements](docs/VRM_REQUIREMENTS.md)** - VRM file specifications and optimization guidelines
+- **[AR User Guide](docs/AR_USER_GUIDE.md)** - Step-by-step guide for using AR features
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+
 ## 📁 Project Structure
 
 ```
