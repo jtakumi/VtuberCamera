@@ -33,7 +33,9 @@ import javax.inject.Singleton
 @Singleton
 class VRMRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val thumbnailGenerator: AvatarThumbnailGenerator
+    private val thumbnailGenerator: AvatarThumbnailGenerator,
+    private val errorHandler: com.example.vtubercamera.data.vrm.ErrorHandler,
+    private val errorNotificationManager: com.example.vtubercamera.data.vrm.ErrorNotificationManager
 ) : VRMRepository {
     
     companion object {
@@ -57,6 +59,8 @@ class VRMRepositoryImpl @Inject constructor(
     }
     
     override suspend fun loadVRMFromUri(uri: Uri): Result<VRMModel> = withContext(Dispatchers.IO) {
+        val context = com.example.vtubercamera.data.vrm.ErrorContext.vrmLoading(uri.toString())
+        
         try {
             Log.d(TAG, "Loading VRM from URI: $uri")
             
@@ -66,15 +70,21 @@ class VRMRepositoryImpl @Inject constructor(
                 val errors = (validationResult as ValidationResult.Invalid).errors
                 val criticalErrors = errors.filter { it.isCritical() }
                 if (criticalErrors.isNotEmpty()) {
-                    return@withContext Result.failure(
-                        VRMLoadingError.ParseError(criticalErrors.first().message)
-                    )
+                    val error = VRMLoadingError.ParseError(criticalErrors.first().message)
+                    val errorState = errorHandler.handleVRMError(error, context)
+                    errorNotificationManager.showErrorNotification(errorState)
+                    return@withContext Result.failure(error)
                 }
             }
             
             // Read file content
-            val inputStream = context.contentResolver.openInputStream(uri)
-                ?: return@withContext Result.failure(VRMLoadingError.FileNotFound)
+            val inputStream = this@VRMRepositoryImpl.context.contentResolver.openInputStream(uri)
+            if (inputStream == null) {
+                val error = VRMLoadingError.FileNotFound
+                val errorState = errorHandler.handleVRMError(error, context)
+                errorNotificationManager.showErrorNotification(errorState)
+                return@withContext Result.failure(error)
+            }
             
             val fileBytes = inputStream.use { it.readBytes() }
             
@@ -86,16 +96,28 @@ class VRMRepositoryImpl @Inject constructor(
             
         } catch (e: SecurityException) {
             Log.e(TAG, "Permission denied accessing VRM file", e)
-            Result.failure(VRMLoadingError.PermissionDenied)
+            val error = VRMLoadingError.PermissionDenied
+            val errorState = errorHandler.handleVRMError(error, context)
+            errorNotificationManager.showErrorNotification(errorState)
+            Result.failure(error)
         } catch (e: IOException) {
             Log.e(TAG, "IO error loading VRM file", e)
-            Result.failure(VRMLoadingError.IOError(e.message ?: "Unknown IO error"))
+            val error = VRMLoadingError.IOError(e.message ?: "Unknown IO error")
+            val errorState = errorHandler.handleVRMError(error, context)
+            errorNotificationManager.showErrorNotification(errorState)
+            Result.failure(error)
         } catch (e: OutOfMemoryError) {
             Log.e(TAG, "Out of memory loading VRM file", e)
-            Result.failure(VRMLoadingError.InsufficientMemory)
+            val error = VRMLoadingError.InsufficientMemory
+            val errorState = errorHandler.handleVRMError(error, context)
+            errorNotificationManager.showErrorNotification(errorState)
+            Result.failure(error)
         } catch (e: Exception) {
             Log.e(TAG, "Unexpected error loading VRM file", e)
-            Result.failure(VRMLoadingError.ParseError(e.message ?: "Unknown error"))
+            val error = VRMLoadingError.ParseError(e.message ?: "Unknown error")
+            val errorState = errorHandler.handleVRMError(error, context)
+            errorNotificationManager.showErrorNotification(errorState)
+            Result.failure(error)
         }
     }
     
