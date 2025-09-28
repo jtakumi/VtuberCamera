@@ -10,8 +10,49 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Controller for managing avatar transformations, expressions, and poses
- * Provides basic operations for manipulating VRM avatars in AR space
+ * Controller for managing avatar transformations, expressions, and poses in AR space.
+ * 
+ * This class provides a comprehensive interface for manipulating VRM avatars including:
+ * - 3D transformations (position, rotation, scale) with safety limits
+ * - Expression and pose management
+ * - Gesture-based manipulation support
+ * - Smooth interpolation and blending
+ * - State management with reactive updates
+ * - Loading state tracking
+ * 
+ * The controller maintains avatar state through StateFlow for reactive UI updates
+ * and applies safety constraints to prevent invalid transformations.
+ * 
+ * All transformation operations are applied with appropriate limits:
+ * - Position: ±5 units in each axis
+ * - Scale: 0.1x to 3.0x
+ * - Rotation: No limits (full 360° rotation)
+ * 
+ * Usage example:
+ * ```kotlin
+ * // Load an avatar
+ * avatarController.loadModel(vrmModel)
+ * 
+ * // Apply transformations
+ * avatarController.updatePosition(1.0f, 0.0f, -2.0f)
+ * avatarController.setScale(1.5f)
+ * 
+ * // Apply expressions
+ * avatarController.setExpression(happyExpression)
+ * 
+ * // Observe state changes
+ * avatarController.avatarState.collect { state ->
+ *     // Update UI or renderer
+ * }
+ * ```
+ * 
+ * @author VTuber Camera Team
+ * @since 1.0.0
+ * 
+ * @see AvatarState
+ * @see Transform
+ * @see Expression
+ * @see Pose
  */
 @Singleton
 class AvatarController @Inject constructor() {
@@ -25,10 +66,16 @@ class AvatarController @Inject constructor() {
     private val maxScale = 3.0f
     
     /**
-     * Update avatar position by delta values
-     * @param deltaX Movement in X axis
-     * @param deltaY Movement in Y axis  
-     * @param deltaZ Movement in Z axis
+     * Updates avatar position by delta values with safety constraints.
+     * 
+     * The position is updated incrementally and clamped to safe limits
+     * to prevent the avatar from moving too far from the origin.
+     * 
+     * @param deltaX Movement delta in X axis (right/left)
+     * @param deltaY Movement delta in Y axis (up/down)  
+     * @param deltaZ Movement delta in Z axis (forward/backward)
+     * 
+     * @see positionLimits for the applied constraints
      */
     fun updatePosition(deltaX: Float, deltaY: Float, deltaZ: Float) {
         val currentState = _avatarState.value
@@ -86,8 +133,15 @@ class AvatarController @Inject constructor() {
     }
     
     /**
-     * Update avatar scale by factor
-     * @param scaleFactor Multiplication factor for current scale
+     * Updates avatar scale by multiplication factor with safety constraints.
+     * 
+     * The scale is applied uniformly to all axes and clamped to prevent
+     * the avatar from becoming too small or too large.
+     * 
+     * @param scaleFactor Multiplication factor for current scale (e.g., 1.1 for 10% larger)
+     * 
+     * @see minScale Minimum allowed scale (0.1x)
+     * @see maxScale Maximum allowed scale (3.0x)
      */
     fun updateScale(scaleFactor: Float) {
         val currentState = _avatarState.value

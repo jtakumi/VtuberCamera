@@ -28,7 +28,26 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Implementation of VRMRepository for managing VRM files and avatar library
+ * Implementation of VRMRepository for managing VRM files and avatar library.
+ * 
+ * This class provides comprehensive VRM file management including:
+ * - Loading VRM files from URIs with validation
+ * - Managing avatar library with persistent storage
+ * - Thumbnail generation and management
+ * - Search and filtering capabilities
+ * - Usage tracking and statistics
+ * - Error handling and recovery
+ * 
+ * The implementation uses coroutines for all I/O operations and provides
+ * reactive updates through StateFlow for UI integration.
+ * 
+ * @param context Application context for file operations
+ * @param thumbnailGenerator Service for generating avatar thumbnails
+ * @param errorHandler Service for handling VRM-related errors
+ * @param errorNotificationManager Service for displaying error notifications
+ * 
+ * @author VTuber Camera Team
+ * @since 1.0.0
  */
 @Singleton
 class VRMRepositoryImpl @Inject constructor(
@@ -58,6 +77,25 @@ class VRMRepositoryImpl @Inject constructor(
         loadAvatarLibraryFromDisk()
     }
     
+    /**
+     * Loads a VRM file from the specified URI with comprehensive validation and error handling.
+     * 
+     * This method performs the following operations:
+     * 1. Validates the VRM file format and structure
+     * 2. Checks file size limits and permissions
+     * 3. Parses the VRM data into a structured model
+     * 4. Handles various error conditions gracefully
+     * 
+     * @param uri The URI of the VRM file to load
+     * @return Result containing the loaded VRMModel on success, or error on failure
+     * 
+     * @throws VRMLoadingError.FileNotFound if the file cannot be accessed
+     * @throws VRMLoadingError.InvalidFormat if the file is not a valid VRM
+     * @throws VRMLoadingError.FileSizeExceeded if the file exceeds size limits
+     * @throws VRMLoadingError.PermissionDenied if access is denied
+     * @throws VRMLoadingError.InsufficientMemory if not enough memory is available
+     * @throws VRMLoadingError.ParseError for other parsing errors
+     */
     override suspend fun loadVRMFromUri(uri: Uri): Result<VRMModel> = withContext(Dispatchers.IO) {
         val context = com.example.vtubercamera.data.vrm.ErrorContext.vrmLoading(uri.toString())
         
@@ -121,6 +159,23 @@ class VRMRepositoryImpl @Inject constructor(
         }
     }
     
+    /**
+     * Saves a VRM model to the avatar library with thumbnail generation.
+     * 
+     * This method performs the following operations:
+     * 1. Generates a unique ID for the avatar
+     * 2. Saves the VRM file to the library directory
+     * 3. Generates a thumbnail image
+     * 4. Creates avatar metadata and adds to library
+     * 5. Persists library changes to disk
+     * 
+     * @param vrmModel The VRM model to save
+     * @param name Optional custom name for the avatar (uses model name if null)
+     * @return Result containing the generated avatar ID on success, or error on failure
+     * 
+     * @throws VRMLoadingError.IOError if file operations fail
+     * @throws VRMLoadingError.ParseError for unexpected errors
+     */
     override suspend fun saveVRMToLibrary(vrmModel: VRMModel, name: String?): Result<String> = withContext(Dispatchers.IO) {
         try {
             val avatarId = UUID.randomUUID().toString()

@@ -11,11 +11,37 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Filament-based AR renderer implementation
- * Integrates Filament 3D engine with ARCore for VRM avatar rendering
+ * Filament-based AR renderer implementation for VRM avatar rendering.
  * 
- * This implementation provides VRM model rendering with Filament 3D engine
- * including mesh conversion, material setup, and texture management
+ * This class integrates Google's Filament 3D rendering engine with ARCore
+ * to provide high-quality VRM avatar rendering in augmented reality environments.
+ * 
+ * Key features:
+ * - VRM model loading and conversion to Filament format
+ * - Real-time AR tracking and rendering
+ * - Dynamic lighting based on environment estimation
+ * - Shadow casting and receiving
+ * - Material and texture management
+ * - Performance optimization with LOD and culling
+ * - Memory management and resource cleanup
+ * 
+ * The renderer follows a component-based architecture with separate managers
+ * for different aspects of rendering (materials, textures, lighting, shadows).
+ * 
+ * @param vrmConverter Service for converting VRM models to Filament format
+ * @param materialManager Service for managing Filament materials
+ * @param textureManager Service for managing Filament textures
+ * @param lightingSystem Service for managing lighting calculations
+ * @param shadowSystem Service for managing shadow rendering
+ * 
+ * @author VTuber Camera Team
+ * @since 1.0.0
+ * 
+ * @see ARRenderer
+ * @see VRMFilamentConverter
+ * @see FilamentMaterialManager
+ * @see LightingSystem
+ * @see ShadowSystem
  */
 @Singleton
 class FilamentARRenderer @Inject constructor(
@@ -55,6 +81,22 @@ class FilamentARRenderer @Inject constructor(
     private var textureInstances = mutableMapOf<String, FilamentTextureInstance>()
     private var renderableEntities = mutableListOf<FilamentRenderable>()
     
+    /**
+     * Initializes the Filament AR renderer with the provided surface and AR session.
+     * 
+     * This method sets up the complete rendering pipeline including:
+     * - Filament engine initialization
+     * - Scene and camera setup
+     * - Lighting and shadow system initialization
+     * - AR session integration
+     * 
+     * Must be called before any rendering operations can be performed.
+     * 
+     * @param surface The rendering surface (typically from a SurfaceView or TextureView)
+     * @param arSession The ARCore session for AR tracking and environment data
+     * 
+     * @throws ARError.RenderingError if initialization fails
+     */
     override fun initialize(surface: Surface, arSession: Session) {
         Log.d(TAG, "Initializing FilamentARRenderer")
         
@@ -81,6 +123,22 @@ class FilamentARRenderer @Inject constructor(
         }
     }
     
+    /**
+     * Updates the rendering frame with new AR data and avatar state.
+     * 
+     * This method is called for each frame and performs:
+     * - AR camera pose updates from the frame
+     * - Avatar model loading if changed
+     * - Transform application (position, rotation, scale)
+     * - Expression and pose updates
+     * - Lighting updates based on environment
+     * - Scene rendering
+     * 
+     * Should be called from the main rendering loop at the target frame rate.
+     * 
+     * @param frame The current AR frame containing camera and tracking data
+     * @param avatarState The current state of the avatar including transform and animations
+     */
     override fun updateFrame(frame: Frame, avatarState: AvatarState) {
         if (!isInitialized) {
             Log.w(TAG, "Renderer not initialized, skipping frame update")
