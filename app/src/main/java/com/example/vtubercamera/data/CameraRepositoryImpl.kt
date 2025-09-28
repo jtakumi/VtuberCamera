@@ -118,6 +118,86 @@ class CameraRepositoryImpl @Inject constructor(
         )
     }
 
+    override suspend fun captureARPhoto(
+        imageCapture: ImageCapture,
+        arMetadata: ARPhotoMetadata,
+        onPhotoSaved: (Uri) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val name = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.getDefault())
+            .format(System.currentTimeMillis())
+
+        val contentValues = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, "AR_$name")
+            put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/VTuberCamera/AR")
+            }
+
+            // Add AR metadata as custom fields (some may not be supported by all Android versions)
+            arMetadata.avatarName?.let {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    put(MediaStore.Images.Media.DESCRIPTION, "AR Photo - Avatar: $it")
+                }
+            }
+        }
+
+        val outputOptions = ImageCapture.OutputFileOptions
+            .Builder(
+                context.contentResolver,
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                contentValues
+            )
+            .build()
+
+        imageCapture.takePicture(
+            outputOptions,
+            ContextCompat.getMainExecutor(context),
+            object : ImageCapture.OnImageSavedCallback {
+                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                    val msg = "AR写真を保存しました: ${output.savedUri}"
+                    Log.d("CameraRepository", msg)
+                    output.savedUri?.let { uri ->
+                        // Store AR metadata in app's private database/preferences
+                        storeARMetadata(uri, arMetadata)
+                        onPhotoSaved(uri)
+                    }
+                }
+
+                override fun onError(exc: ImageCaptureException) {
+                    val msg = "AR写真の保存に失敗しました"
+                    Log.e("CameraRepository", msg, exc)
+                    onError(msg)
+                }
+            }
+        )
+    }
+
+    private fun storeARMetadata(uri: Uri, metadata: ARPhotoMetadata) {
+        try {
+            // Store metadata in SharedPreferences as a simple solution
+            val prefs = context.getSharedPreferences("ar_photo_metadata", Context.MODE_PRIVATE)
+            val editor = prefs.edit()
+
+            val metadataJson = buildString {
+                append("{")
+                metadata.avatarName?.let { append("\"avatarName\":\"$it\",") }
+                metadata.poseName?.let { append("\"poseName\":\"$it\",") }
+                metadata.expressionName?.let { append("\"expressionName\":\"$it\",") }
+                metadata.lightingPreset?.let { append("\"lightingPreset\":\"$it\",") }
+                if (endsWith(",")) deleteCharAt(length - 1)
+                append("}")
+            }
+
+            editor.putString(uri.toString(), metadataJson)
+            editor.apply()
+
+            Log.d("CameraRepository", "Stored AR metadata for: $uri")
+        } catch (e: Exception) {
+            Log.e("CameraRepository", "Failed to store AR metadata", e)
+        }
+    }
+
     override fun switchToCamera(
         lifecycleOwner: LifecycleOwner,
         cameraProvider: ProcessCameraProvider,

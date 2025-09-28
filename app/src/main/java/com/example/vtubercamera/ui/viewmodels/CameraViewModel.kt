@@ -45,6 +45,10 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+enum class PhotoFilterMode {
+    ALL, AR_ONLY, NORMAL_ONLY
+}
+
 @HiltViewModel
 class CameraViewModel @Inject constructor(
     private val cameraRepository: CameraRepository,
@@ -92,10 +96,31 @@ class CameraViewModel @Inject constructor(
     private val _allPhotos = MutableStateFlow<List<PhotoItem>>(emptyList())
     val allPhotos: StateFlow<List<PhotoItem>> = _allPhotos.asStateFlow()
 
+    private val _arPhotos = MutableStateFlow<List<PhotoItem>>(emptyList())
+    val arPhotos: StateFlow<List<PhotoItem>> = _arPhotos.asStateFlow()
+
+    private val _normalPhotos = MutableStateFlow<List<PhotoItem>>(emptyList())
+    val normalPhotos: StateFlow<List<PhotoItem>> = _normalPhotos.asStateFlow()
+
+    private val _photoFilterMode = MutableStateFlow(PhotoFilterMode.ALL)
+    val photoFilterMode: StateFlow<PhotoFilterMode> = _photoFilterMode.asStateFlow()
+
     init {
         viewModelScope.launch {
             mediaRepository.getAllPhotos().collect { photos ->
                 _allPhotos.value = photos
+            }
+        }
+
+        viewModelScope.launch {
+            mediaRepository.getARPhotos().collect { photos ->
+                _arPhotos.value = photos
+            }
+        }
+
+        viewModelScope.launch {
+            mediaRepository.getNormalPhotos().collect { photos ->
+                _normalPhotos.value = photos
             }
         }
 
@@ -893,17 +918,25 @@ class CameraViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 Log.d("CameraViewModel", "Capturing AR photo...")
-                
-                // Use existing photo capture functionality
-                // The AR rendering will be handled by the AR renderer during capture
-                cameraRepository.capturePhoto(
+
+                // Prepare AR metadata for the photo
+                val arMetadata = com.example.vtubercamera.data.ARPhotoMetadata(
+                    avatarName = _currentAvatar.value?.name,
+                    poseName = _currentPose.value?.name,
+                    expressionName = _currentExpression.value?.name,
+                    lightingPreset = getCurrentLightingPresetName()
+                )
+
+                // Use new AR photo capture functionality
+                cameraRepository.captureARPhoto(
                     imageCapture = imageCapture,
+                    arMetadata = arMetadata,
                     onPhotoSaved = { uri ->
                         val msg = "AR写真を保存しました: $uri"
                         _lastCapturedImageUri.value = uri
                         onPhotoSaved(msg)
                         refreshPhotos()
-                        Log.d("CameraViewModel", "AR photo captured successfully")
+                        Log.d("CameraViewModel", "AR photo captured successfully with metadata: $arMetadata")
                     },
                     onError = { errorMsg ->
                         Log.e("CameraViewModel", "AR photo capture failed: $errorMsg")
@@ -1473,4 +1506,79 @@ class CameraViewModel @Inject constructor(
     fun getLightingPresets(): List<LightingPreset> {
         return lightingSystem.getLightingPresets()
     }
+
+    /**
+     * Get current lighting preset name for AR photo metadata
+     */
+    private fun getCurrentLightingPresetName(): String? {
+        val currentSettings = lightingSettings.value
+        return lightingSystem.getLightingPresets().find { preset ->
+            preset.settings == currentSettings
+        }?.name
+    }
+
+    // ========== Photo Management and Filtering Functions ==========
+
+    /**
+     * Set photo filter mode
+     */
+    fun setPhotoFilterMode(mode: PhotoFilterMode) {
+        _photoFilterMode.value = mode
+    }
+
+    /**
+     * Get photos based on current filter mode
+     */
+    fun getFilteredPhotos(): List<PhotoItem> {
+        return when (_photoFilterMode.value) {
+            PhotoFilterMode.ALL -> _allPhotos.value
+            PhotoFilterMode.AR_ONLY -> _arPhotos.value
+            PhotoFilterMode.NORMAL_ONLY -> _normalPhotos.value
+        }
+    }
+
+    /**
+     * Get photos by specific avatar
+     */
+    suspend fun getPhotosByAvatar(avatarName: String): List<PhotoItem> {
+        return mediaRepository.getPhotosByAvatar(avatarName)
+    }
+
+    /**
+     * Get AR photo statistics
+     */
+    fun getARPhotoStats(): ARPhotoStats {
+        val arPhotos = _arPhotos.value
+        val totalCount = arPhotos.size
+        val avatars = arPhotos.mapNotNull { it.avatarName }.distinct()
+        val poses = arPhotos.mapNotNull { it.poseName }.distinct()
+        val expressions = arPhotos.mapNotNull { it.expressionName }.distinct()
+
+        return ARPhotoStats(
+            totalARPhotos = totalCount,
+            uniqueAvatars = avatars.size,
+            uniquePoses = poses.size,
+            uniqueExpressions = expressions.size,
+            avatarNames = avatars,
+            poseNames = poses,
+            expressionNames = expressions
+        )
+    }
+
+    /**
+     * Check if a photo is an AR photo
+     */
+    fun isARPhoto(photo: PhotoItem): Boolean {
+        return photo.isARPhoto
+    }
 }
+
+data class ARPhotoStats(
+    val totalARPhotos: Int,
+    val uniqueAvatars: Int,
+    val uniquePoses: Int,
+    val uniqueExpressions: Int,
+    val avatarNames: List<String>,
+    val poseNames: List<String>,
+    val expressionNames: List<String>
+)

@@ -17,13 +17,20 @@ interface CameraRepository {
         onImageCaptureCreated: (ImageCapture) -> Unit,
         onCameraCreated: (Camera) -> Unit
     ): Camera?
-    
+
     suspend fun capturePhoto(
         imageCapture: ImageCapture,
         onPhotoSaved: (Uri) -> Unit,
         onError: (String) -> Unit
     )
-    
+
+    suspend fun captureARPhoto(
+        imageCapture: ImageCapture,
+        arMetadata: ARPhotoMetadata,
+        onPhotoSaved: (Uri) -> Unit,
+        onError: (String) -> Unit
+    )
+
     fun switchToCamera(
         lifecycleOwner: LifecycleOwner,
         cameraProvider: ProcessCameraProvider,
@@ -33,3 +40,10 @@ interface CameraRepository {
         onCameraCreated: (Camera) -> Unit
     ): Camera?
 }
+
+data class ARPhotoMetadata(
+    val avatarName: String?,
+    val poseName: String?,
+    val expressionName: String?,
+    val lightingPreset: String?
+)
