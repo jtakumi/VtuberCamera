@@ -94,10 +94,6 @@ class AvatarControlViewModel @Inject constructor(
         expressionController.setTransitionDuration(duration)
     }
     
-    fun blendExpressions(expressionWeights: Map<Expression, Float>) {
-        expressionController.blendExpressions(expressionWeights)
-    }
-    
     // Pose Control Methods
     
     fun selectPose(pose: Pose?) {
@@ -131,10 +127,7 @@ class AvatarControlViewModel @Inject constructor(
     fun setPoseTransitionDuration(duration: Float) {
         poseController.setTransitionDuration(duration)
     }
-    
-    fun blendPoses(poseWeights: Map<Pose, Float>) {
-        poseController.blendPoses(poseWeights)
-    }
+
     
     // Avatar Management Methods
     
@@ -196,7 +189,7 @@ class AvatarControlViewModel @Inject constructor(
     
     // Data Loading Methods
     
-    private suspend fun loadExpressionData(vrmModel: VRMModel) {
+    private fun loadExpressionData(vrmModel: VRMModel) {
         try {
             // Create expression data from VRM model
             val expressionData = ExpressionData(
@@ -214,7 +207,7 @@ class AvatarControlViewModel @Inject constructor(
         }
     }
     
-    private suspend fun loadPoseData(vrmModel: VRMModel) {
+    private fun loadPoseData(vrmModel: VRMModel) {
         try {
             // Create pose data from VRM model
             val poseData = PoseData(

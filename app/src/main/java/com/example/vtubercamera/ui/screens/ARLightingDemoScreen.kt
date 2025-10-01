@@ -1,9 +1,21 @@
 package com.example.vtubercamera.ui.screens
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -12,6 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.vtubercamera.R
 import com.example.vtubercamera.ui.components.LightingControlPanel
 import com.example.vtubercamera.ui.viewmodels.ARLightingDemoViewModel
+import java.util.Locale
 
 /**
  * Demo screen showing the lighting and shadow system integration
@@ -27,7 +40,7 @@ fun ARLightingDemoScreen(
     val lightingPresets by viewModel.lightingPresets.collectAsStateWithLifecycle()
     val environmentLighting by viewModel.environmentLighting.collectAsStateWithLifecycle()
     val isLightingPanelExpanded by viewModel.isLightingPanelExpanded.collectAsStateWithLifecycle()
-    
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -39,7 +52,7 @@ fun ARLightingDemoScreen(
             text = stringResource(R.string.lighting_controls),
             style = MaterialTheme.typography.headlineMedium
         )
-        
+
         // Environment lighting info
         environmentLighting?.let { env ->
             Card(
@@ -57,7 +70,13 @@ fun ARLightingDemoScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Intensity: ${String.format("%.2f", env.intensity)}",
+                        text = "Intensity: ${
+                            String.format(
+                                Locale.getDefault(),
+                                "%.2f",
+                                env.intensity
+                            )
+                        }",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
@@ -65,13 +84,19 @@ fun ARLightingDemoScreen(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = "Ambient: ${String.format("%.2f", env.ambientIntensity)}",
+                        text = "Ambient: ${
+                            String.format(
+                                Locale.getDefault(),
+                                "%.2f",
+                                env.ambientIntensity
+                            )
+                        }",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
         }
-        
+
         // Lighting control panel
         LightingControlPanel(
             lightingSettings = lightingSettings,
@@ -81,7 +106,7 @@ fun ARLightingDemoScreen(
             onLightingSettingsChange = viewModel::updateLightingSettings,
             onPresetSelected = viewModel::selectLightingPreset
         )
-        
+
         // Current settings display
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -98,7 +123,13 @@ fun ARLightingDemoScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Brightness: ${String.format("%.1f", lightingSettings.brightness)}",
+                    text = "Brightness: ${
+                        String.format(
+                            Locale.getDefault(),
+                            "%.1f",
+                            lightingSettings.brightness
+                        )
+                    }",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
@@ -106,11 +137,23 @@ fun ARLightingDemoScreen(
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    text = "Shadow Strength: ${String.format("%.1f", lightingSettings.shadowStrength)}",
+                    text = "Shadow Strength: ${
+                        String.format(
+                            Locale.getDefault(),
+                            "%.1f",
+                            lightingSettings.shadowStrength
+                        )
+                    }",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    text = "Ambient Intensity: ${String.format("%.1f", lightingSettings.ambientIntensity)}",
+                    text = "Ambient Intensity: ${
+                        String.format(
+                            Locale.getDefault(),
+                            "%.1f",
+                            lightingSettings.ambientIntensity
+                        )
+                    }",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
@@ -119,7 +162,7 @@ fun ARLightingDemoScreen(
                 )
             }
         }
-        
+
         // Demo buttons
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -131,7 +174,7 @@ fun ARLightingDemoScreen(
             ) {
                 Text("Bright Environment")
             }
-            
+
             Button(
                 onClick = viewModel::simulateDarkEnvironment,
                 modifier = Modifier.weight(1f)
@@ -139,7 +182,7 @@ fun ARLightingDemoScreen(
                 Text("Dark Environment")
             }
         }
-        
+
         Button(
             onClick = viewModel::resetToDefaults,
             modifier = Modifier.fillMaxWidth()

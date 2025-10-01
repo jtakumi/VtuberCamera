@@ -62,7 +62,7 @@ fun AvatarControlScreen(
             selectedTabIndex = selectedTab.ordinal,
             modifier = Modifier.fillMaxWidth()
         ) {
-            AvatarControlTab.values().forEach { tab ->
+            AvatarControlTab.entries.forEach { tab ->
                 Tab(
                     selected = selectedTab == tab,
                     onClick = { selectedTab = tab },
@@ -71,7 +71,7 @@ fun AvatarControlScreen(
                 )
             }
         }
-        
+
         // Content
         LazyColumn(
             modifier = Modifier

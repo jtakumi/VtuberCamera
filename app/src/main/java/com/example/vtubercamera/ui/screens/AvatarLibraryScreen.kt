@@ -1,27 +1,59 @@
 package com.example.vtubercamera.ui.screens
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.vtubercamera.R
 import com.example.vtubercamera.data.vrm.AvatarInfo
-import com.example.vtubercamera.ui.viewmodels.AvatarLibraryViewModel
 import com.example.vtubercamera.ui.components.AvatarListMode
 import com.example.vtubercamera.ui.components.AvatarListView
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import com.example.vtubercamera.ui.viewmodels.AvatarLibraryViewModel
 
 /**
  * Screen for managing the avatar library
@@ -33,7 +65,7 @@ fun AvatarLibraryScreen(
     viewModel: AvatarLibraryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
+    LocalContext.current
 
     // File picker for VRM import
     val importLauncher = rememberLauncherForActivityResult(
@@ -45,14 +77,14 @@ fun AvatarLibraryScreen(
             viewModel.hideImportDialog()
         }
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Avatar Library") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
@@ -61,12 +93,14 @@ fun AvatarLibraryScreen(
                     }
                     IconButton(onClick = {
                         viewModel.showImportDialog()
-                        importLauncher.launch(arrayOf(
-                            "model/gltf-binary",
-                            "application/octet-stream",
-                            "application/vrm",
-                            "application/*"
-                        ))
+                        importLauncher.launch(
+                            arrayOf(
+                                "model/gltf-binary",
+                                "application/octet-stream",
+                                "application/vrm",
+                                "application/*"
+                            )
+                        )
                     }) {
                         Icon(Icons.Default.Add, contentDescription = "Import Avatar")
                     }
@@ -77,12 +111,14 @@ fun AvatarLibraryScreen(
             FloatingActionButton(
                 onClick = {
                     viewModel.showImportDialog()
-                    importLauncher.launch(arrayOf(
-                        "model/gltf-binary",
-                        "application/octet-stream",
-                        "application/vrm",
-                        "application/*"
-                    ))
+                    importLauncher.launch(
+                        arrayOf(
+                            "model/gltf-binary",
+                            "application/octet-stream",
+                            "application/vrm",
+                            "application/*"
+                        )
+                    )
                 }
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Import Avatar")
@@ -101,7 +137,7 @@ fun AvatarLibraryScreen(
                     modifier = Modifier.padding(16.dp)
                 )
             }
-            
+
             // Avatar list
             when {
                 uiState.isLoading -> {
@@ -112,14 +148,14 @@ fun AvatarLibraryScreen(
                         CircularProgressIndicator()
                     }
                 }
-                
+
                 uiState.avatars.isEmpty() -> {
                     EmptyLibraryMessage(
                         onImportClick = { viewModel.showImportDialog() },
                         modifier = Modifier.fillMaxSize()
                     )
                 }
-                
+
                 else -> {
                     var pendingDeleteId by remember { mutableStateOf<String?>(null) }
                     AvatarListView(
@@ -155,7 +191,7 @@ fun AvatarLibraryScreen(
             }
         }
     }
-    
+
     // Error handling
     uiState.error?.let { error ->
         LaunchedEffect(error) {
@@ -207,9 +243,9 @@ private fun LibraryStatsCard(
                 text = "Library Statistics",
                 style = MaterialTheme.typography.titleMedium
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -267,23 +303,23 @@ private fun EmptyLibraryMessage(
             modifier = Modifier.size(64.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         Text(
             text = "No avatars in library",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        
+
         Text(
             text = "Import VRM files to get started",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        
+
         Spacer(modifier = Modifier.height(24.dp))
-        
+
         Button(onClick = onImportClick) {
             Icon(Icons.Default.Add, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
@@ -330,9 +366,9 @@ private fun AvatarListItem(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.width(16.dp))
-            
+
             // Avatar info
             Column(
                 modifier = Modifier.weight(1f)
@@ -343,13 +379,13 @@ private fun AvatarListItem(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                
+
                 Text(
                     text = "${avatar.getFormattedFileSize()} • ${avatar.getFormattedDateAdded()}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
+
                 if (avatar.hasExpressions() || avatar.hasPoses()) {
                     Text(
                         text = avatar.getCapabilitySummary(),
@@ -358,7 +394,7 @@ private fun AvatarListItem(
                     )
                 }
             }
-            
+
             // Action buttons
             Row {
                 IconButton(onClick = onFavoriteClick) {
@@ -368,14 +404,14 @@ private fun AvatarListItem(
                         tint = if (avatar.isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                
+
                 IconButton(onClick = onRenameClick) {
                     Icon(
                         imageVector = Icons.Default.Edit,
                         contentDescription = "Rename avatar"
                     )
                 }
-                
+
                 IconButton(onClick = onDeleteClick) {
                     Icon(
                         imageVector = Icons.Default.Delete,

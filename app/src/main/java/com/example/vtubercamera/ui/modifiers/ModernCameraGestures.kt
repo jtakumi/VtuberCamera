@@ -16,7 +16,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import kotlin.math.abs
-import kotlin.math.min
 
 /**
  * Modern camera gestures using Compose's built-in gesture detection with lens switching
@@ -72,7 +71,7 @@ fun Modifier.modernCameraGestures(
                                 if (enableHapticFeedback) {
                                     try {
                                         view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                    } catch (e: Exception) {
+                                    } catch (_: Exception) {
                                         // Ignore haptic feedback errors
                                     }
                                 }
@@ -86,7 +85,7 @@ fun Modifier.modernCameraGestures(
                                 if (enableHapticFeedback) {
                                     try {
                                         view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                    } catch (e: Exception) {
+                                    } catch (_: Exception) {
                                         // Ignore haptic feedback errors
                                     }
                                 }
@@ -94,7 +93,7 @@ fun Modifier.modernCameraGestures(
                                 return@detectTransformGestures
                             }
                         }
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                         // Reset gesture state on any error to prevent stuck state
                         gestureScale = 1.0f
                         hasTriggeredLensSwitch = false

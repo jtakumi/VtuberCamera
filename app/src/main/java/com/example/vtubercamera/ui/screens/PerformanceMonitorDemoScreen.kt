@@ -1,16 +1,36 @@
 package com.example.vtubercamera.ui.screens
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.vtubercamera.data.performance.QualityLevel
 import com.example.vtubercamera.ui.components.PerformanceMonitorPanel
 import com.example.vtubercamera.ui.viewmodels.PerformanceMonitorDemoViewModel
 
@@ -25,7 +45,7 @@ fun PerformanceMonitorDemoScreen(
     viewModel: PerformanceMonitorDemoViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -33,7 +53,7 @@ fun PerformanceMonitorDemoScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "戻る"
                         )
                     }
@@ -60,13 +80,13 @@ fun PerformanceMonitorDemoScreen(
                 onToggleMonitoring = viewModel::toggleMonitoring,
                 onManualOptimization = viewModel::performManualOptimization
             )
-            
+
             // 設定パネル
             PerformanceSettingsPanel(
                 settings = uiState.settings,
                 onSettingsChange = viewModel::updateSettings
             )
-            
+
             // シミュレーション制御
             SimulationControlPanel(
                 onSimulateHighMemoryUsage = viewModel::simulateHighMemoryUsage,
@@ -92,7 +112,7 @@ private fun PerformanceSettingsPanel(
                 text = "パフォーマンス設定",
                 style = MaterialTheme.typography.titleMedium
             )
-            
+
             // 自動最適化の切り替え
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -102,33 +122,33 @@ private fun PerformanceSettingsPanel(
                 Text("自動最適化")
                 Switch(
                     checked = settings.autoOptimization,
-                    onCheckedChange = { 
+                    onCheckedChange = {
                         onSettingsChange(settings.copy(autoOptimization = it))
                     }
                 )
             }
-            
+
             // ターゲットフレームレート
             Text("ターゲットフレームレート: ${settings.targetFrameRate.toInt()} FPS")
             Slider(
                 value = settings.targetFrameRate,
-                onValueChange = { 
+                onValueChange = {
                     onSettingsChange(settings.copy(targetFrameRate = it))
                 },
                 valueRange = 15f..60f,
                 steps = 8
             )
-            
+
             // 品質レベル
             Text("品質レベル: ${settings.qualityLevel.name}")
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                com.example.vtubercamera.data.performance.QualityLevel.values().forEach { level ->
+                QualityLevel.entries.forEach { level ->
                     FilterChip(
                         selected = settings.qualityLevel == level,
-                        onClick = { 
+                        onClick = {
                             onSettingsChange(settings.copy(qualityLevel = level))
                         },
                         label = { Text(level.name) }
@@ -155,13 +175,13 @@ private fun SimulationControlPanel(
                 text = "シミュレーション制御",
                 style = MaterialTheme.typography.titleMedium
             )
-            
+
             Text(
                 text = "パフォーマンス問題をシミュレートして最適化機能をテストできます",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -172,7 +192,7 @@ private fun SimulationControlPanel(
                 ) {
                     Text("メモリ不足")
                 }
-                
+
                 Button(
                     onClick = onSimulateLowFrameRate,
                     modifier = Modifier.weight(1f)
@@ -180,7 +200,7 @@ private fun SimulationControlPanel(
                     Text("低FPS")
                 }
             }
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -191,7 +211,7 @@ private fun SimulationControlPanel(
                 ) {
                     Text("過熱")
                 }
-                
+
                 OutlinedButton(
                     onClick = onResetSimulation,
                     modifier = Modifier.weight(1f)

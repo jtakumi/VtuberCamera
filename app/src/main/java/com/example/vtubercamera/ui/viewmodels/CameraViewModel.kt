@@ -1100,7 +1100,7 @@ class CameraViewModel @Inject constructor(
                 val avatarInfo = _avatarLibrary.value.find { it.id == avatarId }
                 if (avatarInfo != null) {
                     // Load the avatar from its file path
-                    loadAvatar(android.net.Uri.fromFile(java.io.File(avatarInfo.filePath)))
+                    loadAvatar(Uri.fromFile(java.io.File(avatarInfo.filePath)))
                     Log.d("CameraViewModel", "Selected and loading avatar: ${avatarInfo.name}")
                 } else {
                     _avatarLibraryError.value = "Avatar not found in library"

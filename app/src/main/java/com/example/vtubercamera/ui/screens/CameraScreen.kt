@@ -612,7 +612,7 @@ fun CameraScreen(
                         // Lens switch hint (shown when switching is available)
                         if (canSwitchLens) {
                             LensSwitchHint(
-                                canSwitchLens = canSwitchLens,
+                                canSwitchLens = true,
                                 modifier = Modifier
                                     .align(Alignment.TopCenter)
                                     .padding(top = 60.dp)
