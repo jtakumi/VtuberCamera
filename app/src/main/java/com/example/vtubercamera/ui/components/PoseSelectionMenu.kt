@@ -33,7 +33,7 @@ fun PoseSelectionMenu(
         )
 
         // Group by category
-        Pose.PoseCategory.values().forEach { category ->
+        Pose.PoseCategory.entries.forEach { category ->
             val items = poseData.poses.filter { it.category == category }
             if (items.isNotEmpty()) {
                 DropdownMenuItem(
