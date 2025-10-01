@@ -86,7 +86,7 @@ object Android15Features {
                 handleBackgroundRestrictions(activity)
                 initializeSecurityFeatures(activity)
 
-                val isPrivate = isInPrivateSpace(activity)
+                val isPrivate = isInPrivateSpace(activity.applicationContext)
                 Log.d("Android15Features", "Private Space status: $isPrivate")
 
             } catch (e: Exception) {
