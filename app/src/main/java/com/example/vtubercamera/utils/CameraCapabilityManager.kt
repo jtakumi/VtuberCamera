@@ -16,7 +16,9 @@ import kotlinx.coroutines.withContext
  * Detects available cameras including wide-angle and normal lenses
  */
 @Suppress("UnsafeOptInUsageError")
-@OptIn(androidx.camera.core.ExperimentalCameraInfo::class, androidx.camera.camera2.interop.ExperimentalCamera2Interop::class)
+@androidx.annotation.OptIn(
+    androidx.camera.camera2.interop.ExperimentalCamera2Interop::class
+)
 class CameraCapabilityManager(private val context: Context) {
 
     data class CameraCapability(
@@ -48,7 +50,7 @@ class CameraCapabilityManager(private val context: Context) {
     /**
      * Detect all available cameras and their capabilities with enhanced compatibility checks
      */
-    @OptIn(androidx.camera.core.ExperimentalCameraInfo::class, androidx.camera.camera2.interop.ExperimentalCamera2Interop::class)
+    @OptIn(androidx.camera.camera2.interop.ExperimentalCamera2Interop::class)
     suspend fun detectCameraCapabilities(): Boolean {
         return withContext(Dispatchers.IO) {
             // Check camera permissions first
