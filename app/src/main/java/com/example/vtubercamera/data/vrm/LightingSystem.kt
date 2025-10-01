@@ -39,7 +39,6 @@ class LightingSystem @Inject constructor() {
         
         // Auto adjustment parameters
         private const val AUTO_ADJUSTMENT_SMOOTHING = 0.1f
-        private const val ENVIRONMENT_LIGHT_THRESHOLD = 0.5f
     }
     
     // Current lighting state
@@ -337,19 +336,19 @@ class LightingSystem @Inject constructor() {
             temp <= 66f -> 1f
             else -> {
                 val r = temp - 60f
-                val red = 329.698727446f * r.pow(-0.1332047592f)
+                val red = 329.69873f * r.pow(-0.13320476f)
                 (red / 255f).coerceIn(0f, 1f)
             }
         }
         
         val green = when {
             temp <= 66f -> {
-                val g = 99.4708025861f * ln(temp) - 161.1195681661f
+                val g = 99.4708f * ln(temp) - 161.11957f
                 (g / 255f).coerceIn(0f, 1f)
             }
             else -> {
                 val g = temp - 60f
-                val green = 288.1221695283f * g.pow(-0.0755148492f)
+                val green = 288.12216f * g.pow(-0.075514846f)
                 (green / 255f).coerceIn(0f, 1f)
             }
         }
@@ -359,7 +358,7 @@ class LightingSystem @Inject constructor() {
             temp <= 19f -> 0f
             else -> {
                 val b = temp - 10f
-                val blue = 138.5177312231f * ln(b) - 305.0447927307f
+                val blue = 138.51773f * ln(b) - 305.0448f
                 (blue / 255f).coerceIn(0f, 1f)
             }
         }

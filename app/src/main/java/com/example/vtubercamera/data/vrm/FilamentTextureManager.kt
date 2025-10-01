@@ -6,6 +6,8 @@ import android.util.Log
 import java.io.ByteArrayInputStream
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.core.graphics.scale
+import androidx.core.graphics.createBitmap
 
 /**
  * Manages Filament textures for VRM avatars
@@ -93,7 +95,7 @@ class FilamentTextureManager @Inject constructor() {
             val newWidth = (bitmap.width * scale).toInt()
             val newHeight = (bitmap.height * scale).toInt()
             
-            processedBitmap = Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+            processedBitmap = bitmap.scale(newWidth, newHeight)
             
             if (processedBitmap != bitmap) {
                 bitmap.recycle()
@@ -108,7 +110,7 @@ class FilamentTextureManager @Inject constructor() {
             if (newWidth != processedBitmap.width || newHeight != processedBitmap.height) {
                 Log.d(TAG, "Converting texture ${texture.name} to power-of-two: ${newWidth}x${newHeight}")
                 
-                val powerOfTwoBitmap = Bitmap.createScaledBitmap(processedBitmap, newWidth, newHeight, true)
+                val powerOfTwoBitmap = processedBitmap.scale(newWidth, newHeight)
                 
                 if (powerOfTwoBitmap != processedBitmap) {
                     processedBitmap.recycle()
@@ -176,7 +178,7 @@ class FilamentTextureManager @Inject constructor() {
      */
     private fun createDefaultBitmap(): Bitmap {
         val size = DEFAULT_TEXTURE_SIZE
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(size, size)
         
         // Fill with white
         bitmap.eraseColor(0xFFFFFFFF.toInt())
@@ -189,7 +191,7 @@ class FilamentTextureManager @Inject constructor() {
      */
     private fun createErrorBitmap(): Bitmap {
         val size = 64
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(size, size)
         
         val pixels = IntArray(size * size)
         for (y in 0 until size) {
@@ -236,7 +238,7 @@ class FilamentTextureManager @Inject constructor() {
             width = maxOf(1, width / 2)
             height = maxOf(1, height / 2)
             
-            val mipmap = Bitmap.createScaledBitmap(currentBitmap, width, height, true)
+            val mipmap = currentBitmap.scale(width, height)
             mipmaps.add(mipmap)
             
             // Don't recycle the original bitmap

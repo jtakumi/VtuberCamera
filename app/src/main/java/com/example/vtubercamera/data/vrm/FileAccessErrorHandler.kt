@@ -198,9 +198,9 @@ class FileAccessErrorHandler @Inject constructor(
             
             return Result.success(Unit)
             
-        } catch (e: SecurityException) {
+        } catch (_: SecurityException) {
             return Result.failure(SecurityException("Permission denied for URI: $uri"))
-        } catch (e: FileNotFoundException) {
+        } catch (_: FileNotFoundException) {
             return Result.failure(FileNotFoundException("URI not found: $uri"))
         } catch (e: Exception) {
             return Result.failure(IOException("Cannot access URI: $uri - ${e.message}"))

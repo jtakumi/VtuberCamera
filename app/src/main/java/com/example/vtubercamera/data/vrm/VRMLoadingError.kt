@@ -9,6 +9,7 @@ sealed class VRMLoadingError : Exception() {
      * The specified VRM file was not found
      */
     object FileNotFound : VRMLoadingError() {
+        private fun readResolve(): Any = FileNotFound
         override val message: String = "VRM file not found"
     }
     
@@ -16,6 +17,7 @@ sealed class VRMLoadingError : Exception() {
      * The file is not a valid VRM format
      */
     object InvalidFormat : VRMLoadingError() {
+        private fun readResolve(): Any = InvalidFormat
         override val message: String = "Invalid VRM file format"
     }
     
@@ -23,6 +25,7 @@ sealed class VRMLoadingError : Exception() {
      * The VRM file exceeds the maximum allowed size
      */
     object FileSizeExceeded : VRMLoadingError() {
+        private fun readResolve(): Any = FileSizeExceeded
         override val message: String = "VRM file size exceeds maximum limit"
     }
     
@@ -30,6 +33,7 @@ sealed class VRMLoadingError : Exception() {
      * The VRM file data is corrupted or incomplete
      */
     object CorruptedData : VRMLoadingError() {
+        private fun readResolve(): Any = CorruptedData
         override val message: String = "VRM file data is corrupted"
     }
     
@@ -37,6 +41,7 @@ sealed class VRMLoadingError : Exception() {
      * The VRM file version is not supported
      */
     object UnsupportedVersion : VRMLoadingError() {
+        private fun readResolve(): Any = UnsupportedVersion
         override val message: String = "Unsupported VRM file version"
     }
     
@@ -53,6 +58,7 @@ sealed class VRMLoadingError : Exception() {
      * Insufficient memory to load the VRM file
      */
     object InsufficientMemory : VRMLoadingError() {
+        private fun readResolve(): Any = InsufficientMemory
         override val message: String = "Insufficient memory to load VRM file"
     }
     
@@ -60,6 +66,7 @@ sealed class VRMLoadingError : Exception() {
      * Permission denied to access the VRM file
      */
     object PermissionDenied : VRMLoadingError() {
+        private fun readResolve(): Any = PermissionDenied
         override val message: String = "Permission denied to access VRM file"
     }
     
@@ -67,6 +74,7 @@ sealed class VRMLoadingError : Exception() {
      * Network error while downloading VRM file
      */
     object NetworkError : VRMLoadingError() {
+        private fun readResolve(): Any = NetworkError
         override val message: String = "Network error while loading VRM file"
     }
     
