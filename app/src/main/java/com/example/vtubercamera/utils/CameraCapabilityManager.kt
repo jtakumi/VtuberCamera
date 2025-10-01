@@ -356,9 +356,9 @@ class CameraCapabilityManager(private val context: Context) {
     fun getAlternateRearCamera(currentSelector: CameraSelector): CameraSelector? {
         if (!_hasMultipleRearCameras) return null
 
-        return when {
-            currentSelector == _normalCamera?.cameraSelector -> _wideAngleCamera?.cameraSelector
-            currentSelector == _wideAngleCamera?.cameraSelector -> _normalCamera?.cameraSelector
+        return when (currentSelector) {
+            _normalCamera?.cameraSelector -> _wideAngleCamera?.cameraSelector
+            _wideAngleCamera?.cameraSelector -> _normalCamera?.cameraSelector
             else -> _wideAngleCamera?.cameraSelector ?: _normalCamera?.cameraSelector
         }
     }
