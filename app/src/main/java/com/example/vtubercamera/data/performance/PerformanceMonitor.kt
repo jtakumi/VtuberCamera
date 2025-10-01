@@ -13,7 +13,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class PerformanceMonitor @Inject constructor(
-    private val context: Context
+    context: Context
 ) {
     private val _memoryState = MutableStateFlow(MemoryState())
     val memoryState: StateFlow<MemoryState> = _memoryState.asStateFlow()

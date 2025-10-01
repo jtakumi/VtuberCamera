@@ -1,6 +1,7 @@
 package com.example.vtubercamera.data.vrm
 
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,8 +24,6 @@ class ErrorHandler @Inject constructor(
     
     companion object {
         private const val TAG = "ErrorHandler"
-        private const val MAX_RETRY_ATTEMPTS = 3
-        private const val RETRY_DELAY_MS = 1000L
     }
     
     private val _currentError = MutableStateFlow<ErrorState?>(null)
@@ -605,14 +604,18 @@ class ErrorHandler @Inject constructor(
     }
     
     private fun getDeviceInfo(): String {
-        return "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} (API ${android.os.Build.VERSION.SDK_INT})"
+        return "${Build.MANUFACTURER} ${Build.MODEL} (API ${Build.VERSION.SDK_INT})"
     }
     
     private fun getAppVersion(): String {
         return try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            "${packageInfo.versionName} (${packageInfo.longVersionCode})"
-        } catch (e: Exception) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                "${packageInfo.versionName} (${packageInfo.longVersionCode})"
+            } else {
+                TODO("VERSION.SDK_INT < P")
+            }
+        } catch (_: Exception) {
             "Unknown"
         }
     }

@@ -74,7 +74,7 @@ class BatteryMonitor @Inject constructor(
         
         try {
             context.unregisterReceiver(batteryReceiver)
-        } catch (e: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             // レシーバーが既に登録解除されている場合
         }
         isMonitoring = false
