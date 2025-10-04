@@ -66,11 +66,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.vtubercamera.ui.components.AvatarTransformPanel
 import com.example.vtubercamera.ui.components.ExpressionControlPanel
@@ -82,6 +80,8 @@ import com.example.vtubercamera.ui.components.PoseSelectionMenu
 import com.example.vtubercamera.ui.modifiers.modernCameraGestures
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 import com.example.vtubercamera.utils.PermissionUtils
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 
 /**
  * AR Camera Screen for VTuber avatar recording and interaction
@@ -137,9 +137,6 @@ fun ARCameraScreen(
         }
     }
 
-    // Camera provider
-    var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
-    var camera by remember { mutableStateOf<Camera?>(null) }
 
     LaunchedEffect(Unit) {
         // Initialize AR mode
@@ -264,8 +261,6 @@ fun ARCameraScreen(
                 flashMode = flashMode,
                 zoomRatio = zoomRatio,
                 onCameraReady = { provider, cam ->
-                    cameraProvider = provider
-                    camera = cam
                     viewModel.setCamera(cam)
                 },
                 modifier = Modifier
