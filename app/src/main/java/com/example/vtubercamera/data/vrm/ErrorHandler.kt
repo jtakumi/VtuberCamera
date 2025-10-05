@@ -613,7 +613,7 @@ class ErrorHandler @Inject constructor(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 "${packageInfo.versionName} (${packageInfo.longVersionCode})"
             } else {
-                TODO("VERSION.SDK_INT < P")
+                "(${packageInfo.versionName})"
             }
         } catch (_: Exception) {
             "Unknown"
