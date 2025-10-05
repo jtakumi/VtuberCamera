@@ -835,7 +835,7 @@ class CameraViewModel @Inject constructor(
         context: android.content.Context,
         lifecycleOwner: androidx.lifecycle.LifecycleOwner
     ) {
-        if (_uiState.value.isARMode) {
+        if (uiState.value.isARMode) {
             Log.d("CameraViewModel", "AR mode already enabled")
             return
         }
@@ -878,7 +878,7 @@ class CameraViewModel @Inject constructor(
      * Disable AR mode and return to normal camera
      */
     fun disableARMode() {
-        if (!_uiState.value.isARMode) {
+        if (!uiState.value.isARMode) {
             Log.d("CameraViewModel", "AR mode already disabled")
             return
         }
@@ -891,7 +891,7 @@ class CameraViewModel @Inject constructor(
                 arRepository.destroySession()
                 
                 // Reset AR states
-                val currentAvatarState = _uiState.value.avatarState
+                val currentAvatarState = uiState.value.avatarState
                 updateUiState { 
                     copy(
                         isARMode = false,
@@ -921,7 +921,7 @@ class CameraViewModel @Inject constructor(
         context: android.content.Context,
         lifecycleOwner: androidx.lifecycle.LifecycleOwner
     ) {
-        if (_uiState.value.isARMode) {
+        if (uiState.value.isARMode) {
             disableARMode()
         } else {
             enableARMode(context, lifecycleOwner)
@@ -939,7 +939,7 @@ class CameraViewModel @Inject constructor(
                 Log.d("CameraViewModel", "Loading avatar from URI: $uri")
                 
                 // Set loading state
-                val currentState = _uiState.value
+                val currentState = uiState.value
                 updateUiState { 
                     copy(
                         avatarState = currentState.avatarState.copy(
@@ -1046,7 +1046,7 @@ class CameraViewModel @Inject constructor(
      * Toggle avatar visibility
      */
     fun toggleAvatarVisibility() {
-        val currentState = _uiState.value
+        val currentState = uiState.value
         val newVisibility = !currentState.avatarState.isVisible
 
         // Update AvatarController (single source of truth)
@@ -1078,7 +1078,7 @@ class CameraViewModel @Inject constructor(
         onPhotoSaved: (String) -> Unit = {},
         onError: (String) -> Unit = {}
     ) {
-        if (!isARMode.value) {
+        if (!uiState.value.isARMode) {
             onError("AR mode is not enabled")
             return
         }
