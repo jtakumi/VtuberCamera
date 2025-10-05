@@ -810,8 +810,8 @@ class CameraViewModel @Inject constructor(
             cameraRepository.switchToCamera(
                 lifecycleOwner = lifecycleOwner,
                 cameraProvider = cameraProvider,
-                newCameraSelector = _cameraSelector.value,
-                flashMode = _flashMode.value,
+                newCameraSelector = cameraSelector.value,
+                flashMode = flashMode.value,
                 onImageCaptureCreated = { imageCapture },
                 onCameraCreated = onCamera
             )
@@ -1006,7 +1006,7 @@ class CameraViewModel @Inject constructor(
                 Log.e("CameraViewModel", "Error loading avatar", e)
                 updateUiState { 
                     copy(
-                        avatarState = currentState.avatarState.copy(
+                        avatarState = avatarState.copy(
                             isLoading = false,
                             loadingProgress = 0.0f
                         ),
@@ -1078,12 +1078,12 @@ class CameraViewModel @Inject constructor(
         onPhotoSaved: (String) -> Unit = {},
         onError: (String) -> Unit = {}
     ) {
-        if (!_isARMode.value) {
+        if (!isARMode.value) {
             onError("AR mode is not enabled")
             return
         }
 
-        if (!_avatarState.value.shouldRender) {
+        if (!avatarState.value.shouldRender) {
             onError("No avatar is loaded or visible")
             return
         }
@@ -1094,9 +1094,9 @@ class CameraViewModel @Inject constructor(
 
                 // Prepare AR metadata for the photo
                 val arMetadata = com.example.vtubercamera.data.ARPhotoMetadata(
-                    avatarName = _currentAvatar.value?.name,
-                    poseName = _currentPose.value?.name,
-                    expressionName = _currentExpression.value?.name,
+                    avatarName = currentAvatar.value?.name,
+                    poseName = currentPose.value?.name,
+                    expressionName = currentExpression.value?.name,
                     lightingPreset = getCurrentLightingPresetName()
                 )
 
@@ -1106,7 +1106,9 @@ class CameraViewModel @Inject constructor(
                     arMetadata = arMetadata,
                     onPhotoSaved = { uri ->
                         val msg = "AR写真を保存しました: $uri"
-                        _lastCapturedImageUri.value = uri
+                        _uiState.value = _uiState.value.copy(
+                            lastCapturedImageUri = uri
+                        )
                         onPhotoSaved(msg)
                         refreshPhotos()
                         Log.d("CameraViewModel", "AR photo captured successfully with metadata: $arMetadata")
@@ -1187,8 +1189,8 @@ class CameraViewModel @Inject constructor(
      * Get current avatar statistics for debugging
      */
     fun getAvatarDebugInfo(): String {
-        val avatar = _currentAvatar.value
-        val state = _avatarState.value
+        val avatar = currentAvatar.value
+        val state = avatarState.value
 
         return if (avatar != null) {
             """
@@ -1453,20 +1455,29 @@ class CameraViewModel @Inject constructor(
     fun cleanupAvatarLibrary() {
         viewModelScope.launch {
             try {
-                _isLoadingAvatarLibrary.value = true
+               _uiState.value = _uiState.value.copy(
+                   isLoadingAvatarLibrary = true
+               )
+
 
                 val result = vrmRepository.cleanupLibrary()
-                _isLoadingAvatarLibrary.value = false
+                _uiState.value = _uiState.value.copy(
+                    isLoadingAvatarLibrary = false
+                )
 
                 if (result.success) {
                     refreshAvatarLibrary()
                     Log.d("CameraViewModel", "Avatar library cleanup completed")
                 } else {
-                    _avatarLibraryError.value = result.error
+                    _uiState.value = _uiState.value.copy(
+                        avatarLibraryError = result.error
+                    )
                 }
             } catch (e: Exception) {
-                _avatarLibraryError.value = "Failed to cleanup library: ${e.message}"
-                _isLoadingAvatarLibrary.value = false
+                _uiState.value = _uiState.value.copy(
+                    avatarLibraryError = "Failed to cleanup library: ${e.message}",
+                    isLoadingAvatarLibrary = false
+                )
                 Log.e("CameraViewModel", "Failed to cleanup avatar library", e)
             }
         }
@@ -1476,7 +1487,9 @@ class CameraViewModel @Inject constructor(
      * Clear avatar library error
      */
     fun clearAvatarLibraryError() {
-        _avatarLibraryError.value = null
+        _uiState.value = _uiState.value.copy(
+            avatarLibraryError = null
+        )
     }
 
     // ========== Avatar Control Functions ==========
@@ -1742,17 +1755,19 @@ class CameraViewModel @Inject constructor(
      * Set photo filter mode
      */
     fun setPhotoFilterMode(mode: PhotoFilterMode) {
-        _photoFilterMode.value = mode
+        _uiState.value = _uiState.value.copy(
+            photoFilterMode = mode
+        )
     }
 
     /**
      * Get photos based on current filter mode
      */
     fun getFilteredPhotos(): List<PhotoItem> {
-        return when (_photoFilterMode.value) {
-            PhotoFilterMode.ALL -> _allPhotos.value
-            PhotoFilterMode.AR_ONLY -> _arPhotos.value
-            PhotoFilterMode.NORMAL_ONLY -> _normalPhotos.value
+        return when (uiState.value.photoFilterMode) {
+            PhotoFilterMode.ALL -> uiState.value.allPhotos
+            PhotoFilterMode.AR_ONLY -> uiState.value.arPhotos
+            PhotoFilterMode.NORMAL_ONLY -> uiState.value.normalPhotos
         }
     }
 
@@ -1767,7 +1782,7 @@ class CameraViewModel @Inject constructor(
      * Get AR photo statistics
      */
     fun getARPhotoStats(): ARPhotoStats {
-        val arPhotos = _arPhotos.value
+        val arPhotos = uiState.value.arPhotos
         val totalCount = arPhotos.size
         val avatars = arPhotos.mapNotNull { it.avatarName }.distinct()
         val poses = arPhotos.mapNotNull { it.poseName }.distinct()
