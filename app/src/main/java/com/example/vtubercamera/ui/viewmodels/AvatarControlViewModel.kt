@@ -94,10 +94,6 @@ class AvatarControlViewModel @Inject constructor(
         expressionController.setTransitionDuration(duration)
     }
     
-    fun blendExpressions(expressionWeights: Map<Expression, Float>) {
-        expressionController.blendExpressions(expressionWeights)
-    }
-    
     // Pose Control Methods
     
     fun selectPose(pose: Pose?) {
@@ -131,31 +127,28 @@ class AvatarControlViewModel @Inject constructor(
     fun setPoseTransitionDuration(duration: Float) {
         poseController.setTransitionDuration(duration)
     }
-    
-    fun blendPoses(poseWeights: Map<Pose, Float>) {
-        poseController.blendPoses(poseWeights)
-    }
-    
+
+
     // Avatar Management Methods
-    
+
     fun loadAvatar(vrmModel: VRMModel) {
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(isAvatarLoading = true)
-                
+
                 // Load avatar into controller
                 avatarController.loadModel(vrmModel)
-                
+
                 // Load expression and pose data
                 loadExpressionData(vrmModel)
                 loadPoseData(vrmModel)
-                
+
                 // Auto-reset if enabled
                 if (_uiState.value.autoResetOnAvatarChange) {
                     clearExpression()
                     clearPose()
                 }
-                
+
             } catch (e: Exception) {
                 // Handle error
                 _uiState.value = _uiState.value.copy(
@@ -185,18 +178,18 @@ class AvatarControlViewModel @Inject constructor(
     }
     
     // Update Methods (called from render loop)
-    
+
     fun updateExpressionTransition(deltaTime: Float) {
         expressionController.updateTransition(deltaTime)
     }
-    
+
     fun updatePoseTransition(deltaTime: Float) {
         poseController.updateTransition(deltaTime)
     }
     
     // Data Loading Methods
     
-    private suspend fun loadExpressionData(vrmModel: VRMModel) {
+    private fun loadExpressionData(vrmModel: VRMModel) {
         try {
             // Create expression data from VRM model
             val expressionData = ExpressionData(
@@ -205,7 +198,7 @@ class AvatarControlViewModel @Inject constructor(
                 presetExpressions = vrmModel.expressions.filter { isPresetExpression(it.name) },
                 customExpressions = vrmModel.expressions.filter { !isPresetExpression(it.name) }
             )
-            
+
             _uiState.value = _uiState.value.copy(expressionData = expressionData)
         } catch (e: Exception) {
             _uiState.value = _uiState.value.copy(
@@ -213,21 +206,21 @@ class AvatarControlViewModel @Inject constructor(
             )
         }
     }
-    
-    private suspend fun loadPoseData(vrmModel: VRMModel) {
+
+    private fun loadPoseData(vrmModel: VRMModel) {
         try {
             // Create pose data from VRM model
             val poseData = PoseData(
                 poses = vrmModel.poses,
                 animations = emptyList(), // Animations would be loaded separately
-                boneMapping = createBoneMappingFromModel(vrmModel),
+                boneMapping = createBoneMappingFromModel(),
                 staticPoses = vrmModel.poses.filter { !it.isLooping },
                 loopingAnimations = vrmModel.poses.filter { it.isLooping }
             )
-            
+
             // Set bone mapping in pose controller
             poseController.setBoneMapping(poseData.boneMapping)
-            
+
             _uiState.value = _uiState.value.copy(poseData = poseData)
         } catch (e: Exception) {
             _uiState.value = _uiState.value.copy(
@@ -311,14 +304,10 @@ class AvatarControlViewModel @Inject constructor(
         return presetNames.contains(name.lowercase())
     }
     
-    private fun createBoneMappingFromModel(vrmModel: VRMModel): BoneMapping {
+    private fun createBoneMappingFromModel(): BoneMapping {
         // Create a basic bone mapping from VRM model metadata
         // In a real implementation, this would extract bone information from the model
         return BoneMapping.empty()
-    }
-    
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
     }
 }
 
@@ -355,6 +344,5 @@ data class AvatarControlUiState(
     // Error state
     val error: String? = null
 ) {
-    val hasError: Boolean get() = error != null
     val isLoading: Boolean get() = isAvatarLoading
 }

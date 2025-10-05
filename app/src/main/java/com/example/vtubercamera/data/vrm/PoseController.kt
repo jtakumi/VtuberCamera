@@ -300,22 +300,20 @@ class PoseController @Inject constructor() {
         if (boneChain.isEmpty()) return
         
         // Simple CCD (Cyclic Coordinate Descent) IK
-        for (i in 0 until iterations) {
-            for (boneName in boneChain.reversed()) {
-                val boneTransform = getBoneTransform(boneName)
-                val endEffectorPos = calculateEndEffectorPosition(endEffectorBone)
-                
-                val toTarget = (targetPosition - boneTransform.position).normalized()
-                val toEnd = (endEffectorPos - boneTransform.position).normalized()
-                
-                val rotationAxis = toEnd.cross(toTarget)
-                val angle = kotlin.math.acos(toEnd.dot(toTarget).coerceIn(-1f, 1f))
-                
-                if (rotationAxis.magnitude() > 0.001f && angle > 0.001f) {
-                    val rotation = Quaternion.fromAxisAngle(rotationAxis.normalized(), angle)
-                    val newTransform = boneTransform.rotate(rotation)
-                    setBoneTransform(boneName, newTransform)
-                }
+        for (i in 0 until iterations) for (boneName in boneChain.reversed()) {
+            val boneTransform = getBoneTransform(boneName)
+            val endEffectorPos = calculateEndEffectorPosition(endEffectorBone)
+
+            val toTarget = (targetPosition - boneTransform.position).normalized()
+            val toEnd = (endEffectorPos - boneTransform.position).normalized()
+
+            val rotationAxis = toEnd.cross(toTarget)
+            val angle = kotlin.math.acos(toEnd.dot(toTarget).coerceIn(-1f, 1f))
+
+            if (rotationAxis.magnitude() > 0.001f && angle > 0.001f) {
+                val rotation = Quaternion.fromAxisAngle(rotationAxis.normalized(), angle)
+                val newTransform = boneTransform.rotate(rotation)
+                setBoneTransform(boneName, newTransform)
             }
         }
     }

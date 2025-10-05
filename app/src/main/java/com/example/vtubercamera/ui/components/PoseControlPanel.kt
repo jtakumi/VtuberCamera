@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,6 +27,7 @@ import com.example.vtubercamera.data.vrm.Pose
 import com.example.vtubercamera.data.vrm.PoseData
 import com.example.vtubercamera.data.vrm.math.Transform
 import com.example.vtubercamera.data.vrm.math.Vector3
+import java.util.Locale
 
 /**
  * Pose control panel UI component for VRM avatar pose management
@@ -49,9 +51,8 @@ fun PoseControlPanel(
     modifier: Modifier = Modifier
 ) {
     var selectedCategory by remember { mutableStateOf(Pose.PoseCategory.GENERAL) }
-    var showAdvancedControls by remember { mutableStateOf(false) }
     var showBoneEditor by remember { mutableStateOf(false) }
-    var transitionDuration by remember { mutableStateOf(0.5f) }
+    var transitionDuration by remember { mutableFloatStateOf(0.5f) }
     
     Card(
         modifier = modifier
@@ -217,8 +218,11 @@ private fun PoseStatusCard(
             if (isTransitioning && transitionProgress > 0f) {
                 Spacer(modifier = Modifier.height(8.dp))
                 LinearProgressIndicator(
-                    progress = transitionProgress,
-                    modifier = Modifier.fillMaxWidth()
+                progress = { transitionProgress },
+                modifier = Modifier.fillMaxWidth(),
+                color = ProgressIndicatorDefaults.linearColor,
+                trackColor = ProgressIndicatorDefaults.linearTrackColor,
+                strokeCap = ProgressIndicatorDefaults.LinearStrokeCap,
                 )
             }
         }
@@ -234,7 +238,7 @@ private fun PoseCategorySelector(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        items(Pose.PoseCategory.values()) { category ->
+        items(Pose.PoseCategory.entries.toTypedArray()) { category ->
             PoseCategoryChip(
                 category = category,
                 isSelected = category == selectedCategory,
@@ -381,7 +385,7 @@ private fun PoseItem(
                     
                     if (pose.duration > 0f) {
                         Text(
-                            text = "${String.format("%.1f", pose.duration)}s",
+                            text = "${String.format(Locale.getDefault(),"%.1f", pose.duration)}s",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -458,7 +462,7 @@ private fun BoneEditor(
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
-                text = "${String.format("%.1f", transitionDuration)}s",
+                text = "${String.format(Locale.getDefault(),"%.1f", transitionDuration)}s",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -517,7 +521,6 @@ private fun BoneControl(
     onTransformChanged: (Transform) -> Unit,
     onLockToggled: () -> Unit
 ) {
-    var showDetails by remember { mutableStateOf(false) }
     
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -616,7 +619,7 @@ private fun AxisControl(
 ) {
     Column(modifier = modifier) {
         Text(
-            text = "$label: ${String.format("%.2f", value)}",
+            text = "$label: ${String.format(Locale.getDefault(),"%.2f", value)}",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

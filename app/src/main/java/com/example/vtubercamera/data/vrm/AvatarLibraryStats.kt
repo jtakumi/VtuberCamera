@@ -132,11 +132,7 @@ data class AvatarLibraryStats(
         
         // Deduct points for missing thumbnails
         val withThumbnails = totalAvatars // Assuming all have thumbnails if we got here
-        if (totalAvatars > 0 && withThumbnails < totalAvatars) {
-            val missingThumbnailsPercentage = ((totalAvatars - withThumbnails).toFloat() / totalAvatars) * 100
-            score -= (missingThumbnailsPercentage * 0.2).toInt()
-        }
-        
+
         // Bonus points for good organization (tags, favorites)
         if (availableTags.isNotEmpty()) score += 5
         if (favoriteCount > 0) score += 5

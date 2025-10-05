@@ -2,24 +2,23 @@ package com.example.vtubercamera.data.vrm
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.Base64
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import android.util.Base64
+import androidx.core.graphics.scale
 
 /**
  * Extracts texture data from VRM/glTF files
  */
 class VRMTextureExtractor {
-    
+
     companion object {
         private const val MAX_TEXTURE_SIZE = 4096
         private const val MAX_TEXTURE_MEMORY = 256 * 1024 * 1024 // 256MB
     }
-    
+
     /**
      * Extract all textures from glTF JSON and binary data
      */
@@ -32,21 +31,21 @@ class VRMTextureExtractor {
         val textures = json.getAsJsonArray("textures")
         val materials = json.getAsJsonArray("materials")
         val bufferViews = json.getAsJsonArray("bufferViews")
-        
+
         val extractedTextures = mutableMapOf<String, Texture>()
         val materialTextures = mutableMapOf<String, MaterialTextureMapping>()
         var totalMemoryUsage = 0L
-        
+
         // Extract image data
         if (images != null) {
             for (i in 0 until images.size()) {
                 val imageJson = images[i].asJsonObject
                 val texture = extractImage(imageJson, bufferViews, binaryData, i)
-                
+
                 if (texture != null) {
                     extractedTextures[texture.name] = texture
                     totalMemoryUsage += texture.memoryUsage
-                    
+
                     // Stop if we exceed memory limit
                     if (totalMemoryUsage > MAX_TEXTURE_MEMORY) {
                         break
@@ -54,24 +53,25 @@ class VRMTextureExtractor {
                 }
             }
         }
-        
+
         // Map textures to materials
         if (materials != null && textures != null) {
             for (i in 0 until materials.size()) {
                 val materialJson = materials[i].asJsonObject
                 val materialName = materialJson.get("name")?.asString ?: "material_$i"
-                val mapping = extractMaterialTextureMapping(materialJson, textures, extractedTextures)
+                val mapping =
+                    extractMaterialTextureMapping(materialJson, textures, extractedTextures)
                 materialTextures[materialName] = mapping
             }
         }
-        
+
         TextureData(
             textures = extractedTextures,
             materialMappings = materialTextures,
             totalMemoryUsage = totalMemoryUsage
         )
     }
-    
+
     /**
      * Extract a single image/texture
      */
@@ -84,7 +84,7 @@ class VRMTextureExtractor {
         try {
             val name = imageJson.get("name")?.asString ?: "texture_$index"
             val mimeType = imageJson.get("mimeType")?.asString ?: "image/png"
-            
+
             val imageData = when {
                 // Image is embedded as base64 URI
                 imageJson.has("uri") -> {
@@ -95,7 +95,7 @@ class VRMTextureExtractor {
                         null // External file reference - not supported in this implementation
                     }
                 }
-                
+
                 // Image is in binary buffer
                 imageJson.has("bufferView") && bufferViews != null -> {
                     val bufferViewIndex = imageJson.get("bufferView").asInt
@@ -105,22 +105,23 @@ class VRMTextureExtractor {
                         null
                     }
                 }
-                
+
                 else -> null
             }
-            
+
             if (imageData != null) {
                 val bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
                 if (bitmap != null) {
                     // Resize if too large
-                    val resizedBitmap = if (bitmap.width > MAX_TEXTURE_SIZE || bitmap.height > MAX_TEXTURE_SIZE) {
-                        resizeBitmap(bitmap, MAX_TEXTURE_SIZE)
-                    } else {
-                        bitmap
-                    }
-                    
+                    val resizedBitmap =
+                        if (bitmap.width > MAX_TEXTURE_SIZE || bitmap.height > MAX_TEXTURE_SIZE) {
+                            resizeBitmap(bitmap, MAX_TEXTURE_SIZE)
+                        } else {
+                            bitmap
+                        }
+
                     val textureInfo = analyzeTexture(resizedBitmap, name, mimeType)
-                    
+
                     Texture(
                         name = name,
                         data = imageData,
@@ -139,11 +140,11 @@ class VRMTextureExtractor {
             } else {
                 null
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null // Skip corrupted textures
         }
     }
-    
+
     /**
      * Extract image data from data URI
      */
@@ -151,11 +152,11 @@ class VRMTextureExtractor {
         return try {
             val base64Data = uri.substringAfter("base64,")
             Base64.decode(base64Data, Base64.DEFAULT)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }
-    
+
     /**
      * Extract image data from buffer view
      */
@@ -163,17 +164,17 @@ class VRMTextureExtractor {
         return try {
             val byteOffset = bufferView.get("byteOffset")?.asInt ?: 0
             val byteLength = bufferView.get("byteLength")?.asInt ?: return null
-            
+
             if (byteOffset + byteLength <= binaryData.size) {
                 binaryData.copyOfRange(byteOffset, byteOffset + byteLength)
             } else {
                 null
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }
-    
+
     /**
      * Extract material texture mapping
      */
@@ -186,14 +187,22 @@ class VRMTextureExtractor {
         val normalTexture = materialJson.getAsJsonObject("normalTexture")
         val occlusionTexture = materialJson.getAsJsonObject("occlusionTexture")
         val emissiveTexture = materialJson.getAsJsonObject("emissiveTexture")
-        
+
         return MaterialTextureMapping(
-            baseColorTexture = getTextureReference(pbrMetallicRoughness?.getAsJsonObject("baseColorTexture"), textures, extractedTextures),
-            metallicRoughnessTexture = getTextureReference(pbrMetallicRoughness?.getAsJsonObject("metallicRoughnessTexture"), textures, extractedTextures),
+            baseColorTexture = getTextureReference(
+                pbrMetallicRoughness?.getAsJsonObject("baseColorTexture"),
+                textures,
+                extractedTextures
+            ),
+            metallicRoughnessTexture = getTextureReference(
+                pbrMetallicRoughness?.getAsJsonObject("metallicRoughnessTexture"),
+                textures,
+                extractedTextures
+            ),
             normalTexture = getTextureReference(normalTexture, textures, extractedTextures),
             occlusionTexture = getTextureReference(occlusionTexture, textures, extractedTextures),
             emissiveTexture = getTextureReference(emissiveTexture, textures, extractedTextures),
-            baseColorFactor = pbrMetallicRoughness?.getAsJsonArray("baseColorFactor")?.let { 
+            baseColorFactor = pbrMetallicRoughness?.getAsJsonArray("baseColorFactor")?.let {
                 floatArrayOf(
                     it[0].asFloat,
                     it[1].asFloat,
@@ -211,7 +220,7 @@ class VRMTextureExtractor {
             doubleSided = materialJson.get("doubleSided")?.asBoolean ?: false
         )
     }
-    
+
     /**
      * Get texture reference from texture info object
      */
@@ -221,17 +230,17 @@ class VRMTextureExtractor {
         extractedTextures: Map<String, Texture>
     ): String? {
         if (textureInfo == null) return null
-        
+
         val textureIndex = textureInfo.get("index")?.asInt ?: return null
         if (textureIndex >= textures.size()) return null
-        
+
         val textureJson = textures[textureIndex].asJsonObject
         val imageIndex = textureJson.get("source")?.asInt ?: return null
         val textureName = "texture_$imageIndex"
-        
+
         return if (extractedTextures.containsKey(textureName)) textureName else null
     }
-    
+
     /**
      * Parse alpha mode from string
      */
@@ -243,26 +252,34 @@ class VRMTextureExtractor {
             else -> AlphaMode.OPAQUE
         }
     }
-    
+
     /**
      * Analyze texture properties
      */
     private fun analyzeTexture(bitmap: Bitmap, name: String, mimeType: String): TextureAnalysis {
         val hasAlpha = bitmap.hasAlpha()
-        
+
         val type = when {
             name.contains("normal", ignoreCase = true) -> TextureType.NORMAL
             name.contains("roughness", ignoreCase = true) -> TextureType.ROUGHNESS
             name.contains("metallic", ignoreCase = true) -> TextureType.METALLIC
-            name.contains("emission", ignoreCase = true) || name.contains("emissive", ignoreCase = true) -> TextureType.EMISSIVE
-            name.contains("occlusion", ignoreCase = true) || name.contains("ao", ignoreCase = true) -> TextureType.OCCLUSION
+            name.contains("emission", ignoreCase = true) || name.contains(
+                "emissive",
+                ignoreCase = true
+            ) -> TextureType.EMISSIVE
+
+            name.contains("occlusion", ignoreCase = true) || name.contains(
+                "ao",
+                ignoreCase = true
+            ) -> TextureType.OCCLUSION
+
             hasAlpha -> TextureType.ALBEDO_ALPHA
             else -> TextureType.ALBEDO
         }
-        
+
         return TextureAnalysis(type, hasAlpha)
     }
-    
+
     /**
      * Get texture format from MIME type
      */
@@ -276,22 +293,22 @@ class VRMTextureExtractor {
             else -> TextureFormat.PNG
         }
     }
-    
+
     /**
      * Resize bitmap to fit within max dimensions
      */
     private fun resizeBitmap(bitmap: Bitmap, maxSize: Int): Bitmap {
         val width = bitmap.width
         val height = bitmap.height
-        
+
         if (width <= maxSize && height <= maxSize) {
             return bitmap
         }
-        
+
         val aspectRatio = width.toFloat() / height.toFloat()
         val newWidth: Int
         val newHeight: Int
-        
+
         if (width > height) {
             newWidth = maxSize
             newHeight = (maxSize / aspectRatio).toInt()
@@ -299,22 +316,22 @@ class VRMTextureExtractor {
             newHeight = maxSize
             newWidth = (maxSize * aspectRatio).toInt()
         }
-        
-        val resized = Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+
+        val resized = bitmap.scale(newWidth, newHeight)
         if (resized != bitmap) {
             bitmap.recycle()
         }
-        
+
         return resized
     }
-    
+
     /**
      * Calculate memory usage of bitmap
      */
     private fun calculateMemoryUsage(bitmap: Bitmap): Long {
         return (bitmap.width * bitmap.height * 4).toLong() // Assuming ARGB_8888
     }
-    
+
     /**
      * Calculate number of mip levels
      */
@@ -322,12 +339,12 @@ class VRMTextureExtractor {
         val maxDimension = maxOf(width, height)
         var levels = 0
         var size = maxDimension
-        
+
         while (size > 0) {
             levels++
             size /= 2
         }
-        
+
         return levels
     }
 }
@@ -347,22 +364,23 @@ data class TextureData(
             totalMemoryUsage = 0L
         )
     }
-    
+
     /**
      * Get texture by name
      */
     fun getTexture(name: String): Texture? = textures[name]
-    
+
     /**
      * Get material mapping by name
      */
-    fun getMaterialMapping(materialName: String): MaterialTextureMapping? = materialMappings[materialName]
-    
+    fun getMaterialMapping(materialName: String): MaterialTextureMapping? =
+        materialMappings[materialName]
+
     /**
      * Check if texture data is empty
      */
     fun isEmpty(): Boolean = textures.isEmpty()
-    
+
     /**
      * Get formatted memory usage
      */
@@ -394,19 +412,19 @@ data class Texture(
      * Get aspect ratio
      */
     fun getAspectRatio(): Float = width.toFloat() / height.toFloat()
-    
+
     /**
      * Check if texture is square
      */
     fun isSquare(): Boolean = width == height
-    
+
     /**
      * Check if texture is power of two
      */
     fun isPowerOfTwo(): Boolean = isPowerOfTwo(width) && isPowerOfTwo(height)
-    
+
     private fun isPowerOfTwo(n: Int): Boolean = n > 0 && (n and (n - 1)) == 0
-    
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

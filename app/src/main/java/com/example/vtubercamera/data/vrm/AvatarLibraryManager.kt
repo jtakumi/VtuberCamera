@@ -200,8 +200,8 @@ class AvatarLibraryManager @Inject constructor(
         
         val mostUsed = vrmRepository.getRecentlyUsedAvatars(5)
         val favorites = vrmRepository.getFavoriteAvatars()
-        val withExpressions = avatars.toString() // Placeholder - would filter avatars with expressions
-        val newAvatars = avatars.toString() // Placeholder - would filter newly added avatars
+        val withExpressions = avatars // Placeholder - would filter avatars with expressions
+        val newAvatars = avatars // Placeholder - would filter newly added avatars
         
         return AvatarRecommendations(
             mostUsed = mostUsed,

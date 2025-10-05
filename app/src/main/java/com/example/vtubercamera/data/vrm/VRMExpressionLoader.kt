@@ -2,7 +2,6 @@ package com.example.vtubercamera.data.vrm
 
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
-import com.example.vtubercamera.data.vrm.math.Vector3
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -10,7 +9,7 @@ import kotlinx.coroutines.withContext
  * Loads expression and blend shape data from VRM files
  */
 class VRMExpressionLoader {
-    
+
     companion object {
         // Standard VRM expression presets
         private val VRM_PRESET_EXPRESSIONS = setOf(
@@ -20,7 +19,7 @@ class VRMExpressionLoader {
             "lookUp", "lookDown", "lookLeft", "lookRight",
             "neutral"
         )
-        
+
         // Common blend shape naming conventions
         private val COMMON_BLEND_SHAPE_NAMES = mapOf(
             "eye_blink_left" to "blinkLeft",
@@ -36,7 +35,7 @@ class VRMExpressionLoader {
             "jaw_open" to "aa"
         )
     }
-    
+
     /**
      * Load expressions from VRM extension data
      */
@@ -46,25 +45,25 @@ class VRMExpressionLoader {
     ): ExpressionData = withContext(Dispatchers.IO) {
         val expressions = mutableListOf<Expression>()
         val blendShapeGroups = mutableListOf<BlendShapeGroup>()
-        
+
         try {
             // Handle VRM 1.0 expressions
             val expressionsObj = vrmExtension.getAsJsonObject("expressions")
             if (expressionsObj != null) {
                 val presets = expressionsObj.getAsJsonObject("preset")
                 val customs = expressionsObj.getAsJsonArray("custom")
-                
+
                 // Load preset expressions
                 if (presets != null) {
                     expressions.addAll(loadPresetExpressions(presets, meshData))
                 }
-                
+
                 // Load custom expressions
                 if (customs != null) {
                     expressions.addAll(loadCustomExpressions(customs, meshData))
                 }
             }
-            
+
             // Handle VRM 0.x blend shapes (for backward compatibility)
             val blendShapeMaster = vrmExtension.getAsJsonObject("blendShapeMaster")
             if (blendShapeMaster != null) {
@@ -73,14 +72,14 @@ class VRMExpressionLoader {
                     expressions.addAll(loadLegacyBlendShapes(blendShapeGroupsArray, meshData))
                 }
             }
-            
+
             // Create blend shape groups for organization
             blendShapeGroups.addAll(createBlendShapeGroups(expressions))
-            
-        } catch (e: Exception) {
+
+        } catch (_: Exception) {
             // Log error but continue with what we have
         }
-        
+
         ExpressionData(
             expressions = expressions,
             blendShapeGroups = blendShapeGroups,
@@ -88,7 +87,7 @@ class VRMExpressionLoader {
             customExpressions = expressions.filter { !isPresetExpression(it.name) }
         )
     }
-    
+
     /**
      * Load preset expressions from VRM 1.0 format
      */
@@ -97,7 +96,7 @@ class VRMExpressionLoader {
         meshData: MeshData
     ): List<Expression> = withContext(Dispatchers.IO) {
         val expressions = mutableListOf<Expression>()
-        
+
         VRM_PRESET_EXPRESSIONS.forEach { presetName ->
             val presetData = presets.getAsJsonObject(presetName)
             if (presetData != null) {
@@ -107,10 +106,10 @@ class VRMExpressionLoader {
                 }
             }
         }
-        
+
         expressions
     }
-    
+
     /**
      * Load custom expressions from VRM 1.0 format
      */
@@ -119,7 +118,7 @@ class VRMExpressionLoader {
         meshData: MeshData
     ): List<Expression> = withContext(Dispatchers.IO) {
         val expressions = mutableListOf<Expression>()
-        
+
         for (i in 0 until customs.size()) {
             val customData = customs[i].asJsonObject
             val name = customData.get("name")?.asString ?: "custom_$i"
@@ -128,10 +127,10 @@ class VRMExpressionLoader {
                 expressions.add(expression)
             }
         }
-        
+
         expressions
     }
-    
+
     /**
      * Load legacy blend shapes from VRM 0.x format
      */
@@ -140,7 +139,7 @@ class VRMExpressionLoader {
         meshData: MeshData
     ): List<Expression> = withContext(Dispatchers.IO) {
         val expressions = mutableListOf<Expression>()
-        
+
         for (i in 0 until blendShapeGroups.size()) {
             val groupData = blendShapeGroups[i].asJsonObject
             val expression = parseLegacyBlendShapeGroup(groupData, meshData)
@@ -148,10 +147,10 @@ class VRMExpressionLoader {
                 expressions.add(expression)
             }
         }
-        
+
         expressions
     }
-    
+
     /**
      * Parse a single expression from JSON data
      */
@@ -162,41 +161,42 @@ class VRMExpressionLoader {
         isPreset: Boolean
     ): Expression? {
         try {
-            val displayName = expressionData.get("name")?.asString ?: name.replaceFirstChar { it.uppercase() }
+            val displayName =
+                expressionData.get("name")?.asString ?: name.replaceFirstChar { it.uppercase() }
             val isBinary = expressionData.get("isBinary")?.asBoolean ?: false
-            
+
             // Parse morph target bindings (blend shapes)
             val morphTargetBinds = expressionData.getAsJsonArray("morphTargetBinds")
             val blendShapeKeys = mutableMapOf<String, Float>()
-            
+
             morphTargetBinds?.forEach { bindElement ->
                 val bind = bindElement.asJsonObject
                 val node = bind.get("node")?.asInt
                 val index = bind.get("index")?.asInt
                 val weight = bind.get("weight")?.asFloat ?: 0f
-                
+
                 if (node != null && index != null) {
                     val shapeName = generateBlendShapeName(node, index, meshData)
                     blendShapeKeys[shapeName] = weight
                 }
             }
-            
+
             // Parse material color bindings
             val materialColorBinds = expressionData.getAsJsonArray("materialColorBinds")
             val materialColorBindings = mutableMapOf<String, Expression.MaterialColorBinding>()
-            
+
             materialColorBinds?.forEach { bindElement ->
                 val bind = bindElement.asJsonObject
                 val material = bind.get("material")?.asInt
                 val type = bind.get("type")?.asString ?: "color"
                 val targetValue = bind.getAsJsonArray("targetValue")
-                
+
                 if (material != null && targetValue != null) {
                     val materialName = "material_$material"
                     val colorArray = FloatArray(targetValue.size()) { i ->
                         targetValue[i].asFloat
                     }
-                    
+
                     materialColorBindings[materialName] = Expression.MaterialColorBinding(
                         materialName = materialName,
                         propertyName = type,
@@ -204,17 +204,18 @@ class VRMExpressionLoader {
                     )
                 }
             }
-            
+
             // Parse texture transform bindings
             val textureTransformBinds = expressionData.getAsJsonArray("textureTransformBinds")
-            val textureTransformBindings = mutableMapOf<String, Expression.TextureTransformBinding>()
-            
+            val textureTransformBindings =
+                mutableMapOf<String, Expression.TextureTransformBinding>()
+
             textureTransformBinds?.forEach { bindElement ->
                 val bind = bindElement.asJsonObject
                 val material = bind.get("material")?.asInt
                 val scaling = bind.getAsJsonArray("scaling")
                 val offset = bind.getAsJsonArray("offset")
-                
+
                 if (material != null) {
                     val materialName = "material_$material"
                     val scale = if (scaling != null && scaling.size() >= 2) {
@@ -227,7 +228,7 @@ class VRMExpressionLoader {
                     } else {
                         Pair(0f, 0f)
                     }
-                    
+
                     textureTransformBindings[materialName] = Expression.TextureTransformBinding(
                         materialName = materialName,
                         propertyName = "mainTexture",
@@ -236,12 +237,12 @@ class VRMExpressionLoader {
                     )
                 }
             }
-            
+
             // Parse override settings
             val overrideBlink = parseOverrideType(expressionData.get("overrideBlink")?.asString)
             val overrideLookAt = parseOverrideType(expressionData.get("overrideLookAt")?.asString)
             val overrideMouth = parseOverrideType(expressionData.get("overrideMouth")?.asString)
-            
+
             return Expression(
                 name = name,
                 displayName = displayName,
@@ -253,11 +254,11 @@ class VRMExpressionLoader {
                 overrideLookAt = overrideLookAt,
                 overrideMouth = overrideMouth
             )
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             return null
         }
     }
-    
+
     /**
      * Parse legacy blend shape group from VRM 0.x
      */
@@ -269,36 +270,36 @@ class VRMExpressionLoader {
             val name = groupData.get("name")?.asString ?: return null
             val presetName = groupData.get("presetName")?.asString
             val isBinary = groupData.get("isBinary")?.asBoolean ?: false
-            
+
             val binds = groupData.getAsJsonArray("binds")
             val blendShapeKeys = mutableMapOf<String, Float>()
-            
+
             binds?.forEach { bindElement ->
                 val bind = bindElement.asJsonObject
                 val mesh = bind.get("mesh")?.asInt
                 val index = bind.get("index")?.asInt
                 val weight = bind.get("weight")?.asFloat ?: 0f
-                
+
                 if (mesh != null && index != null) {
                     val shapeName = generateBlendShapeName(mesh, index, meshData)
                     blendShapeKeys[shapeName] = weight
                 }
             }
-            
+
             val materialValues = groupData.getAsJsonArray("materialValues")
             val materialColorBindings = mutableMapOf<String, Expression.MaterialColorBinding>()
-            
+
             materialValues?.forEach { valueElement ->
                 val valueData = valueElement.asJsonObject
                 val materialName = valueData.get("materialName")?.asString ?: return@forEach
                 val propertyName = valueData.get("propertyName")?.asString ?: return@forEach
                 val targetValue = valueData.getAsJsonArray("targetValue")
-                
+
                 if (targetValue != null) {
                     val colorArray = FloatArray(targetValue.size()) { i ->
                         targetValue[i].asFloat
                     }
-                    
+
                     materialColorBindings[materialName] = Expression.MaterialColorBinding(
                         materialName = materialName,
                         propertyName = propertyName,
@@ -306,7 +307,7 @@ class VRMExpressionLoader {
                     )
                 }
             }
-            
+
             return Expression(
                 name = presetName ?: name,
                 displayName = name.replaceFirstChar { it.uppercase() },
@@ -314,15 +315,19 @@ class VRMExpressionLoader {
                 materialColorBindings = materialColorBindings,
                 isBinary = isBinary
             )
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             return null
         }
     }
-    
+
     /**
      * Generate blend shape name from mesh and index
      */
-    private fun generateBlendShapeName(meshIndex: Int, shapeIndex: Int, meshData: MeshData): String {
+    private fun generateBlendShapeName(
+        meshIndex: Int,
+        shapeIndex: Int,
+        meshData: MeshData
+    ): String {
         val meshName = if (meshIndex < meshData.meshes.size) {
             meshData.meshes[meshIndex].name
         } else {
@@ -330,7 +335,7 @@ class VRMExpressionLoader {
         }
         return "${meshName}_shape_$shapeIndex"
     }
-    
+
     /**
      * Parse override type from string
      */
@@ -341,80 +346,88 @@ class VRMExpressionLoader {
             else -> Expression.OverrideType.NONE
         }
     }
-    
+
     /**
      * Check if expression name is a preset
      */
     private fun isPresetExpression(name: String): Boolean {
         return VRM_PRESET_EXPRESSIONS.contains(name.lowercase())
     }
-    
+
     /**
      * Create blend shape groups for organization
      */
     private fun createBlendShapeGroups(expressions: List<Expression>): List<BlendShapeGroup> {
         val groups = mutableListOf<BlendShapeGroup>()
-        
+
         // Group by category
         val faceExpressions = expressions.filter { expr ->
-            listOf("happy", "sad", "angry", "surprised", "relaxed").any { 
-                expr.name.contains(it, ignoreCase = true) 
+            listOf("happy", "sad", "angry", "surprised", "relaxed").any {
+                expr.name.contains(it, ignoreCase = true)
             }
         }
-        
+
         val eyeExpressions = expressions.filter { expr ->
-            listOf("blink", "look", "eye").any { 
-                expr.name.contains(it, ignoreCase = true) 
+            listOf("blink", "look", "eye").any {
+                expr.name.contains(it, ignoreCase = true)
             }
         }
-        
+
         val mouthExpressions = expressions.filter { expr ->
-            listOf("aa", "ih", "ou", "ee", "oh", "mouth").any { 
-                expr.name.contains(it, ignoreCase = true) 
+            listOf("aa", "ih", "ou", "ee", "oh", "mouth").any {
+                expr.name.contains(it, ignoreCase = true)
             }
         }
-        
+
         val customExpressions = expressions.filter { expr ->
-            !faceExpressions.contains(expr) && 
-            !eyeExpressions.contains(expr) && 
-            !mouthExpressions.contains(expr)
+            !faceExpressions.contains(expr) &&
+                    !eyeExpressions.contains(expr) &&
+                    !mouthExpressions.contains(expr)
         }
-        
+
         if (faceExpressions.isNotEmpty()) {
-            groups.add(BlendShapeGroup(
-                name = "Face Expressions",
-                expressions = faceExpressions,
-                category = BlendShapeCategory.EMOTION
-            ))
+            groups.add(
+                BlendShapeGroup(
+                    name = "Face Expressions",
+                    expressions = faceExpressions,
+                    category = BlendShapeCategory.EMOTION
+                )
+            )
         }
-        
+
         if (eyeExpressions.isNotEmpty()) {
-            groups.add(BlendShapeGroup(
-                name = "Eye Expressions",
-                expressions = eyeExpressions,
-                category = BlendShapeCategory.EYE
-            ))
+            groups.add(
+                BlendShapeGroup(
+                    name = "Eye Expressions",
+                    expressions = eyeExpressions,
+                    category = BlendShapeCategory.EYE
+                )
+            )
         }
-        
+
         if (mouthExpressions.isNotEmpty()) {
-            groups.add(BlendShapeGroup(
-                name = "Mouth Expressions",
-                expressions = mouthExpressions,
-                category = BlendShapeCategory.MOUTH
-            ))
+            groups.add(
+                BlendShapeGroup(
+                    name = "Mouth Expressions",
+                    expressions = mouthExpressions,
+                    category = BlendShapeCategory.MOUTH
+                )
+            )
         }
-        
+
         if (customExpressions.isNotEmpty()) {
-            groups.add(BlendShapeGroup(
-                name = "Custom Expressions",
-                expressions = customExpressions,
-                category = BlendShapeCategory.CUSTOM
-            ))
+            groups.add(
+                BlendShapeGroup(
+                    name = "Custom Expressions",
+                    expressions = customExpressions,
+                    category = BlendShapeCategory.CUSTOM
+                )
+            )
         }
-        
+
         return groups
     }
-    
+
     /**
      * Analyze expression complexity
      */
@@ -422,9 +435,9 @@ class VRMExpressionLoader {
         val blendShapeCount = expression.blendShapeKeys.size
         val materialBindingCount = expression.materialColorBindings.size
         val textureBindingCount = expression.textureTransformBindings.size
-        
+
         val totalBindings = blendShapeCount + materialBindingCount + textureBindingCount
-        
+
         val complexity = when {
             totalBindings == 0 -> ExpressionComplexityLevel.EMPTY
             totalBindings <= 5 -> ExpressionComplexityLevel.SIMPLE
@@ -432,7 +445,7 @@ class VRMExpressionLoader {
             totalBindings <= 30 -> ExpressionComplexityLevel.COMPLEX
             else -> ExpressionComplexityLevel.VERY_COMPLEX
         }
-        
+
         return ExpressionComplexity(
             level = complexity,
             blendShapeCount = blendShapeCount,
@@ -462,24 +475,24 @@ data class ExpressionData(
             customExpressions = emptyList()
         )
     }
-    
+
     /**
      * Get expression by name
      */
     fun getExpression(name: String): Expression? = expressions.find { it.name == name }
-    
+
     /**
      * Get expressions by category
      */
     fun getExpressionsByCategory(category: BlendShapeCategory): List<Expression> {
         return blendShapeGroups.find { it.category == category }?.expressions ?: emptyList()
     }
-    
+
     /**
      * Check if expression data is empty
      */
     fun isEmpty(): Boolean = expressions.isEmpty()
-    
+
     /**
      * Get expression statistics
      */

@@ -2,7 +2,6 @@ package com.example.vtubercamera.data.vrm
 
 import android.util.Log
 import com.example.vtubercamera.data.vrm.math.Vector3
-import com.example.vtubercamera.data.vrm.math.Transform
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import javax.inject.Inject
@@ -14,7 +13,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class VRMFilamentConverter @Inject constructor() {
-    
+
     companion object {
         private const val TAG = "VRMFilamentConverter"
         private const val BYTES_PER_FLOAT = 4
@@ -26,30 +25,33 @@ class VRMFilamentConverter @Inject constructor() {
         private const val BONE_WEIGHT_COMPONENTS = 4
         private const val BONE_INDEX_COMPONENTS = 4
     }
-    
+
     /**
      * Convert VRM model to Filament-compatible mesh data
      */
     fun convertVRMToFilamentMesh(vrmModel: VRMModel): FilamentMeshData {
         Log.d(TAG, "Converting VRM model to Filament mesh: ${vrmModel.name}")
-        
+
         try {
             // Extract mesh data from VRM
             val meshData = extractMeshData(vrmModel.meshData)
-            
+
             // Convert to Filament format
             val filamentMeshes = meshData.meshes.map { mesh ->
                 convertMeshToFilament(mesh)
             }
-            
+
             // Process materials
             val materials = processMaterials(vrmModel)
-            
+
             // Process textures
             val textures = processTextures(vrmModel.textureData)
-            
-            Log.d(TAG, "Successfully converted VRM to Filament format - ${filamentMeshes.size} meshes, ${materials.size} materials")
-            
+
+            Log.d(
+                TAG,
+                "Successfully converted VRM to Filament format - ${filamentMeshes.size} meshes, ${materials.size} materials"
+            )
+
             return FilamentMeshData(
                 meshes = filamentMeshes,
                 materials = materials,
@@ -58,28 +60,28 @@ class VRMFilamentConverter @Inject constructor() {
                 totalVertices = meshData.totalVertices,
                 totalTriangles = meshData.totalTriangles
             )
-            
+
         } catch (e: Exception) {
             Log.e(TAG, "Failed to convert VRM to Filament mesh", e)
             throw VRMLoadingError.ParseError("Failed to convert VRM to Filament format: ${e.message}")
         }
     }
-    
+
     /**
      * Convert a single mesh to Filament format
      */
     private fun convertMeshToFilament(mesh: Mesh): FilamentMesh {
         Log.d(TAG, "Converting mesh: ${mesh.name} (${mesh.vertices.size} vertices)")
-        
+
         // Create vertex buffer
         val vertexBuffer = createVertexBuffer(mesh.vertices)
-        
+
         // Create index buffer
         val indexBuffer = createIndexBuffer(mesh.indices)
-        
+
         // Calculate vertex attributes
         val attributes = calculateVertexAttributes(mesh.vertices)
-        
+
         return FilamentMesh(
             name = mesh.name,
             vertexBuffer = vertexBuffer,
@@ -91,70 +93,70 @@ class VRMFilamentConverter @Inject constructor() {
             boundingBox = mesh.boundingBox
         )
     }
-    
+
     /**
      * Create vertex buffer in Filament format
      */
     private fun createVertexBuffer(vertices: List<Vertex>): ByteBuffer {
         val vertexSize = calculateVertexSize()
         val bufferSize = vertices.size * vertexSize
-        
+
         val buffer = ByteBuffer.allocateDirect(bufferSize)
             .order(ByteOrder.nativeOrder())
-        
+
         vertices.forEach { vertex ->
             // Position (3 floats)
             buffer.putFloat(vertex.position.x)
             buffer.putFloat(vertex.position.y)
             buffer.putFloat(vertex.position.z)
-            
+
             // Normal (3 floats)
             buffer.putFloat(vertex.normal.x)
             buffer.putFloat(vertex.normal.y)
             buffer.putFloat(vertex.normal.z)
-            
+
             // UV coordinates (2 floats)
             buffer.putFloat(vertex.uv.first)
             buffer.putFloat(vertex.uv.second)
-            
+
             // Color (4 floats)
             buffer.putFloat(vertex.color[0])
             buffer.putFloat(vertex.color[1])
             buffer.putFloat(vertex.color[2])
             buffer.putFloat(vertex.color[3])
-            
+
             // Bone weights (4 floats)
             buffer.putFloat(vertex.boneWeights[0])
             buffer.putFloat(vertex.boneWeights[1])
             buffer.putFloat(vertex.boneWeights[2])
             buffer.putFloat(vertex.boneWeights[3])
-            
+
             // Bone indices (4 ints)
             buffer.putInt(vertex.boneIndices[0])
             buffer.putInt(vertex.boneIndices[1])
             buffer.putInt(vertex.boneIndices[2])
             buffer.putInt(vertex.boneIndices[3])
         }
-        
+
         buffer.rewind()
         return buffer
     }
-    
+
     /**
      * Create index buffer
      */
     private fun createIndexBuffer(indices: List<Int>): ByteBuffer {
         val buffer = ByteBuffer.allocateDirect(indices.size * BYTES_PER_INT)
             .order(ByteOrder.nativeOrder())
-        
+
         indices.forEach { index ->
             buffer.putInt(index)
         }
-        
+
         buffer.rewind()
         return buffer
     }
-    
+
     /**
      * Calculate vertex size in bytes
      */
@@ -162,7 +164,7 @@ class VRMFilamentConverter @Inject constructor() {
         return (POSITION_COMPONENTS + NORMAL_COMPONENTS + UV_COMPONENTS + COLOR_COMPONENTS + BONE_WEIGHT_COMPONENTS) * BYTES_PER_FLOAT +
                 BONE_INDEX_COMPONENTS * BYTES_PER_INT
     }
-    
+
     /**
      * Calculate vertex attributes for Filament
      */
@@ -171,14 +173,14 @@ class VRMFilamentConverter @Inject constructor() {
         var hasUVs = false
         var hasColors = false
         var hasBoneWeights = false
-        
+
         vertices.forEach { vertex ->
             if (vertex.normal != Vector3.ZERO) hasNormals = true
             if (vertex.uv.first != 0f || vertex.uv.second != 0f) hasUVs = true
             if (vertex.color.any { it != 1f }) hasColors = true
             if (vertex.boneWeights.any { it > 0f }) hasBoneWeights = true
         }
-        
+
         return VertexAttributes(
             hasPositions = true, // Always true
             hasNormals = hasNormals,
@@ -188,13 +190,13 @@ class VRMFilamentConverter @Inject constructor() {
             hasBoneIndices = hasBoneWeights
         )
     }
-    
+
     /**
      * Process materials from VRM model
      */
     private fun processMaterials(vrmModel: VRMModel): List<FilamentMaterial> {
         Log.d(TAG, "Processing ${vrmModel.materialNames.size} materials")
-        
+
         return vrmModel.materialNames.mapIndexed { index, materialName ->
             FilamentMaterial(
                 name = materialName,
@@ -205,7 +207,11 @@ class VRMFilamentConverter @Inject constructor() {
                 emissiveFactor = floatArrayOf(0f, 0f, 0f),
                 baseColorTexture = findTextureForMaterial(materialName, "baseColor", vrmModel),
                 normalTexture = findTextureForMaterial(materialName, "normal", vrmModel),
-                metallicRoughnessTexture = findTextureForMaterial(materialName, "metallicRoughness", vrmModel),
+                metallicRoughnessTexture = findTextureForMaterial(
+                    materialName,
+                    "metallicRoughness",
+                    vrmModel
+                ),
                 emissiveTexture = findTextureForMaterial(materialName, "emissive", vrmModel),
                 occlusionTexture = findTextureForMaterial(materialName, "occlusion", vrmModel),
                 doubleSided = true,
@@ -214,11 +220,15 @@ class VRMFilamentConverter @Inject constructor() {
             )
         }
     }
-    
+
     /**
      * Find texture for a specific material and type
      */
-    private fun findTextureForMaterial(materialName: String, textureType: String, vrmModel: VRMModel): String? {
+    private fun findTextureForMaterial(
+        materialName: String,
+        textureType: String,
+        vrmModel: VRMModel
+    ): String? {
         // Look for texture with naming convention: materialName_textureType
         val possibleNames = listOf(
             "${materialName}_${textureType}",
@@ -226,18 +236,18 @@ class VRMFilamentConverter @Inject constructor() {
             "${materialName}.${textureType}",
             materialName // Fallback to material name
         )
-        
+
         return possibleNames.firstOrNull { textureName ->
             vrmModel.textureData.containsKey(textureName)
         }
     }
-    
+
     /**
      * Process textures from VRM model
      */
     private fun processTextures(textureData: Map<String, ByteArray>): List<FilamentTexture> {
         Log.d(TAG, "Processing ${textureData.size} textures")
-        
+
         return textureData.map { (name, data) ->
             FilamentTexture(
                 name = name,
@@ -250,21 +260,21 @@ class VRMFilamentConverter @Inject constructor() {
             )
         }
     }
-    
+
     /**
      * Detect texture format from data
      */
     private fun detectTextureFormat(data: ByteArray): TextureFormat {
         return when {
-            data.size >= 4 && data[0] == 0x89.toByte() && data[1] == 0x50.toByte() && 
-            data[2] == 0x4E.toByte() && data[3] == 0x47.toByte() -> TextureFormat.PNG
-            
+            data.size >= 4 && data[0] == 0x89.toByte() && data[1] == 0x50.toByte() &&
+                    data[2] == 0x4E.toByte() && data[3] == 0x47.toByte() -> TextureFormat.PNG
+
             data.size >= 2 && data[0] == 0xFF.toByte() && data[1] == 0xD8.toByte() -> TextureFormat.JPEG
-            
+
             else -> TextureFormat.UNKNOWN
         }
     }
-    
+
     /**
      * Check if texture is a color texture (should use sRGB)
      */
@@ -273,7 +283,7 @@ class VRMFilamentConverter @Inject constructor() {
         val lowerName = textureName.lowercase()
         return colorKeywords.any { keyword -> lowerName.contains(keyword) }
     }
-    
+
     /**
      * Extract mesh data from VRM binary data
      */
@@ -281,7 +291,7 @@ class VRMFilamentConverter @Inject constructor() {
         // This is a placeholder implementation
         // In a real implementation, this would parse the VRM/GLTF binary data
         Log.d(TAG, "Extracting mesh data from ${meshData.size} bytes")
-        
+
         // For now, return empty mesh data
         // TODO: Implement actual VRM/GLTF parsing
         return MeshData.empty()
@@ -300,11 +310,11 @@ data class FilamentMeshData(
     val totalTriangles: Int
 ) {
     fun isEmpty(): Boolean = meshes.isEmpty()
-    
+
     fun getMesh(name: String): FilamentMesh? = meshes.find { it.name == name }
-    
+
     fun getMaterial(name: String): FilamentMaterial? = materials.find { it.name == name }
-    
+
     fun getTexture(name: String): FilamentTexture? = textures.find { it.name == name }
 }
 
@@ -392,7 +402,6 @@ data class FilamentMaterial(
         return result
     }
 }
-
 
 
 /**

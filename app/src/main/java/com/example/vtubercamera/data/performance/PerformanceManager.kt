@@ -69,7 +69,7 @@ class PerformanceManager @Inject constructor(
                 
                 // 自動最適化の実行
                 if (performanceOptimizer.settings.value.autoOptimization) {
-                    handleAutomaticOptimization(memory, frameRate, battery, qualityAdjustment)
+                    handleAutomaticOptimization(memory, battery, qualityAdjustment)
                 }
                 
                 // 総合ステータスの更新
@@ -94,7 +94,7 @@ class PerformanceManager @Inject constructor(
     /**
      * パフォーマンス状態を更新
      */
-    private suspend fun updatePerformanceStatus() {
+    private fun updatePerformanceStatus() {
         performanceMonitor.updateMemoryState()
         
         val batteryInfo = batteryMonitor.batteryInfo.value
@@ -113,7 +113,6 @@ class PerformanceManager @Inject constructor(
      */
     private fun handleAutomaticOptimization(
         memory: MemoryState,
-        frameRate: FrameRateData,
         battery: BatteryInfo,
         qualityAdjustment: QualityAdjustment
     ) {

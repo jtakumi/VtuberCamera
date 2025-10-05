@@ -1,7 +1,6 @@
 package com.example.vtubercamera.ui.screens
 
 import android.Manifest
-import android.content.res.Configuration
 import android.util.Log
 import android.view.ViewGroup
 import android.widget.Toast
@@ -14,49 +13,75 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Accessibility
+import androidx.compose.material.icons.filled.Cameraswitch
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.EmojiEmotions
+import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.FlashAuto
+import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.OpenWith
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.vtubercamera.R
+import com.example.vtubercamera.ui.components.AvatarTransformPanel
 import com.example.vtubercamera.ui.components.ExpressionControlPanel
 import com.example.vtubercamera.ui.components.ExpressionSelectionMenu
-import com.example.vtubercamera.ui.components.PoseSelectionMenu
-import com.example.vtubercamera.ui.components.AvatarTransformPanel
 import com.example.vtubercamera.ui.components.LightingControlPanel
 import com.example.vtubercamera.ui.components.PermissionRequestComponent
 import com.example.vtubercamera.ui.components.PoseControlPanel
+import com.example.vtubercamera.ui.components.PoseSelectionMenu
 import com.example.vtubercamera.ui.modifiers.modernCameraGestures
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 import com.example.vtubercamera.utils.PermissionUtils
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 
 /**
  * AR Camera Screen for VTuber avatar recording and interaction
@@ -71,10 +96,9 @@ fun ARCameraScreen(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val configuration = LocalConfiguration.current
+    LocalConfiguration.current
 
     // Collect state from ViewModel
-    val isARMode by viewModel.isARMode.collectAsStateWithLifecycle()
     // For now, use a local state for recording since the method might not exist yet
     var isRecording by remember { mutableStateOf(false) }
     val flashMode by viewModel.flashMode.collectAsStateWithLifecycle()
@@ -108,13 +132,11 @@ fun ARCameraScreen(
     ) { isGranted ->
         hasCameraPermission = isGranted
         if (!isGranted) {
-            Toast.makeText(context, "Camera permission required for AR mode", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Camera permission required for AR mode", Toast.LENGTH_LONG)
+                .show()
         }
     }
 
-    // Camera provider
-    var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
-    var camera by remember { mutableStateOf<Camera?>(null) }
 
     LaunchedEffect(Unit) {
         // Initialize AR mode
@@ -176,7 +198,9 @@ fun ARCameraScreen(
                                 onDismissRequest = { showExpressionMenu = false },
                                 onExpressionSelected = { expr ->
                                     showExpressionMenu = false
-                                    if (expr == null) viewModel.clearExpression() else viewModel.selectExpression(expr)
+                                    if (expr == null) viewModel.clearExpression() else viewModel.selectExpression(
+                                        expr
+                                    )
                                 }
                             )
                         }
@@ -196,7 +220,9 @@ fun ARCameraScreen(
                                 onDismissRequest = { showPoseMenu = false },
                                 onPoseSelected = { pose ->
                                     showPoseMenu = false
-                                    if (pose == null) viewModel.clearPose() else viewModel.selectPose(pose)
+                                    if (pose == null) viewModel.clearPose() else viewModel.selectPose(
+                                        pose
+                                    )
                                 }
                             )
                         }
@@ -235,8 +261,6 @@ fun ARCameraScreen(
                 flashMode = flashMode,
                 zoomRatio = zoomRatio,
                 onCameraReady = { provider, cam ->
-                    cameraProvider = provider
-                    camera = cam
                     viewModel.setCamera(cam)
                 },
                 modifier = Modifier
@@ -547,7 +571,7 @@ private fun ARCameraPreview(
                 val preview = Preview.Builder()
                     .build()
                     .also {
-                        it.setSurfaceProvider(previewView.surfaceProvider)
+                        it.surfaceProvider = previewView.surfaceProvider
                     }
 
                 val imageCapture = ImageCapture.Builder()

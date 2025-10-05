@@ -130,8 +130,15 @@ class CameraViewModel @Inject constructor(
         // Initialize AR state observation
         initializeARStateObservation()
 
-        // Initialize avatar library
-        initializeAvatarLibrary()
+        // Initialize avatar library (deferred to avoid initialization race conditions)
+        viewModelScope.launch {
+            try {
+                initializeAvatarLibrary()
+            } catch (e: Exception) {
+                Log.e("CameraViewModel", "Failed to initialize avatar library", e)
+                _avatarLibraryError.value = "Failed to initialize avatar library: ${e.message}"
+            }
+        }
 
         // Initialize avatar control observers
         initializeAvatarControlObservers()
@@ -1041,10 +1048,10 @@ class CameraViewModel @Inject constructor(
      */
     private fun loadAvatarsFromLibrary() {
         viewModelScope.launch {
-            _isLoadingAvatarLibrary.value = true
-            _avatarLibraryError.value = null
-
             try {
+                _isLoadingAvatarLibrary.value = true
+                _avatarLibraryError.value = null
+
                 avatarLibraryManager.getAvatarsSortedBy(_avatarSortBy.value)
                     .catch { error: Throwable ->
                         _avatarLibraryError.value = error.message ?: "Failed to load avatars"
@@ -1056,6 +1063,7 @@ class CameraViewModel @Inject constructor(
                         _avatarLibraryError.value = null
                     }
             } catch (e: Exception) {
+                Log.e("CameraViewModel", "Error in loadAvatarsFromLibrary", e)
                 _avatarLibraryError.value = e.message ?: "Unknown error occurred"
                 _isLoadingAvatarLibrary.value = false
             }
@@ -1100,7 +1108,7 @@ class CameraViewModel @Inject constructor(
                 val avatarInfo = _avatarLibrary.value.find { it.id == avatarId }
                 if (avatarInfo != null) {
                     // Load the avatar from its file path
-                    loadAvatar(android.net.Uri.fromFile(java.io.File(avatarInfo.filePath)))
+                    loadAvatar(Uri.fromFile(java.io.File(avatarInfo.filePath)))
                     Log.d("CameraViewModel", "Selected and loading avatar: ${avatarInfo.name}")
                 } else {
                     _avatarLibraryError.value = "Avatar not found in library"

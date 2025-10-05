@@ -1,6 +1,7 @@
 package com.example.vtubercamera.ui.screens
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.os.Build
 import android.util.Log
@@ -63,8 +64,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.vtubercamera.R
 import com.example.vtubercamera.ui.components.AsyncImage
@@ -81,13 +83,15 @@ import com.example.vtubercamera.ui.modifiers.modernCameraGestures
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 import com.example.vtubercamera.utils.PermissionUtils
 
+@SuppressLint("LocalContextResourcesRead")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CameraScreen(
     viewModel: CameraViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    val resource = context.resources
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     // デバイス設定の読み取り
     val configuration = LocalConfiguration.current
@@ -187,7 +191,7 @@ fun CameraScreen(
                     viewModel.deleteSelectedPhotos { deletedCount ->
                         Toast.makeText(
                             context,
-                            context.resources.getQuantityString(
+                            resource.getQuantityString(
                                 R.plurals.photos_deleted_count,
                                 deletedCount,
                                 deletedCount
@@ -612,7 +616,7 @@ fun CameraScreen(
                         // Lens switch hint (shown when switching is available)
                         if (canSwitchLens) {
                             LensSwitchHint(
-                                canSwitchLens = canSwitchLens,
+                                canSwitchLens = true,
                                 modifier = Modifier
                                     .align(Alignment.TopCenter)
                                     .padding(top = 60.dp)

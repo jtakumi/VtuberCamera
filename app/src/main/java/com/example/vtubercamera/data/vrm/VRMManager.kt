@@ -103,7 +103,7 @@ class VRMManager @Inject constructor(
             
             meshCache[modelId] = meshData
             meshData
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             MeshData.empty()
         }
     }
@@ -123,7 +123,7 @@ class VRMManager @Inject constructor(
             
             textureCache[modelId] = textureData
             textureData
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             TextureData.empty()
         }
     }
@@ -152,7 +152,7 @@ class VRMManager @Inject constructor(
             
             expressionCache[modelId] = expressionData
             expressionData
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             ExpressionData.empty()
         }
     }
@@ -175,7 +175,7 @@ class VRMManager @Inject constructor(
             
             poseCache[modelId] = poseData
             poseData
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // Use the poses from the model
             PoseData(
                 poses = vrmModel.poses,

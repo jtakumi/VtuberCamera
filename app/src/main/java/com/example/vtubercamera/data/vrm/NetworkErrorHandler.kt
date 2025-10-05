@@ -175,7 +175,7 @@ class NetworkErrorHandler @Inject constructor(
     /**
      * Handle file download errors specifically
      */
-    suspend fun handleFileDownloadError(
+    fun handleFileDownloadError(
         error: Exception,
         fileName: String,
         fileUrl: String
@@ -206,7 +206,7 @@ class NetworkErrorHandler @Inject constructor(
     /**
      * Handle VRM file upload errors
      */
-    suspend fun handleVRMUploadError(
+    fun handleVRMUploadError(
         error: Exception,
         fileName: String,
         fileSize: Long

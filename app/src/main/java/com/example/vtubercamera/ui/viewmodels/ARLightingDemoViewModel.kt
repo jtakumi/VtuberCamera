@@ -110,7 +110,6 @@ class ARLightingDemoViewModel @Inject constructor(
     private fun simulateEnvironmentLighting(environmentLighting: EnvironmentLighting) {
         // Create a mock LightEstimate-like object
         // In real implementation, this would be an actual ARCore LightEstimate
-        val mockLightEstimate = MockLightEstimate(environmentLighting.intensity)
         
         // Update lighting system (this would normally be called from ARRenderer)
         // For demo purposes, we'll directly update the environment lighting
@@ -143,13 +142,4 @@ class ARLightingDemoViewModel @Inject constructor(
             ambientIntensity = environmentLighting.ambientIntensity
         )
     }
-}
-
-/**
- * Mock LightEstimate for demo purposes
- * In real implementation, this would be the actual ARCore LightEstimate
- */
-private class MockLightEstimate(private val intensity: Float) {
-    val pixelIntensity: Float get() = intensity
-    val environmentalHdrMainLightDirection: FloatArray? get() = null
 }

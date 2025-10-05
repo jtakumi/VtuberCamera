@@ -372,11 +372,7 @@ class AvatarController @Inject constructor() {
         // Create blended expression
         var blendedExpression: Expression? = null
         for ((expression, weight) in normalizedExpressions) {
-            blendedExpression = if (blendedExpression == null) {
-                expression.withScaledWeights(weight)
-            } else {
-                blendedExpression.blendWith(expression, weight)
-            }
+            blendedExpression = blendedExpression?.blendWith(expression, weight) ?: expression.withScaledWeights(weight)
         }
         
         blendedExpression?.let { setExpression(it) }

@@ -5,29 +5,30 @@ import android.util.Log
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
+import com.example.vtubercamera.data.vrm.ARCameraState
+import com.example.vtubercamera.data.vrm.ARError
+import com.example.vtubercamera.data.vrm.ARSessionState
+import com.example.vtubercamera.data.vrm.LightEstimate
+import com.example.vtubercamera.data.vrm.TrackingQuality
+import com.example.vtubercamera.data.vrm.math.Quaternion
+import com.example.vtubercamera.data.vrm.math.Vector3
 import com.google.ar.core.ArCoreApk
 import com.google.ar.core.Config
 import com.google.ar.core.Frame
 import com.google.ar.core.Session
-import com.google.ar.core.Camera as ArCamera
-import com.google.ar.core.TrackingState as ArTrackingState
-import com.google.ar.core.exceptions.*
+import com.google.ar.core.exceptions.UnavailableApkTooOldException
+import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException
+import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException
+import com.google.ar.core.exceptions.UnavailableSdkTooOldException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
-import com.example.vtubercamera.data.vrm.ARSessionState
-import com.example.vtubercamera.data.vrm.ARCameraState
-import com.example.vtubercamera.data.vrm.ARError
-import com.example.vtubercamera.data.vrm.TrackingQuality
-import com.example.vtubercamera.data.vrm.LightEstimate
-import com.example.vtubercamera.data.vrm.math.Vector3
-import com.example.vtubercamera.data.vrm.math.Quaternion
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.coroutines.resume
+import com.google.ar.core.Camera as ArCamera
+import com.google.ar.core.TrackingState as ArTrackingState
 
 
 @Singleton
@@ -35,29 +36,34 @@ class ARRepositoryImpl @Inject constructor(
     private val errorHandler: com.example.vtubercamera.data.vrm.ErrorHandler,
     private val errorNotificationManager: com.example.vtubercamera.data.vrm.ErrorNotificationManager
 ) : ARRepository {
-    
+
     private companion object {
         private const val TAG = "ARRepositoryImpl"
     }
-    
+
     private var arSession: Session? = null
     private var sessionConfig: Config? = null
     private var lifecycleOwner: LifecycleOwner? = null
-    
+
     private val _sessionState = MutableStateFlow(ARSessionState())
     override val sessionState: StateFlow<ARSessionState> = _sessionState.asStateFlow()
-    
+
     private val _cameraState = MutableStateFlow(ARCameraState.default())
     override val cameraState: StateFlow<ARCameraState> = _cameraState.asStateFlow()
-    
-    private val _trackingState = MutableStateFlow(com.example.vtubercamera.data.vrm.TrackingState.STOPPED)
-    override val trackingState: StateFlow<com.example.vtubercamera.data.vrm.TrackingState> = _trackingState.asStateFlow()
-    
-    private val _lightEstimate = MutableStateFlow<com.example.vtubercamera.data.vrm.LightEstimate?>(null)
-    override val lightEstimate: StateFlow<com.example.vtubercamera.data.vrm.LightEstimate?> = _lightEstimate.asStateFlow()
-    
-    private var trackingStateListener: ((com.example.vtubercamera.data.vrm.TrackingState) -> Unit)? = null
-    
+
+    private val _trackingState =
+        MutableStateFlow(com.example.vtubercamera.data.vrm.TrackingState.STOPPED)
+    override val trackingState: StateFlow<com.example.vtubercamera.data.vrm.TrackingState> =
+        _trackingState.asStateFlow()
+
+    private val _lightEstimate =
+        MutableStateFlow<LightEstimate?>(null)
+    override val lightEstimate: StateFlow<LightEstimate?> =
+        _lightEstimate.asStateFlow()
+
+    private var trackingStateListener: ((com.example.vtubercamera.data.vrm.TrackingState) -> Unit)? =
+        null
+
     private val lifecycleObserver = LifecycleEventObserver { _, event ->
         when (event) {
             Lifecycle.Event.ON_PAUSE -> pauseSession()
@@ -66,7 +72,7 @@ class ARRepositoryImpl @Inject constructor(
             else -> {}
         }
     }
-    
+
     override fun initializeSession(
         context: Context,
         lifecycleOwner: LifecycleOwner,
@@ -75,29 +81,29 @@ class ARRepositoryImpl @Inject constructor(
     ) {
         try {
             Log.d(TAG, "Initializing AR session...")
-            
+
             this.lifecycleOwner = lifecycleOwner
             lifecycleOwner.lifecycle.addObserver(lifecycleObserver)
-            
+
             if (!isARCoreSupportedAndUpToDate(context)) {
                 onError(ARError.UnsupportedDevice("ARCore is not supported on this device"))
                 return
             }
-            
+
             arSession = Session(context, setOf()).apply {
                 val config = createSessionConfig(this)
                 configure(config)
                 sessionConfig = config
             }
-            
+
             _sessionState.value = _sessionState.value.copy(
                 isInitialized = true,
                 trackingState = com.example.vtubercamera.data.vrm.TrackingState.PAUSED
             )
-            
+
             Log.d(TAG, "AR session initialized successfully")
             onSessionReady()
-            
+
         } catch (e: UnavailableArcoreNotInstalledException) {
             Log.e(TAG, "ARCore not installed", e)
             val error = ARError.ARCoreNotInstalled
@@ -135,23 +141,25 @@ class ARRepositoryImpl @Inject constructor(
             onError(error)
         }
     }
-    
+
     override fun pauseSession() {
         try {
             arSession?.pause()
-            _sessionState.value = _sessionState.value.copy(trackingState = com.example.vtubercamera.data.vrm.TrackingState.PAUSED)
+            _sessionState.value =
+                _sessionState.value.copy(trackingState = com.example.vtubercamera.data.vrm.TrackingState.PAUSED)
             _trackingState.value = com.example.vtubercamera.data.vrm.TrackingState.PAUSED
             Log.d(TAG, "AR session paused")
         } catch (e: Exception) {
             Log.e(TAG, "Error pausing AR session", e)
         }
     }
-    
+
     override fun resumeSession() {
         try {
             arSession?.resume()
             if (_sessionState.value.isInitialized) {
-                _sessionState.value = _sessionState.value.copy(trackingState = com.example.vtubercamera.data.vrm.TrackingState.TRACKING)
+                _sessionState.value =
+                    _sessionState.value.copy(trackingState = com.example.vtubercamera.data.vrm.TrackingState.TRACKING)
                 _trackingState.value = com.example.vtubercamera.data.vrm.TrackingState.TRACKING
             }
             Log.d(TAG, "AR session resumed")
@@ -159,7 +167,7 @@ class ARRepositoryImpl @Inject constructor(
             Log.e(TAG, "Error resuming AR session", e)
         }
     }
-    
+
     override fun destroySession() {
         try {
             lifecycleOwner?.lifecycle?.removeObserver(lifecycleObserver)
@@ -167,18 +175,18 @@ class ARRepositoryImpl @Inject constructor(
             arSession = null
             sessionConfig = null
             lifecycleOwner = null
-            
+
             _sessionState.value = ARSessionState()
             _cameraState.value = ARCameraState.default()
             _trackingState.value = com.example.vtubercamera.data.vrm.TrackingState.STOPPED
             _lightEstimate.value = null
-            
+
             Log.d(TAG, "AR session destroyed")
         } catch (e: Exception) {
             Log.e(TAG, "Error destroying AR session", e)
         }
     }
-    
+
     override fun enablePlaneDetection(enabled: Boolean) {
         sessionConfig?.let { config ->
             config.planeFindingMode = if (enabled) {
@@ -187,19 +195,19 @@ class ARRepositoryImpl @Inject constructor(
                 Config.PlaneFindingMode.DISABLED
             }
             arSession?.configure(config)
-            
+
             _sessionState.value = _sessionState.value.copy(planeDetection = enabled)
             Log.d(TAG, "Plane detection ${if (enabled) "enabled" else "disabled"}")
         }
     }
-    
+
     override fun enableEnvironmentalHDR(enabled: Boolean) {
         sessionConfig?.let { config ->
             // Check if Environmental HDR is supported by creating a test config
             val testConfig = Config(arSession!!).apply {
                 lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
             }
-            
+
             if (arSession?.isSupported(testConfig) == true) {
                 config.lightEstimationMode = if (enabled) {
                     Config.LightEstimationMode.ENVIRONMENTAL_HDR
@@ -207,7 +215,7 @@ class ARRepositoryImpl @Inject constructor(
                     Config.LightEstimationMode.AMBIENT_INTENSITY
                 }
                 arSession?.configure(config)
-                
+
                 _sessionState.value = _sessionState.value.copy(environmentalHDR = enabled)
                 Log.d(TAG, "Environmental HDR ${if (enabled) "enabled" else "disabled"}")
             } else {
@@ -215,7 +223,7 @@ class ARRepositoryImpl @Inject constructor(
             }
         }
     }
-    
+
     override fun enableLightEstimation(enabled: Boolean) {
         sessionConfig?.let { config ->
             config.lightEstimationMode = if (enabled) {
@@ -239,23 +247,25 @@ class ARRepositoryImpl @Inject constructor(
             Log.d(TAG, "Light estimation ${if (enabled) "enabled" else "disabled"}")
         }
     }
-    
+
     override fun isSessionInitialized(): Boolean = _sessionState.value.isInitialized
-    
-    override fun getCurrentTrackingState(): com.example.vtubercamera.data.vrm.TrackingState = _trackingState.value
-    
+
+    override fun getCurrentTrackingState(): com.example.vtubercamera.data.vrm.TrackingState =
+        _trackingState.value
+
     override fun getCurrentCameraState(): ARCameraState = _cameraState.value
-    
-    override fun getCurrentLightEstimate(): com.example.vtubercamera.data.vrm.LightEstimate? = _lightEstimate.value
-    
+
+    override fun getCurrentLightEstimate(): LightEstimate? =
+        _lightEstimate.value
+
     override fun setTrackingStateListener(listener: (com.example.vtubercamera.data.vrm.TrackingState) -> Unit) {
         trackingStateListener = listener
     }
-    
+
     override fun removeTrackingStateListener() {
         trackingStateListener = null
     }
-    
+
     override fun configureSession(
         planeDetectionEnabled: Boolean,
         lightEstimationEnabled: Boolean,
@@ -264,30 +274,33 @@ class ARRepositoryImpl @Inject constructor(
         enablePlaneDetection(planeDetectionEnabled)
         enableEnvironmentalHDR(environmentalHDREnabled)
         enableLightEstimation(lightEstimationEnabled)
-        Log.d(TAG, "Session configured - Plane: $planeDetectionEnabled, Light: $lightEstimationEnabled, HDR: $environmentalHDREnabled")
+        Log.d(
+            TAG,
+            "Session configured - Plane: $planeDetectionEnabled, Light: $lightEstimationEnabled, HDR: $environmentalHDREnabled"
+        )
     }
-    
+
     override suspend fun waitForTracking(timeoutMs: Long): Boolean {
         return withTimeoutOrNull(timeoutMs) {
             trackingState.first { it == com.example.vtubercamera.data.vrm.TrackingState.TRACKING }
             true
         } ?: false
     }
-    
+
     fun updateSessionState(frame: Frame) {
         try {
             val camera = frame.camera
             val cameraTrackingState = camera.trackingState
-            
+
             updateTrackingState(cameraTrackingState)
             updateCameraState(camera)
             updateLightEstimate(frame)
-            
+
         } catch (e: Exception) {
             Log.e(TAG, "Error updating session state", e)
         }
     }
-    
+
     private fun updateTrackingState(cameraTrackingState: ArTrackingState) {
         // Map ARCore tracking state to our internal tracking state
         val newState = when (cameraTrackingState.name) {
@@ -296,29 +309,29 @@ class ARRepositoryImpl @Inject constructor(
             "TRACKING" -> com.example.vtubercamera.data.vrm.TrackingState.TRACKING
             else -> com.example.vtubercamera.data.vrm.TrackingState.STOPPED
         }
-        
+
         if (_trackingState.value != newState) {
             _trackingState.value = newState
             _sessionState.value = _sessionState.value.copy(trackingState = newState)
             trackingStateListener?.invoke(newState)
         }
     }
-    
+
     private fun updateCameraState(camera: ArCamera) {
         val pose = camera.pose
         val position = Vector3(pose.tx(), pose.ty(), pose.tz())
         val rotation = Quaternion(pose.qx(), pose.qy(), pose.qz(), pose.qw())
-        
+
         // Default FOV when intrinsics are not available
         val fovDegrees = 60.0f
-        
+
         val trackingQuality = when (camera.trackingState.name) {
             "TRACKING" -> TrackingQuality.GOOD
             "PAUSED" -> TrackingQuality.POOR
             "STOPPED" -> TrackingQuality.UNKNOWN
             else -> TrackingQuality.UNKNOWN
         }
-        
+
         val newCameraState = _cameraState.value.copy(
             position = position,
             rotation = rotation,
@@ -327,23 +340,24 @@ class ARRepositoryImpl @Inject constructor(
             trackingQuality = trackingQuality,
             lastUpdateTimestamp = System.currentTimeMillis()
         )
-        
+
         _cameraState.value = newCameraState
     }
-    
+
     private fun updateLightEstimate(frame: Frame) {
         try {
             val lightEstimate = frame.lightEstimate
             val pixelIntensity = lightEstimate.pixelIntensity
-            
+
             if (pixelIntensity > 0) {
-                val colorCorrection = floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f) // Default color correction
+                val colorCorrection =
+                    floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f) // Default color correction
                 val estimate = LightEstimate(
                     pixelIntensity = pixelIntensity,
                     colorCorrection = colorCorrection,
                     timestamp = System.currentTimeMillis()
                 )
-                
+
                 _lightEstimate.value = estimate
                 _sessionState.value = _sessionState.value.copy(lightEstimate = estimate)
             }
@@ -351,7 +365,7 @@ class ARRepositoryImpl @Inject constructor(
             Log.w(TAG, "Could not get light estimate", e)
         }
     }
-    
+
     private fun isARCoreSupportedAndUpToDate(context: Context): Boolean {
         return when (ArCoreApk.getInstance().checkAvailability(context)) {
             ArCoreApk.Availability.SUPPORTED_INSTALLED -> true
@@ -360,13 +374,14 @@ class ARRepositoryImpl @Inject constructor(
                 Log.i(TAG, "ARCore is supported but needs installation/update")
                 false
             }
+
             else -> {
                 Log.w(TAG, "ARCore is not supported on this device")
                 false
             }
         }
     }
-    
+
     private fun createSessionConfig(session: Session): Config {
         return Config(session).apply {
             planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
