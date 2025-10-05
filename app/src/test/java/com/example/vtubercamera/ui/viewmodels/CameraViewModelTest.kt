@@ -33,7 +33,10 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -99,7 +102,7 @@ class CameraViewModelTest {
         // Setup AR repository mock returns
         whenever(mockARRepository.sessionState).thenReturn(MutableStateFlow(ARSessionState()))
         whenever(mockARRepository.cameraState).thenReturn(MutableStateFlow(ARCameraState.default()))
-        whenever(mockARRepository.trackingState).thenReturn(MutableStateFlow(TrackingState.NOT_TRACKING))
+        whenever(mockARRepository.trackingState).thenReturn(MutableStateFlow(TrackingState.STOPPED))
 
         // Setup controller mock returns
         whenever(mockExpressionController.currentExpression).thenReturn(MutableStateFlow(null))
