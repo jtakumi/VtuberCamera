@@ -143,7 +143,7 @@ dependencies {
     // implementation 'io.github.ux-builder:vrm4j:1.0.0'  // Commented out due to availability
     
     // Additional math and 3D utilities
-    implementation 'org.joml:joml:1.10.5'  // Java OpenGL Math Library
+    implementation 'org.joml:joml:1.10.8'  // Java OpenGL Math Library
     
     // JSON parsing for VRM metadata
     implementation 'com.google.code.gson:gson:2.10.1'
