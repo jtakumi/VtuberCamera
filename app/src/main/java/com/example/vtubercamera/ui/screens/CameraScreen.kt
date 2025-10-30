@@ -103,7 +103,7 @@ fun CameraScreen(
     val uiMode = configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
     uiMode == Configuration.UI_MODE_NIGHT_YES
     val cameraSelector by viewModel.cameraSelector.collectAsStateWithLifecycle()
-    val lastCapturedImageUri by viewModel.lastCapturedImageUri.collectAsStateWithLifecycle()
+    val latestLibraryPhotoUri by viewModel.latestLibraryPhotoUri.collectAsStateWithLifecycle()
     val isPreviewMode by viewModel.isPreviewMode.collectAsStateWithLifecycle()
     val flashMode by viewModel.flashMode.collectAsStateWithLifecycle()
     val zoomRatio by viewModel.zoomRatio.collectAsStateWithLifecycle()
@@ -184,6 +184,11 @@ fun CameraScreen(
     }
 
     if (showDeleteConfirmDialog) {
+        val deleteDialogMessage = if (isSelectionMode && selectedPhotos.isNotEmpty()) {
+            stringResource(R.string.delete_selected_library_photos_message)
+        } else {
+            stringResource(R.string.delete_library_photo_message)
+        }
         DeleteConfirmDialog(
             onDismiss = { showDeleteConfirmDialog = false },
             onConfirm = {
@@ -200,7 +205,7 @@ fun CameraScreen(
                         ).show()
                     }
                 } else {
-                    lastCapturedImageUri?.let { uri ->
+                    latestLibraryPhotoUri?.let { uri ->
                         viewModel.deletePhoto(uri) { success ->
                             if (success) {
                                 Toast.makeText(
@@ -208,7 +213,7 @@ fun CameraScreen(
                                     R.string.photo_deleted_successfully,
                                     Toast.LENGTH_SHORT
                                 ).show()
-                                viewModel.clearLastCapturedImage()
+                                viewModel.exitPreviewMode()
                             } else {
                                 Toast.makeText(
                                     context,
@@ -220,7 +225,8 @@ fun CameraScreen(
                     }
                 }
                 showDeleteConfirmDialog = false
-            }
+            },
+            text = deleteDialogMessage
         )
     }
 
@@ -374,9 +380,9 @@ fun CameraScreen(
                     )
                 }
 
-                isPreviewMode -> {
+                isPreviewMode && latestLibraryPhotoUri != null -> {
                     PhotoPreviewComponent(
-                        imageUri = lastCapturedImageUri.toString(),
+                        imageUri = latestLibraryPhotoUri.toString(),
                         onDelete = { showDeleteConfirmDialog = true },
                         onBack = { viewModel.exitPreviewMode() }
                     )
@@ -575,15 +581,18 @@ fun CameraScreen(
                                 contentDescription = stringResource(R.string.take_photo)
                             )
                         }
-                        // 最後に撮影した写真のサムネイル
-                        lastCapturedImageUri?.let { uri ->
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .padding(16.dp)
-                                    .size(80.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .pointerInput(Unit) {
+                        val canInteractWithThumbnail =
+                            hasMediaPermissions && latestLibraryPhotoUri != null
+                        val thumbnailModifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp)
+                            .size(80.dp)
+                            .clip(RoundedCornerShape(8.dp))
+
+                        Box(
+                            modifier = thumbnailModifier.then(
+                                if (canInteractWithThumbnail) {
+                                    Modifier.pointerInput(latestLibraryPhotoUri) {
                                         detectTapGestures(
                                             onLongPress = {
                                                 showDeleteConfirmDialog = true
@@ -593,13 +602,33 @@ fun CameraScreen(
                                             }
                                         )
                                     }
-                            ) {
+                                } else {
+                                    Modifier
+                                }
+                            )
+                        ) {
+                            if (canInteractWithThumbnail) {
                                 AsyncImage(
-                                    model = uri,
-                                    contentDescription = stringResource(R.string.last_captured_photo),
+                                    model = latestLibraryPhotoUri,
+                                    contentDescription = stringResource(R.string.latest_library_photo),
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
                                 )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(
+                                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Photo,
+                                        contentDescription = stringResource(R.string.latest_library_photo),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    )
+                                }
                             }
                         }
 

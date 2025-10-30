@@ -81,6 +81,11 @@ class CameraViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = null
     )
+    val latestLibraryPhotoUri: StateFlow<Uri?> = _uiState.map { it.latestLibraryPhotoUri }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = null
+    )
     val isPreviewMode: StateFlow<Boolean> = _uiState.map { it.isPreviewMode }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -347,6 +352,12 @@ class CameraViewModel @Inject constructor(
             }
         }
 
+        viewModelScope.launch {
+            mediaRepository.getLatestPhotoUri().collect { latestUri ->
+                updateUiState { copy(latestLibraryPhotoUri = latestUri) }
+            }
+        }
+
         // Initialize camera capabilities
         initializeCameraCapabilities()
 
@@ -486,7 +497,12 @@ class CameraViewModel @Inject constructor(
                 imageCapture = imageCapture,
                 onPhotoSaved = { uri ->
                     val msg = "写真を保存しました: $uri"
-                    updateUiState { copy(lastCapturedImageUri = uri) }
+                    updateUiState {
+                        copy(
+                            lastCapturedImageUri = uri,
+                            latestLibraryPhotoUri = uri
+                        )
+                    }
                     onPhotoSaved(msg)
                     refreshPhotos()
                 },
@@ -496,7 +512,9 @@ class CameraViewModel @Inject constructor(
     }
 
     fun enterPreviewMode() {
-        updateUiState { copy(isPreviewMode = true) }
+        if (_uiState.value.latestLibraryPhotoUri != null) {
+            updateUiState { copy(isPreviewMode = true) }
+        }
     }
 
     fun exitPreviewMode() {
@@ -539,13 +557,16 @@ class CameraViewModel @Inject constructor(
                 val success = mediaRepository.deletePhoto(uri)
                 if (success) {
                     Log.d("CameraViewModel", "写真を削除しました: $uri")
-                    // 削除した写真が現在表示中の写真と同じ場合は状態をクリア
-                    if (uri == _uiState.value.lastCapturedImageUri) {
-                        updateUiState { 
+                    val currentState = _uiState.value
+                    val shouldClearLastCaptured = uri == currentState.lastCapturedImageUri
+                    val shouldClearLatest = uri == currentState.latestLibraryPhotoUri
+                    if (shouldClearLastCaptured || shouldClearLatest) {
+                        updateUiState {
                             copy(
-                                lastCapturedImageUri = null,
-                                isPreviewMode = false,
-                                needsCameraRebind = true
+                                lastCapturedImageUri = if (shouldClearLastCaptured) null else lastCapturedImageUri,
+                                latestLibraryPhotoUri = if (shouldClearLatest) null else latestLibraryPhotoUri,
+                                isPreviewMode = if (shouldClearLatest) false else isPreviewMode,
+                                needsCameraRebind = if (shouldClearLastCaptured) true else needsCameraRebind
                             )
                         }
                     }
@@ -588,9 +609,6 @@ class CameraViewModel @Inject constructor(
             updateUiState { copy(isLoadingPhotos = true) }
             try {
                 mediaRepository.refreshPhotos()
-                // Update last captured image URI with the latest photo
-                val photos = _uiState.value.allPhotos
-                updateUiState { copy(lastCapturedImageUri = photos.firstOrNull()?.uri) }
             } catch (_: Exception) {
             } finally {
                 updateUiState { copy(isLoadingPhotos = false) }
