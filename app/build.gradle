@@ -165,4 +165,5 @@ dependencies {
     kaptAndroidTest 'com.google.dagger:hilt-android-compiler:2.57.2'
     debugImplementation "androidx.compose.ui:ui-tooling:$compose_version"
     debugImplementation 'androidx.compose.ui:ui-test-manifest'
+    implementation "org.jetbrains.kotlin:kotlin-test:2.2.20"
 }
