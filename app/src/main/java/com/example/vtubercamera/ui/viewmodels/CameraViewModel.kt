@@ -81,11 +81,6 @@ class CameraViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = null
     )
-    val latestLibraryPhotoUri: StateFlow<Uri?> = _uiState.map { it.latestLibraryPhotoUri }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = null
-    )
     val isPreviewMode: StateFlow<Boolean> = _uiState.map { it.isPreviewMode }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),

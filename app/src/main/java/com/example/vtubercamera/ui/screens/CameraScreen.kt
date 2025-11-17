@@ -103,7 +103,7 @@ fun CameraScreen(
     val uiMode = configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
     uiMode == Configuration.UI_MODE_NIGHT_YES
     val cameraSelector by viewModel.cameraSelector.collectAsStateWithLifecycle()
-    val latestLibraryPhotoUri by viewModel.latestLibraryPhotoUri.collectAsStateWithLifecycle()
+    val latestCapturedImageUri by viewModel.lastCapturedImageUri.collectAsStateWithLifecycle()
     val isPreviewMode by viewModel.isPreviewMode.collectAsStateWithLifecycle()
     val flashMode by viewModel.flashMode.collectAsStateWithLifecycle()
     val zoomRatio by viewModel.zoomRatio.collectAsStateWithLifecycle()
@@ -205,7 +205,7 @@ fun CameraScreen(
                         ).show()
                     }
                 } else {
-                    latestLibraryPhotoUri?.let { uri ->
+                    latestCapturedImageUri?.let { uri ->
                         viewModel.deletePhoto(uri) { success ->
                             if (success) {
                                 Toast.makeText(
@@ -380,9 +380,9 @@ fun CameraScreen(
                     )
                 }
 
-                isPreviewMode && latestLibraryPhotoUri != null -> {
+                isPreviewMode && latestCapturedImageUri != null -> {
                     PhotoPreviewComponent(
-                        imageUri = latestLibraryPhotoUri.toString(),
+                        imageUri = latestCapturedImageUri.toString(),
                         onDelete = { showDeleteConfirmDialog = true },
                         onBack = { viewModel.exitPreviewMode() }
                     )
@@ -582,7 +582,7 @@ fun CameraScreen(
                             )
                         }
                         val canInteractWithThumbnail =
-                            hasMediaPermissions && latestLibraryPhotoUri != null
+                            hasMediaPermissions && latestCapturedImageUri != null
                         val thumbnailModifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(16.dp)
@@ -592,11 +592,9 @@ fun CameraScreen(
                         Box(
                             modifier = thumbnailModifier.then(
                                 if (canInteractWithThumbnail) {
-                                    Modifier.pointerInput(latestLibraryPhotoUri) {
+                                    Modifier.pointerInput(latestCapturedImageUri) {
                                         detectTapGestures(
-                                            onLongPress = {
-                                                showDeleteConfirmDialog = true
-                                            },
+                                            onLongPress = {},
                                             onTap = {
                                                 viewModel.enterPreviewMode()
                                             }
@@ -607,9 +605,9 @@ fun CameraScreen(
                                 }
                             )
                         ) {
-                            if (canInteractWithThumbnail && latestLibraryPhotoUri != null) {
+                            if (canInteractWithThumbnail && latestCapturedImageUri != null) {
                                 AsyncImage(
-                                    model = latestLibraryPhotoUri!!,
+                                    model = latestCapturedImageUri!!,
                                     contentDescription = stringResource(R.string.latest_library_photo),
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
