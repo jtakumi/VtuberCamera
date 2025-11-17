@@ -495,7 +495,6 @@ class CameraViewModel @Inject constructor(
                     updateUiState {
                         copy(
                             lastCapturedImageUri = uri,
-                            latestLibraryPhotoUri = uri
                         )
                     }
                     onPhotoSaved(msg)

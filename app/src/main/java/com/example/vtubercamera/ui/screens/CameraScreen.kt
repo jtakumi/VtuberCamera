@@ -379,7 +379,6 @@ fun CameraScreen(
                         }
                     )
                 }
-
                 isPreviewMode && latestCapturedImageUri != null -> {
                     PhotoPreviewComponent(
                         imageUri = latestCapturedImageUri.toString(),
