@@ -82,13 +82,15 @@ fun PartialAccessDialog(
 @Composable
 fun DeleteConfirmDialog(
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit
+    onConfirm: () -> Unit,
+    text: String? = null
 ) {
+    val message = text ?: stringResource(R.string.delete_photo_message)
     ConfirmationDialog(
         onDismiss = onDismiss,
         onConfirm = onConfirm,
         title = stringResource(R.string.delete_photo_title),
-        text = stringResource(R.string.delete_photo_message),
+        text = message,
         confirmText = stringResource(R.string.delete),
         dismissText = stringResource(R.string.cancel)
     )
@@ -100,7 +102,8 @@ fun DeleteConfirmDialog(
 fun DeleteConfirmDialogPreview() {
     DeleteConfirmDialog(
         onDismiss = {},
-        onConfirm = {}
+        onConfirm = {},
+        text = null
     )
 }
 

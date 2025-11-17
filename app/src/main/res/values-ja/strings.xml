@@ -38,12 +38,14 @@
     <string name="zoom_out">ズームアウト</string>
     <string name="zoom_in">ズームイン</string>
     <string name="take_photo">写真を撮影</string>
-    <string name="last_captured_photo">最後に撮影した写真</string>
+    <string name="latest_library_photo">最新のライブラリ写真</string>
     <string name="camera_preview_title">カメラプレビュー</string>
     <string name="camera_preview_description">実際のカメラ機能はここに表示されます</string>
     <string name="delete_photo_title">写真を削除</string>
     <string name="delete_photo_confirmation">この写真を削除しますか？</string>
     <string name="delete_photo_message">この写真を削除しますか？この操作は元に戻せません。</string>
+    <string name="delete_library_photo_message">このライブラリ写真を端末から削除しますか？この操作は元に戻せません。</string>
+    <string name="delete_selected_library_photos_message">選択したライブラリ写真を端末から削除しますか？この操作は元に戻せません。</string>
     <string name="cancel">キャンセル</string>
     <string name="previous_photo">前の写真</string>
     <string name="next_photo">次の写真</string>

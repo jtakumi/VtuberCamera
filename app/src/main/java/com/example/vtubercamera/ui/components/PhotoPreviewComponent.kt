@@ -28,7 +28,7 @@ fun PhotoPreviewComponent(
     Box(modifier = modifier.fillMaxSize()) {
         AsyncImage(
             model = imageUri,
-            contentDescription = stringResource(R.string.captured_photo),
+            contentDescription = stringResource(R.string.latest_library_photo),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Fit
         )

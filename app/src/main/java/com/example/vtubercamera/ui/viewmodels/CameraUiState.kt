@@ -27,6 +27,7 @@ data class CameraUiState(
     // カメラ基本設定
     val cameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA,
     val lastCapturedImageUri: Uri? = null,
+    val latestLibraryPhotoUri: Uri? = null,
     val isPreviewMode: Boolean = false,
     val flashMode: Int = ImageCapture.FLASH_MODE_OFF,
     val zoomRatio: Float = 1.0f,
