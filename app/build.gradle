@@ -84,8 +84,8 @@ android {
 
 dependencies {
     implementation 'androidx.lifecycle:lifecycle-viewmodel-android:2.9.4'
-    implementation 'androidx.wear.compose:compose-material3:1.5.2'
-    def camerax_version = "1.5.0"
+    implementation 'androidx.wear.compose:compose-material3:1.5.3'
+    def camerax_version = "1.5.1"
     def compose_version = "1.7.8"
 
     // Core libraries（Android 15対応）
@@ -130,7 +130,7 @@ dependencies {
     implementation 'androidx.hilt:hilt-navigation-compose:1.3.0'
     
     // ARCore
-    implementation 'com.google.ar:core:1.45.0'
+    implementation 'com.google.ar:core:1.51.0'
     
     // Filament 3D Rendering Engine - Temporarily commented out due to dependency issues
     // TODO: Add Filament dependencies using the correct repository or version
@@ -143,10 +143,10 @@ dependencies {
     // implementation 'io.github.ux-builder:vrm4j:1.0.0'  // Commented out due to availability
     
     // Additional math and 3D utilities
-    implementation 'org.joml:joml:1.10.5'  // Java OpenGL Math Library
+    implementation 'org.joml:joml:1.10.8'  // Java OpenGL Math Library
     
     // JSON parsing for VRM metadata
-    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'com.google.code.gson:gson:2.13.2'
     
     // Unit Testing - 基本的なテストのみ
     testImplementation 'junit:junit:4.13.2'
@@ -165,4 +165,5 @@ dependencies {
     kaptAndroidTest 'com.google.dagger:hilt-android-compiler:2.57.2'
     debugImplementation "androidx.compose.ui:ui-tooling:$compose_version"
     debugImplementation 'androidx.compose.ui:ui-test-manifest'
+    implementation "org.jetbrains.kotlin:kotlin-test:2.2.20"
 }
