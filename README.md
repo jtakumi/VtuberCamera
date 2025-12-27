@@ -68,7 +68,7 @@ Jetpack Compose-based Android camera app providing real-time preview and photo c
 ## 🏗️ Tech Stack
 
 ### Core Technologies
-- **Language**: Kotlin 2.2.0
+- **Language**: Kotlin 1.9.25
 - **UI Framework**: Jetpack Compose 1.7.8
 - **Camera**: CameraX 1.4.2
 - **Architecture**: MVVM + StateFlow
@@ -77,12 +77,12 @@ Jetpack Compose-based Android camera app providing real-time preview and photo c
 - **Dependency Management**: Dependabot Automation
 
 ### Development Environment
-- **Android Studio**: Hedgehog or above (Kotlin 2.2.0 support required)
-- **Gradle**: 8.5+ (Kotlin 2.2.0 required)
-- **Min SDK**: 24 (Android 7.0+)
-- **Target SDK**: 35 (Android 15)
-- **Compile SDK**: 35 (Android 15 support)
-- **JDK**: 11+ (Kotlin 2.2.0 recommended)
+- **Android Studio**: Koala or above (Kotlin 1.9.25 support required)
+- **Gradle**: 8.12+ (Android Gradle Plugin 8.12.1)
+- **Min SDK**: 25 (Android 7.1+)
+- **Target SDK**: 36 (Android 16)
+- **Compile SDK**: 36 (Android 16 support)
+- **JDK**: 11+ (Kotlin 1.9.25 recommended)
 
 ## 🚀 How to Use
 
@@ -99,6 +99,14 @@ Jetpack Compose-based Android camera app providing real-time preview and photo c
   - Pinch in/out gesture
   - +/- buttons in the bottom left
 - **Photo Management**: Delete or save options in preview mode
+
+## 📚 Documentation
+
+### AR Avatar Feature
+- **[AR Avatar Documentation](docs/AR_AVATAR_DOCUMENTATION.md)** - Complete guide for VRM avatar AR functionality
+- **[VRM Requirements](docs/VRM_REQUIREMENTS.md)** - VRM file specifications and optimization guidelines
+- **[AR User Guide](docs/AR_USER_GUIDE.md)** - Step-by-step guide for using AR features
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 
 ## 📁 Project Structure
 
@@ -147,9 +155,9 @@ Jetpack Compose-based Android camera app providing real-time preview and photo c
 │   └── dependabot.yml                        # Automatic dependency update configuration
 │
 ├── 🔧 Project configuration files
-│   ├── build.gradle                           # Project-level build configuration (Kotlin 2.2.0)
+│   ├── build.gradle                           # Project-level build configuration (Kotlin 1.9.25)
 │   ├── settings.gradle                        # Gradle settings
-│   ├── gradle.properties                      # Gradle properties (Kotlin 2.2.0 optimization)
+│   ├── gradle.properties                      # Gradle properties (Kotlin 1.9.25 optimization)
 │   ├── local.properties                       # Local environment configuration
 │   └── README.md                              # Project overview (this file)
 │
@@ -194,10 +202,10 @@ Jetpack Compose-based Android camera app providing real-time preview and photo c
 ## 🔧 Setup
 
 ### Prerequisites
-- Android Studio Hedgehog or above (Kotlin 2.2.0 requirement)
-- JDK 11 or above (Kotlin 2.2.0 recommended)
-- Gradle 8.5 or above (Kotlin 2.2.0 requirement)
-- Android SDK 24 or above
+- Android Studio Koala or above (Kotlin 1.9.25 requirement)
+- JDK 11 or above
+- Gradle 8.12 or above
+- Android SDK 25 or above
 
 ### Installation Steps
 1. **Clone the repository**
@@ -243,13 +251,14 @@ implementation "androidx.activity:activity-compose:1.10.1"
 
 // ViewModel & StateFlow (2.9.2)
 implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.9.2"
-implementation "androidx.core:core-ktx:1.16.0"
+implementation "androidx.core:core-ktx:1.17.0"
 
 // Image Processing (2.7.0)
 implementation "io.coil-kt:coil-compose:2.7.0"
 
-// Kotlin 2.2.0 + Compose Compiler Plugin
-id 'org.jetbrains.kotlin.plugin.compose' version '2.2.0'
+// Kotlin 1.9.25 + Compose Compiler 1.5.15
+id 'org.jetbrains.kotlin.android' version '1.9.25'
+kotlinCompilerExtensionVersion = "1.5.15"
 ```
 
 ## 📈 Performance
@@ -275,12 +284,13 @@ id 'org.jetbrains.kotlin.plugin.compose' version '2.2.0'
 
 ### Recent Changes
 
-#### 📅 2025-08-23: Tap-to-Focus and Permission Request Screen
+#### 📅 2025-09-06: Core Fixes and Improvements
 
 **🎯 Key Changes**
-- **Tap-to-Focus**: Added focus handling and focus point display in `CameraViewModel`.
-- **Gesture Support**: Enabled tap focus in `CameraScreen` and `ModernCameraGestures`.
-- **Permission UI**: Introduced `PermissionRequestComponent` and `PhotoPreviewComponent` for permission requests and post-capture preview.
+- **DefaultLocale Fix**: Resolved lint warning by specifying explicit locale for string formatting
+- **Lens Switching Enhancement**: Fixed camera selectors to use specific camera IDs for proper lens switching
+- **Ultra-Wide Support**: Fixed zoom range to support 0.5x magnification on ultra-wide cameras
+- **Pinch Gesture Reset**: Enhanced gesture logic to allow repeated lens switching without tapping
 
 ### Major Milestones
 - ✅ **Basic Camera Functions** - Implementation of capture, preview, and save features
@@ -290,6 +300,11 @@ id 'org.jetbrains.kotlin.plugin.compose' version '2.2.0'
 - ✅ **State Management Optimization** - Stable operation during preview mode changes
 - ✅ **Automatic Dependency Management** - Weekly automatic updates with Dependabot
 - ✅ **Testing Foundation** - Mockito-based test construction for CameraViewModelTest.kt
+
+## 🐞 Known Issues / Limitations
+
+- Video recording is not yet supported—only photo capture is available.
+- Tap-to-focus may fail in low-light environments.
 
 ## 🤝 Contributing
 

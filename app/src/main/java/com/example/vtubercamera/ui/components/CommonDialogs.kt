@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
-import android.widget.Toast
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -83,13 +82,15 @@ fun PartialAccessDialog(
 @Composable
 fun DeleteConfirmDialog(
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit
+    onConfirm: () -> Unit,
+    text: String? = null
 ) {
+    val message = text ?: stringResource(R.string.delete_photo_message)
     ConfirmationDialog(
         onDismiss = onDismiss,
         onConfirm = onConfirm,
         title = stringResource(R.string.delete_photo_title),
-        text = stringResource(R.string.delete_photo_message),
+        text = message,
         confirmText = stringResource(R.string.delete),
         dismissText = stringResource(R.string.cancel)
     )
@@ -98,17 +99,18 @@ fun DeleteConfirmDialog(
 @Preview(locale = "ja")
 @Preview(locale = "en")
 @Composable
-fun DeleteConfirmDialogPreview(){
+fun DeleteConfirmDialogPreview() {
     DeleteConfirmDialog(
         onDismiss = {},
-        onConfirm = {}
+        onConfirm = {},
+        text = null
     )
 }
 
 @Preview(locale = "ja")
 @Preview(locale = "en")
 @Composable
-fun PartialAccessDialogPreview(){
+fun PartialAccessDialogPreview() {
     PartialAccessDialog(
         onDismiss = {},
         context = androidx.compose.ui.platform.LocalContext.current

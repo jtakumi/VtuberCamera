@@ -17,7 +17,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.vtubercamera.R
-import com.example.vtubercamera.ui.components.AsyncImage
 
 @Composable
 fun PhotoPreviewComponent(
@@ -29,7 +28,7 @@ fun PhotoPreviewComponent(
     Box(modifier = modifier.fillMaxSize()) {
         AsyncImage(
             model = imageUri,
-            contentDescription = stringResource(R.string.captured_photo),
+            contentDescription = stringResource(R.string.latest_library_photo),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Fit
         )

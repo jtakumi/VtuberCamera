@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -15,59 +16,122 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import kotlin.math.abs
-import kotlin.math.min
 
 /**
- * Modern camera gestures using Compose's built-in gesture detection
+ * Modern camera gestures using Compose's built-in gesture detection with lens switching
  *
  * @param onScale ズーム比率が変更されたときのコールバック
  * @param onDoubleTap ダブルタップ時のコールバック
+ * @param onLensSwitch レンズ切り替え時のコールバック
  * @param currentZoom 現在のズーム比率
  * @param minZoom 最小ズーム比率
  * @param maxZoom 最大ズーム比率
+ * @param canSwitchLens レンズ切り替えが可能かどうか
  * @param enableHapticFeedback ハプティックフィードバックを有効にするか
  * @param zoomSensitivity ズームの感度 (デフォルト: 1.0f)
+ * @param lensSwitchThreshold レンズ切り替えのしきい値 (デフォルト: 2.0f)
  */
 @Composable
 fun Modifier.modernCameraGestures(
     onScale: (Float) -> Unit,
     onDoubleTap: () -> Unit = {},
     onTap: (Offset) -> Unit = {},
+    onLensSwitch: () -> Unit = {},
     currentZoom: Float,
     minZoom: Float = 1.0f,
     maxZoom: Float = 10.0f,
+    canSwitchLens: Boolean = false,
     enableHapticFeedback: Boolean = true,
-    zoomSensitivity: Float = 1.0f
+    zoomSensitivity: Float = 1.0f,
+    lensSwitchThreshold: Float = 2.0f
 ): Modifier {
     val view = LocalView.current
+    var lastZoom by remember { mutableFloatStateOf(currentZoom) }
+    var gestureScale by remember { mutableFloatStateOf(1.0f) }
+    var hasTriggeredLensSwitch by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(currentZoom) { lastZoom = currentZoom }
 
     return this
-        // ピンチズーム検出
-        .pointerInput(currentZoom, minZoom, maxZoom) {
+        // ピンチズーム検出とレンズ切り替え
+        .pointerInput(minZoom, maxZoom, canSwitchLens) {
             detectTransformGestures(
                 panZoomLock = false
             ) { _, _, zoom, _ ->
-                // ズーム感度を適用
+                gestureScale *= zoom
+                
+                // レンズ切り替え判定（pinch out で wide-angle、pinch in で normal に戻る）
+                if (canSwitchLens && !hasTriggeredLensSwitch) {
+                    try {
+                        when {
+                            // Pinch out beyond threshold - switch to wide-angle
+                            gestureScale > lensSwitchThreshold -> {
+                                onLensSwitch()
+                                hasTriggeredLensSwitch = true
+                                if (enableHapticFeedback) {
+                                    try {
+                                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                    } catch (_: Exception) {
+                                        // Ignore haptic feedback errors
+                                    }
+                                }
+                                gestureScale = 1.0f // Reset gesture scale
+                                return@detectTransformGestures
+                            }
+                            // Pinch in beyond threshold - switch to normal
+                            gestureScale < (1.0f / lensSwitchThreshold) -> {
+                                onLensSwitch()
+                                hasTriggeredLensSwitch = true
+                                if (enableHapticFeedback) {
+                                    try {
+                                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                    } catch (_: Exception) {
+                                        // Ignore haptic feedback errors
+                                    }
+                                }
+                                gestureScale = 1.0f // Reset gesture scale
+                                return@detectTransformGestures
+                            }
+                        }
+                    } catch (_: Exception) {
+                        // Reset gesture state on any error to prevent stuck state
+                        gestureScale = 1.0f
+                        hasTriggeredLensSwitch = false
+                    }
+                }
+
+                // Normal zoom handling
                 val adjustedZoom = 1f + (zoom - 1f) * zoomSensitivity
-                val newZoom = (currentZoom * adjustedZoom).coerceIn(minZoom, maxZoom)
+                val newZoom = (lastZoom * adjustedZoom).coerceIn(minZoom, maxZoom)
 
                 // ハプティックフィードバック（最小/最大ズーム時）
                 if (enableHapticFeedback) {
-                    val wasAtLimit = currentZoom == minZoom || currentZoom == maxZoom
+                    val wasAtLimit = lastZoom == minZoom || lastZoom == maxZoom
                     val isAtLimit = newZoom == minZoom || newZoom == maxZoom
 
                     if (isAtLimit && !wasAtLimit) {
                         view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
                     }
                 }
+                lastZoom = newZoom
                 onScale(newZoom)
             }
         }
-        // ダブルタップ検出
+        // ジェスチャー終了時のリセット
         .pointerInput(Unit) {
             detectTapGestures(
-                onTap = { offset -> onTap(offset) },
-                onDoubleTap = { onDoubleTap() }
+                onTap = { offset -> 
+                    onTap(offset)
+                    // Reset gesture state on tap
+                    gestureScale = 1.0f
+                    hasTriggeredLensSwitch = false
+                },
+                onDoubleTap = { 
+                    onDoubleTap()
+                    // Reset gesture state on double tap
+                    gestureScale = 1.0f
+                    hasTriggeredLensSwitch = false
+                }
             )
         }
 }
@@ -94,9 +158,11 @@ fun Modifier.advancedCameraGestures(
     val view = LocalView.current
     var lastZoom by remember { mutableFloatStateOf(currentZoom) }
 
+    LaunchedEffect(currentZoom) { lastZoom = currentZoom }
+
     return this
         // ピンチズーム検出
-        .pointerInput(currentZoom, minZoom, maxZoom) {
+        .pointerInput(minZoom, maxZoom) {
             detectTransformGestures(
                 panZoomLock = false
             ) { _, _, zoom, _ ->

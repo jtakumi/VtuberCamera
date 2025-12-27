@@ -38,13 +38,31 @@
     <string name="zoom_out">ズームアウト</string>
     <string name="zoom_in">ズームイン</string>
     <string name="take_photo">写真を撮影</string>
-    <string name="last_captured_photo">最後に撮影した写真</string>
+    <string name="latest_library_photo">最新のライブラリ写真</string>
     <string name="camera_preview_title">カメラプレビュー</string>
     <string name="camera_preview_description">実際のカメラ機能はここに表示されます</string>
     <string name="delete_photo_title">写真を削除</string>
+    <string name="delete_photo_confirmation">この写真を削除しますか？</string>
     <string name="delete_photo_message">この写真を削除しますか？この操作は元に戻せません。</string>
+    <string name="delete_library_photo_message">このライブラリ写真を端末から削除しますか？この操作は元に戻せません。</string>
+    <string name="delete_selected_library_photos_message">選択したライブラリ写真を端末から削除しますか？この操作は元に戻せません。</string>
     <string name="cancel">キャンセル</string>
-    <string name="zoom_info">ズーム: %.1fx (%.1f-%.1fx)</string>
+    <string name="previous_photo">前の写真</string>
+    <string name="next_photo">次の写真</string>
+    <string name="zoom_info">ズーム: %1$.1fx (%2$.1f-%3$.1fx)</string>
     <string name="photo_deleted_successfully">写真を削除しました</string>
     <string name="photo_deletion_failed">写真の削除に失敗しました</string>
-</resources> 
+    <plurals name="photos_deleted_count">
+        <item quantity="other">%1$d 枚の写真を削除しました</item>
+    </plurals>
+    
+    <!-- Lighting Control Strings -->
+    <string name="lighting_controls">照明コントロール</string>
+    <string name="auto_lighting">自動照明</string>
+    <string name="lighting_presets">プリセット</string>
+    <string name="manual_controls">手動コントロール</string>
+    <string name="brightness">明度</string>
+    <string name="color_temperature">色温度</string>
+    <string name="shadow_strength">影の強さ</string>
+    <string name="ambient_light">環境光</string>
+</resources>

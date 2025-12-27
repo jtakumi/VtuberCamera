@@ -68,7 +68,7 @@ Jetpack Compose を用いた Android 向けカメラアプリ。CameraX によ�
 ## 🏗️ 技術スタック
 
 ### コア技術
-- **Language**: Kotlin 2.2.0
+- **Language**: Kotlin 1.9.25
 - **UI Framework**: Jetpack Compose 1.7.8
 - **Camera**: CameraX 1.4.2
 - **Architecture**: MVVM + StateFlow
@@ -77,12 +77,12 @@ Jetpack Compose を用いた Android 向けカメラアプリ。CameraX によ�
 - **Dependency Management**: Dependabot Automation
 
 ### 開発環境
-- **Android Studio**: Hedgehog以上推奨 (Kotlin 2.2.0対応)
-- **Gradle**: 8.5+ (Kotlin 2.2.0必須要件)
-- **Min SDK**: 24 (Android 7.0+)
-- **Target SDK**: 35 (Android 15)
-- **Compile SDK**: 35 (Android 15対応)
-- **JDK**: 11+ (Kotlin 2.2.0推奨)
+- **Android Studio**: Koala以上推奨 (Kotlin 1.9.25対応)
+- **Gradle**: 8.12+ (Android Gradle Plugin 8.12.1)
+- **Min SDK**: 25 (Android 7.1+)
+- **Target SDK**: 36 (Android 16)
+- **Compile SDK**: 36 (Android 16対応)
+- **JDK**: 11+ (Kotlin 1.9.25推奨)
 
 ## 🚀 使用方法
 
@@ -99,6 +99,14 @@ Jetpack Compose を用いた Android 向けカメラアプリ。CameraX によ�
   - ピンチイン/アウトジェスチャー
   - 左下の+/-ボタン
 - **写真管理**: プレビューモードで削除・保存の選択
+
+## 📚 ドキュメント
+
+### AR Avatar機能
+- **[AR Avatar ドキュメント](docs/AR_AVATAR_DOCUMENTATION.md)** - VRMアバターAR機能の完全ガイド
+- **[VRM要件](docs/VRM_REQUIREMENTS.ja.md)** - VRMファイル仕様と最適化ガイドライン
+- **[AR使用方法ガイド](docs/AR_USER_GUIDE.md)** - AR機能の使用方法ステップバイステップガイド
+- **[トラブルシューティング](docs/TROUBLESHOOTING.md)** - よくある問題と解決方法
 
 ## 📁 プロジェクト構造
 
@@ -136,7 +144,7 @@ Jetpack Compose を用いた Android 向けカメラアプリ。CameraX によ�
 │   └── proguard-rules.pro                     # ProGuard設定（リリース用）
 │
 ├── 📚 docs/                                    # プロジェクトドキュメント
-│   ├── CHANGE_LOG.md                          # 詳細な変更履歴
+│   ├── CHANGE_LOG.ja.md                        # 詳細な変更履歴
 │   └── images/                                # スクリーンショット
 │       ├── camera_preview.png                 # カメラプレビュー画面（日本語）
 │       ├── photo_preview.png                  # 写真プレビュー画面（日本語）
@@ -147,9 +155,9 @@ Jetpack Compose を用いた Android 向けカメラアプリ。CameraX によ�
 │   └── dependabot.yml                        # 依存関係自動更新設定
 │
 ├── 🔧 プロジェクト設定ファイル
-│   ├── build.gradle                           # プロジェクトレベルビルド設定 (Kotlin 2.2.0)
+│   ├── build.gradle                           # プロジェクトレベルビルド設定 (Kotlin 1.9.25)
 │   ├── settings.gradle                        # Gradle設定
-│   ├── gradle.properties                      # Gradleプロパティ (Kotlin 2.2.0最適化)
+│   ├── gradle.properties                      # Gradleプロパティ (Kotlin 1.9.25最適化)
 │   ├── local.properties                       # ローカル環境設定
 │   └── README.md                              # プロジェクト概要（このファイル）
 │
@@ -194,10 +202,10 @@ Jetpack Compose を用いた Android 向けカメラアプリ。CameraX によ�
 ## 🔧 セットアップ
 
 ### 前提条件
-- Android Studio Hedgehog以上 (Kotlin 2.2.0必須要件)
-- JDK 11以上 (Kotlin 2.2.0推奨)
-- Gradle 8.5以上 (Kotlin 2.2.0必須要件)
-- Android SDK 24以上
+- Android Studio Koala以上 (Kotlin 1.9.25必須要件)
+- JDK 11以上
+- Gradle 8.12以上
+- Android SDK 25以上
 
 ### インストール手順
 1. **リポジトリをクローン**
@@ -243,13 +251,14 @@ implementation "androidx.activity:activity-compose:1.10.1"
 
 // ViewModel & StateFlow (2.9.2)
 implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.9.2"
-implementation "androidx.core:core-ktx:1.16.0"
+implementation "androidx.core:core-ktx:1.17.0"
 
 // 画像処理 (2.7.0)
 implementation "io.coil-kt:coil-compose:2.7.0"
 
-// Kotlin 2.2.0 + Compose Compiler Plugin
-id 'org.jetbrains.kotlin.plugin.compose' version '2.2.0'
+// Kotlin 1.9.25 + Compose Compiler 1.5.15
+id 'org.jetbrains.kotlin.android' version '1.9.25'
+kotlinCompilerExtensionVersion = "1.5.15"
 ```
 
 ## 📈 パフォーマンス
@@ -271,16 +280,17 @@ id 'org.jetbrains.kotlin.plugin.compose' version '2.2.0'
 
 ### 📋 詳細な変更履歴
 
-**詳細な開発履歴と技術的な変更点については、[CHANGE_LOG.md](docs/CHANGE_LOG.md) をご覧ください。**
+**詳細な開発履歴と技術的な変更点については、[CHANGE_LOG.ja.md](docs/CHANGE_LOG.ja.md) をご覧ください。**
 
 ### 最近の変更
 
-#### 📅 2025-08-23: フォーカス機能と権限リクエスト画面の追加
+#### 📅 2025-09-06: コア修正と改善
 
 **🎯 主な変更内容**
-- CameraViewModelにフォーカス処理とフォーカスポイント表示を追加
-- CameraScreenおよびModernCameraGesturesでタップフォーカスに対応
-- PermissionRequestComponentとPhotoPreviewComponentを新規作成し、権限リクエストと撮影後プレビューを提供
+- **DefaultLocale修正**: 文字列フォーマットに明示的なロケール指定でlint警告を解決
+- **レンズ切り替え強化**: 特定カメラIDを使用するCameraSelectorで適切なレンズ切り替えを修正
+- **超広角カメラ対応**: 超広角カメラでの0.5倍ズーム対応でズーム範囲を修正
+- **ピンチジェスチャーリセット**: タップなしで連続レンズ切り替えが可能になるジェスチャーロジック改善
 
 ### 主要なマイルストーン
 - ✅ **基本カメラ機能** - 撮影、プレビュー、保存機能の実装
@@ -290,6 +300,11 @@ id 'org.jetbrains.kotlin.plugin.compose' version '2.2.0'
 - ✅ **状態管理最適化** - プレビューモード変更時の安定動作
 - ✅ **自動依存関係管理** - Dependabotでの週次自動更新
 - ✅ **テスト基盤** - CameraViewModelTest.ktのMockitoベーステスト構築
+
+## 🐞 既知の問題 / 制限
+
+- 動画撮影には未対応で、写真撮影のみ利用可能です。
+- 低照度環境ではタップフォーカスが正しく動作しないことがあります。
 
 ## 🤝 コントリビューション
 
