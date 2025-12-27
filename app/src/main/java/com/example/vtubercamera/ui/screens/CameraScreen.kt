@@ -16,13 +16,13 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +37,8 @@ import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -111,7 +113,6 @@ fun CameraScreen(
     val maxZoomRatio by viewModel.maxZoomRatio.collectAsStateWithLifecycle()
     val minZoomRatio by viewModel.minZoomRatio.collectAsStateWithLifecycle()
     val needsCameraRebind by viewModel.needsCameraRebind.collectAsStateWithLifecycle()
-    val focusPoint by viewModel.focusPoint.collectAsStateWithLifecycle()
     val allPhotos by viewModel.allPhotos.collectAsStateWithLifecycle()
     val isLoadingPhotos by viewModel.isLoadingPhotos.collectAsStateWithLifecycle()
     val selectedPhotos by viewModel.selectedPhotos.collectAsStateWithLifecycle()
@@ -380,6 +381,7 @@ fun CameraScreen(
                         }
                     )
                 }
+
                 isPreviewMode && latestCapturedImageUri != null -> {
                     PhotoPreviewComponent(
                         imageUri = latestCapturedImageUri.toString(),
@@ -478,260 +480,213 @@ fun CameraScreen(
                                 }, ContextCompat.getMainExecutor(context))
                             }
                         }
-
-<<<<<<< HEAD
-                            // ズームレベルボタン
-                            Row(
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .padding(bottom = 96.dp)
-                                    .background(
-                                        color = Color.Black.copy(alpha = 0.5f),
-                                        shape = RoundedCornerShape(24.dp)
-                                    )
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                val zoomLevels = listOf(0.5f, 1f, 2f)
-                                zoomLevels
-                                    .filter { it in minZoomRatio..maxZoomRatio }
-                                    .forEach { level ->
-                                        val isSelected = kotlin.math.abs(zoomRatio - level) < 0.01f
-                                        Button(
-                                            onClick = { viewModel.smoothZoomTo(level) },
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                                contentColor = Color.White
-                                            ),
-                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                                            shape = CircleShape
-                                        ) {
-                                            val label = if (level % 1f == 0f) level.toInt().toString() else level.toString()
-                                            Text("${label}x")
-                                        }
+                        // ズームレベルボタン
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 96.dp)
+                                .background(
+                                    color = Color.Black.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(24.dp)
+                                )
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val zoomLevels = listOf(0.5f, 1f, 2f)
+                            zoomLevels
+                                .filter { it in minZoomRatio..maxZoomRatio }
+                                .forEach { level ->
+                                    val isSelected = kotlin.math.abs(zoomRatio - level) < 0.01f
+                                    Button(
+                                        onClick = { viewModel.smoothZoomTo(level) },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                            contentColor = Color.White
+                                        ),
+                                        contentPadding = PaddingValues(
+                                            horizontal = 12.dp,
+                                            vertical = 4.dp
+                                        ),
+                                        shape = CircleShape
+                                    ) {
+                                        val label = if (level % 1f == 0f) level.toInt()
+                                            .toString() else level.toString()
+                                        Text("${label}x")
                                     }
-=======
+                                }
+                        }
+                    }
 
-                        focusPoint?.let { (x, y) ->
+                    LaunchedEffect(cameraSelector, needsCameraRebind) {
+                        if (cameraProvider != null && preview != null) {
+                            Log.d(
+                                "CameraScreen",
+                                "Rebinding camera - Selector: ${if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) "BACK" else "FRONT"}, Flash: $flashMode, NeedsRebind: $needsCameraRebind"
+                            )
+
+                            if (needsCameraRebind && previewView != null) {
+                                Log.d("CameraScreen", "Creating new Preview for rebind")
+                                preview = Preview.Builder().build().also {
+                                    it.surfaceProvider = previewView!!.surfaceProvider
+                                }
+                                viewModel.onCameraRebound()
+                            }
+
+                            bindCameraWithPreview(
+                                lifecycleOwner = lifecycleOwner,
+                                cameraProvider = cameraProvider!!,
+                                preview = preview!!,
+                                cameraSelector = cameraSelector,
+                                flashMode = flashMode,
+                                initialZoomRatio = zoomRatio,
+                                onImageCaptureCreated = { capture ->
+                                    imageCapture = capture
+                                },
+                                onCameraCreated = { cam ->
+                                    camera = cam
+                                    viewModel.setCamera(cam)
+                                }
+                            )
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(16.dp)
+                            .background(
+                                color = Color.Black.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(
+                                R.string.zoom_info,
+                                zoomRatio, minZoomRatio, maxZoomRatio
+                            ),
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    FloatingActionButton(
+                        onClick = {
+                            imageCapture?.let { capture ->
+                                viewModel.takePhoto(
+                                    imageCapture = capture,
+                                    onPhotoSaved = { },
+                                    onError = { msg ->
+                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                    }
+                                )
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Camera,
+                            contentDescription = stringResource(R.string.take_photo)
+                        )
+                    }
+                    val canInteractWithThumbnail =
+                        hasMediaPermissions && latestCapturedImageUri != null
+                    val thumbnailModifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp)
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(8.dp))
+
+                    Box(
+                        modifier = thumbnailModifier.then(
+                            if (canInteractWithThumbnail) {
+                                Modifier.pointerInput(latestCapturedImageUri) {
+                                    detectTapGestures(
+                                        onLongPress = {},
+                                        onTap = {
+                                            viewModel.enterPreviewMode()
+                                        }
+                                    )
+                                }
+                            } else {
+                                Modifier
+                            }
+                        )
+                    ) {
+                        if (canInteractWithThumbnail && latestCapturedImageUri != null) {
+                            AsyncImage(
+                                model = latestCapturedImageUri!!,
+                                contentDescription = stringResource(R.string.latest_library_photo),
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+
+                        // 最後に撮影した写真のサムネイル（未ロード時のプレースホルダ）
+                        if (canInteractWithThumbnail && latestCapturedImageUri != null) {
+                            // ここは必要ならオーバーレイを追加する
+                        } else {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .padding(0.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(10.dp)
-                                        .align(Alignment.TopStart)
-                                        .offset(
-                                            x = ((x - 5f).dp).coerceAtLeast(0.dp),
-                                            y = ((y - 5f).dp).coerceAtLeast(0.dp)
-                                        )
-                                        .background(
-                                            color = Color.White,
-                                            shape = CircleShape
-                                        )
-                                        .border(
-                                            width = 1.dp,
-                                            color = Color.Black,
-                                            shape = CircleShape
-                                        )
-                                )
->>>>>>> origin/dev
-                            }
-                        }
-
-                        LaunchedEffect(cameraSelector, needsCameraRebind) {
-                            if (cameraProvider != null && preview != null) {
-                                Log.d(
-                                    "CameraScreen",
-                                    "Rebinding camera - Selector: ${if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) "BACK" else "FRONT"}, Flash: $flashMode, NeedsRebind: $needsCameraRebind"
-                                )
-
-                                if (needsCameraRebind && previewView != null) {
-                                    Log.d("CameraScreen", "Creating new Preview for rebind")
-                                    preview = Preview.Builder().build().also {
-                                        it.surfaceProvider = previewView!!.surfaceProvider
-                                    }
-                                    viewModel.onCameraRebound()
-                                }
-
-                                bindCameraWithPreview(
-                                    lifecycleOwner = lifecycleOwner,
-                                    cameraProvider = cameraProvider!!,
-                                    preview = preview!!,
-                                    cameraSelector = cameraSelector,
-                                    flashMode = flashMode,
-                                    initialZoomRatio = zoomRatio,
-                                    onImageCaptureCreated = { capture ->
-                                        imageCapture = capture
-                                    },
-                                    onCameraCreated = { cam ->
-                                        camera = cam
-                                        viewModel.setCamera(cam)
-                                    }
-                                )
-                            }
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(16.dp)
-                                .background(
-                                    color = Color.Black.copy(alpha = 0.5f),
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Text(
-                                text = stringResource(
-                                    R.string.zoom_info,
-                                    zoomRatio, minZoomRatio, maxZoomRatio
-                                ),
-                                color = Color.White,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-
-                        FloatingActionButton(
-                            onClick = {
-                                imageCapture?.let { capture ->
-                                    viewModel.takePhoto(
-                                        imageCapture = capture,
-                                        onPhotoSaved = { },
-                                        onError = { msg ->
-                                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                                        }
-                                    )
-                                }
-                            },
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(bottom = 16.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Camera,
-                                contentDescription = stringResource(R.string.take_photo)
-                            )
-                        }
-                        val canInteractWithThumbnail =
-                            hasMediaPermissions && latestCapturedImageUri != null
-                        val thumbnailModifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(16.dp)
-                            .size(80.dp)
-                            .clip(RoundedCornerShape(8.dp))
-
-                        Box(
-                            modifier = thumbnailModifier.then(
-                                if (canInteractWithThumbnail) {
-                                    Modifier.pointerInput(latestCapturedImageUri) {
-                                        detectTapGestures(
-                                            onLongPress = {},
-                                            onTap = {
-                                                viewModel.enterPreviewMode()
-                                            }
-                                        )
-                                    }
-                                } else {
-                                    Modifier
-                                }
-                            )
-                        ) {
-                            if (canInteractWithThumbnail && latestCapturedImageUri != null) {
-                                AsyncImage(
-                                    model = latestCapturedImageUri!!,
-                                    contentDescription = stringResource(R.string.latest_library_photo),
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-<<<<<<< HEAD
-                            }
-
-                            // ズーム情報表示
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(16.dp)
                                     .background(
-                                        color = Color.Black.copy(alpha = 0.5f),
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
-                                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(
-                                        R.string.zoom_info,
-                                        zoomRatio, minZoomRatio, maxZoomRatio
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
                                     ),
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.bodySmall
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Photo,
+                                    contentDescription = stringResource(R.string.latest_library_photo),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                 )
                             }
-
-                            // 最後に撮影した写真のサムネイル
-                            lastCapturedImageUri?.let { uri ->
-=======
-                            } else {
->>>>>>> origin/dev
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(
-                                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Photo,
-                                        contentDescription = stringResource(R.string.latest_library_photo),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                    )
-                                }
-                            }
                         }
+                    }
 
-                        // Lens switching indicators and feedback
-                        LensIndicator(
-                            lensType = currentLensType,
-                            lensDisplayName = lensDisplayName,
-                            canSwitchLens = canSwitchLens,
+                    // Lens switching indicators and feedback
+                    LensIndicator(
+                        lensType = currentLensType,
+                        lensDisplayName = lensDisplayName,
+                        canSwitchLens = canSwitchLens,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(16.dp)
+                    )
+
+                    // Lens switch hint (shown when switching is available)
+                    if (canSwitchLens) {
+                        LensSwitchHint(
+                            canSwitchLens = true,
                             modifier = Modifier
-                                .align(Alignment.TopStart)
-                                .padding(16.dp)
-                        )
-
-                        // Lens switch hint (shown when switching is available)
-                        if (canSwitchLens) {
-                            LensSwitchHint(
-                                canSwitchLens = true,
-                                modifier = Modifier
-                                    .align(Alignment.TopCenter)
-                                    .padding(top = 60.dp)
-                            )
-                        }
-
-                        // Lens switch feedback overlay
-                        LensSwitchFeedback(
-                            isVisible = showLensSwitchFeedback,
-                            newLensName = lensSwitchFeedbackName,
-                            modifier = Modifier.align(Alignment.Center)
+                                .align(Alignment.TopCenter)
+                                .padding(top = 60.dp)
                         )
                     }
 
-                    // Auto-hide lens switch feedback after delay
-                    LaunchedEffect(showLensSwitchFeedback) {
-                        if (showLensSwitchFeedback) {
-                            kotlinx.coroutines.delay(1500)
-                            showLensSwitchFeedback = false
-                        }
-                    }
+                    // Lens switch feedback overlay
+                    LensSwitchFeedback(
+                        isVisible = showLensSwitchFeedback,
+                        newLensName = lensSwitchFeedbackName,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
                 }
+
+                // Auto-hide lens switch feedback after delay
+//                     LaunchedEffect(key1 = showLensSwitchFeedback) {
+//                         if (showLensSwitchFeedback) {
+//                             kotlinx.coroutines.delay(1500)
+//                             showLensSwitchFeedback = false
+//                         }
+//                     }
             }
         }
     }
 }
+
+// end of CameraScreen
 
 
 private fun bindCameraWithPreview(
