@@ -105,22 +105,24 @@ fun CameraScreen(
     LocalWindowInfo.current.containerSize
     val uiMode = configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
     uiMode == Configuration.UI_MODE_NIGHT_YES
-    val cameraSelector by viewModel.cameraSelector.collectAsStateWithLifecycle()
-    val latestCapturedImageUri by viewModel.lastCapturedImageUri.collectAsStateWithLifecycle()
-    val isPreviewMode by viewModel.isPreviewMode.collectAsStateWithLifecycle()
-    val flashMode by viewModel.flashMode.collectAsStateWithLifecycle()
-    val zoomRatio by viewModel.zoomRatio.collectAsStateWithLifecycle()
-    val maxZoomRatio by viewModel.maxZoomRatio.collectAsStateWithLifecycle()
-    val minZoomRatio by viewModel.minZoomRatio.collectAsStateWithLifecycle()
-    val needsCameraRebind by viewModel.needsCameraRebind.collectAsStateWithLifecycle()
-    val allPhotos by viewModel.allPhotos.collectAsStateWithLifecycle()
-    val isLoadingPhotos by viewModel.isLoadingPhotos.collectAsStateWithLifecycle()
-    val selectedPhotos by viewModel.selectedPhotos.collectAsStateWithLifecycle()
-    val isSelectionMode by viewModel.isSelectionMode.collectAsStateWithLifecycle()
-    val currentViewingPhoto by viewModel.currentViewingPhoto.collectAsStateWithLifecycle()
-    val canSwitchLens by viewModel.canSwitchLens.collectAsStateWithLifecycle()
-    val currentLensType by viewModel.currentLensType.collectAsStateWithLifecycle()
-    val lensDisplayName by viewModel.lensDisplayName.collectAsStateWithLifecycle()
+
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val cameraSelector = uiState.cameraSelector
+    val latestCapturedImageUri = uiState.lastCapturedImageUri
+    val isPreviewMode = uiState.isPreviewMode
+    val flashMode = uiState.flashMode
+    val zoomRatio = uiState.zoomRatio
+    val maxZoomRatio = uiState.maxZoomRatio
+    val minZoomRatio = uiState.minZoomRatio
+    val needsCameraRebind = uiState.needsCameraRebind
+    val allPhotos = uiState.allPhotos
+    val isLoadingPhotos = uiState.isLoadingPhotos
+    val selectedPhotos = uiState.selectedPhotos
+    val isSelectionMode = uiState.isSelectionMode
+    val currentViewingPhoto = uiState.currentViewingPhoto
+    val canSwitchLens = uiState.canSwitchLens
+    val currentLensType = uiState.currentLensType
+    val lensDisplayName = uiState.lensDisplayName
 
     var imageCapture: ImageCapture? by remember { mutableStateOf(null) }
     var camera: Camera? by remember { mutableStateOf(null) }
