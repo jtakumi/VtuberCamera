@@ -10,8 +10,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.vtubercamera.data.CameraRepository
 import com.example.vtubercamera.data.MediaRepository
 import com.example.vtubercamera.data.PhotoItem
-import com.example.vtubercamera.data.ARRepository
-import com.example.vtubercamera.data.VRMRepository
 import com.example.vtubercamera.data.vrm.AvatarState
 import com.example.vtubercamera.data.vrm.ARSessionState
 import com.example.vtubercamera.data.vrm.ARCameraState
@@ -21,19 +19,17 @@ import com.example.vtubercamera.data.vrm.Expression
 import com.example.vtubercamera.data.vrm.Pose
 import com.example.vtubercamera.data.vrm.math.Transform
 import com.example.vtubercamera.data.vrm.AvatarInfo
-import com.example.vtubercamera.data.vrm.AvatarLibraryManager
 import com.example.vtubercamera.data.vrm.AvatarLibraryStats
 import com.example.vtubercamera.data.vrm.AvatarSortBy
-import com.example.vtubercamera.data.vrm.AvatarController
-import com.example.vtubercamera.data.vrm.ExpressionController
-import com.example.vtubercamera.data.vrm.PoseController
-import com.example.vtubercamera.data.vrm.LightingSystem
 import com.example.vtubercamera.data.vrm.LightingSettings
 import com.example.vtubercamera.data.vrm.LightingPreset
 import com.example.vtubercamera.data.vrm.EnvironmentLighting
+import com.example.vtubercamera.domain.ar.ARFeature
+import com.example.vtubercamera.domain.avatar.AvatarFeature
 import com.example.vtubercamera.domain.camera.CameraControlsFeature
 import com.example.vtubercamera.domain.camera.GalleryFeature
 import com.example.vtubercamera.domain.camera.LensSwitchFeature
+import com.example.vtubercamera.domain.lighting.LightingFeature
 import com.example.vtubercamera.utils.CameraCapabilityManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -55,16 +51,12 @@ enum class PhotoFilterMode {
 class CameraViewModel @Inject constructor(
     private val cameraRepository: CameraRepository,
     private val mediaRepository: MediaRepository,
-    private val arRepository: ARRepository,
-    private val vrmRepository: VRMRepository,
-    private val avatarLibraryManager: AvatarLibraryManager,
-    private val avatarController: AvatarController,
-    private val expressionController: ExpressionController,
-    private val poseController: PoseController,
-    private val lightingSystem: LightingSystem,
     private val cameraControlsFeature: CameraControlsFeature,
     private val galleryFeature: GalleryFeature,
     private val lensSwitchFeature: LensSwitchFeature,
+    private val arFeature: ARFeature,
+    private val avatarFeature: AvatarFeature,
+    private val lightingFeature: LightingFeature,
 ) : ViewModel() {
 
     // UI状態の管理
@@ -314,8 +306,8 @@ class CameraViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = true
     )
-    val lightingSettings: StateFlow<LightingSettings> = lightingSystem.lightingSettings
-    val environmentLighting: StateFlow<EnvironmentLighting?> = lightingSystem.environmentLighting
+    val lightingSettings: StateFlow<LightingSettings> = lightingFeature.lightingSettings
+    val environmentLighting: StateFlow<EnvironmentLighting?> = lightingFeature.environmentLighting
     val lightingPresets: StateFlow<List<LightingPreset>> = _uiState.map { it.lightingPresets }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -365,7 +357,11 @@ class CameraViewModel @Inject constructor(
         // Initialize avatar library (deferred to avoid initialization race conditions)
         viewModelScope.launch {
             try {
-                initializeAvatarLibrary()
+                avatarFeature.initializeAvatarLibrary(
+                    scope = viewModelScope,
+                    updateUiState = this@CameraViewModel::updateUiState,
+                    uiStateProvider = { _uiState.value },
+                )
             } catch (e: Exception) {
                 Log.e("CameraViewModel", "Failed to initialize avatar library", e)
                 updateUiState { copy(avatarLibraryError = "Failed to initialize avatar library: ${e.message}") }
@@ -373,7 +369,10 @@ class CameraViewModel @Inject constructor(
         }
 
         // Initialize avatar control observers
-        initializeAvatarControlObservers()
+        avatarFeature.startAvatarControlObservers(
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+        )
     }
 
     fun setCamera(camera: Camera?) {
@@ -682,83 +681,24 @@ class CameraViewModel @Inject constructor(
         context: android.content.Context,
         lifecycleOwner: androidx.lifecycle.LifecycleOwner
     ) {
-        if (uiState.value.isARMode) {
-            Log.d("CameraViewModel", "AR mode already enabled")
-            return
-        }
-
-        viewModelScope.launch {
-            try {
-                Log.d("CameraViewModel", "Enabling AR mode...")
-                updateUiState { 
-                    copy(
-                        isARMode = true,
-                        needsCameraRebind = true
-                    )
-                }
-
-                // Initialize AR session
-                arRepository.initializeSession(
-                    context = context,
-                    lifecycleOwner = lifecycleOwner,
-                    onSessionReady = {
-                        Log.d("CameraViewModel", "AR session ready")
-                        // Start observing AR state flows
-                        observeARStates()
-                    },
-                    onError = { error ->
-                        Log.e("CameraViewModel", "AR session initialization failed: $error")
-                        updateUiState { copy(arError = error) }
-                        // Fallback to normal camera mode
-                        disableARMode()
-                    }
-                )
-            } catch (e: Exception) {
-                Log.e("CameraViewModel", "Failed to enable AR mode", e)
-                updateUiState { copy(arError = ARError.SessionError("Failed to enable AR mode: ${e.message}")) }
-                disableARMode()
-            }
-        }
+        arFeature.enableARMode(
+            context = context,
+            lifecycleOwner = lifecycleOwner,
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     /**
      * Disable AR mode and return to normal camera
      */
     fun disableARMode() {
-        if (!uiState.value.isARMode) {
-            Log.d("CameraViewModel", "AR mode already disabled")
-            return
-        }
-
-        viewModelScope.launch {
-            try {
-                Log.d("CameraViewModel", "Disabling AR mode...")
-                
-                // Destroy AR session
-                arRepository.destroySession()
-                
-                // Reset AR states
-                val currentAvatarState = uiState.value.avatarState
-                updateUiState { 
-                    copy(
-                        isARMode = false,
-                        arSessionState = ARSessionState(),
-                        arCameraState = ARCameraState.default(),
-                        arError = null,
-                        avatarState = currentAvatarState.copy(
-                    transform = Transform.identity(),
-                    isVisible = false
-                        ),
-                        avatarTransform = Transform.identity(),
-                        needsCameraRebind = true
-                )
-                }
-                
-                Log.d("CameraViewModel", "AR mode disabled")
-            } catch (e: Exception) {
-                Log.e("CameraViewModel", "Error disabling AR mode", e)
-            }
-        }
+        arFeature.disableARMode(
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     /**
@@ -768,11 +708,13 @@ class CameraViewModel @Inject constructor(
         context: android.content.Context,
         lifecycleOwner: androidx.lifecycle.LifecycleOwner
     ) {
-        if (uiState.value.isARMode) {
-            disableARMode()
-        } else {
-            enableARMode(context, lifecycleOwner)
-        }
+        arFeature.toggleARMode(
+            context = context,
+            lifecycleOwner = lifecycleOwner,
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     // ========== Avatar Management Functions ==========
@@ -781,98 +723,19 @@ class CameraViewModel @Inject constructor(
      * Load VRM avatar from URI
      */
     fun loadAvatar(uri: Uri) {
-        viewModelScope.launch {
-            try {
-                Log.d("CameraViewModel", "Loading avatar from URI: $uri")
-                
-                // Set loading state
-                val currentState = uiState.value
-                updateUiState { 
-                    copy(
-                        avatarState = currentState.avatarState.copy(
-                    isLoading = true,
-                    loadingProgress = 0.0f
-                )
-                    )
-                }
-
-                // Load VRM model
-                val result = vrmRepository.loadVRMFromUri(uri)
-                
-                result.fold(
-                    onSuccess = { vrmModel ->
-                        Log.d("CameraViewModel", "Avatar loaded successfully: ${vrmModel.name}")
-
-                        // Update avatar state
-                        updateUiState { 
-                            copy(
-                                currentAvatar = vrmModel,
-                                avatarState = AvatarState(
-                                    model = vrmModel,
-                                    transform = currentState.avatarTransform,
-                                    currentExpression = currentState.currentExpression,
-                                    currentPose = currentState.currentPose,
-                                    isVisible = currentState.isARMode,
-                                    isLoading = false,
-                                    loadingProgress = 1.0f
-                                )
-                            )
-                        }
-
-                        // Load avatar into controllers
-                        avatarController.loadModel(vrmModel)
-
-                        // Auto-reset if enabled
-                        if (currentState.autoResetOnAvatarChange) {
-                            clearExpression()
-                            clearPose()
-                        } else {
-                            // Reset expression and pose to defaults if available
-                            if (vrmModel.expressions.isNotEmpty()) {
-                                selectExpression(vrmModel.expressions.first())
-                            }
-                            if (vrmModel.poses.isNotEmpty()) {
-                                selectPose(vrmModel.poses.first())
-                            }
-                        }
-                    },
-                    onFailure = { error ->
-                        Log.e("CameraViewModel", "Failed to load avatar", error)
-                        updateUiState { 
-                            copy(
-                                avatarState = currentState.avatarState.copy(
-                                    isLoading = false,
-                                    loadingProgress = 0.0f
-                                ),
-                                arError = ARError.AvatarError("Failed to load avatar: ${error.message}")
-                            )
-                        }
-                    }
-                )
-            } catch (e: Exception) {
-                Log.e("CameraViewModel", "Error loading avatar", e)
-                updateUiState { 
-                    copy(
-                        avatarState = avatarState.copy(
-                            isLoading = false,
-                            loadingProgress = 0.0f
-                        ),
-                        arError = ARError.AvatarError("Error loading avatar: ${e.message}")
-                    )
-                }
-            }
-        }
+        avatarFeature.loadAvatar(
+            uri = uri,
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     /**
      * Update avatar transform (position, rotation, scale)
      */
     fun updateAvatarTransform(transform: Transform) {
-        // Update AvatarController (single source of truth)
-        // Local state will be automatically synchronized via the observer
-        avatarController.setTransform(transform)
-
-        Log.d("CameraViewModel", "Avatar transform updated: $transform")
+        avatarFeature.updateAvatarTransform(transform)
     }
 
     /**
@@ -893,26 +756,14 @@ class CameraViewModel @Inject constructor(
      * Toggle avatar visibility
      */
     fun toggleAvatarVisibility() {
-        val currentState = uiState.value
-        val newVisibility = !currentState.avatarState.isVisible
-
-        // Update AvatarController (single source of truth)
-        // Local state will be automatically synchronized via the observer
-        avatarController.setVisible(newVisibility)
-
-        Log.d("CameraViewModel", "Avatar visibility toggled: $newVisibility")
+        avatarFeature.toggleAvatarVisibility(uiStateProvider = { _uiState.value })
     }
 
     /**
      * Reset avatar transform to default
      */
     fun resetAvatarTransform() {
-        val defaultTransform = Transform.identity()
-
-        // Update AvatarController (single source of truth)
-        avatarController.setTransform(defaultTransform)
-
-        Log.d("CameraViewModel", "Avatar transform reset to default")
+        avatarFeature.resetAvatarTransform()
     }
 
     // ========== AR Photo Capture Functions ==========
@@ -977,41 +828,6 @@ class CameraViewModel @Inject constructor(
     /**
      * Start observing AR repository state flows
      */
-    private fun observeARStates() {
-        viewModelScope.launch {
-            // Observe AR session state
-            arRepository.sessionState.collect { sessionState ->
-                updateUiState { copy(arSessionState = sessionState) }
-            }
-        }
-
-        viewModelScope.launch {
-            // Observe AR camera state
-            arRepository.cameraState.collect { cameraState ->
-                updateUiState { copy(arCameraState = cameraState) }
-            }
-        }
-
-        viewModelScope.launch {
-            // Observe tracking state changes
-            arRepository.trackingState.collect { trackingState ->
-                Log.d("CameraViewModel", "AR tracking state changed: $trackingState")
-                // Update avatar visibility based on tracking state
-                val currentState = _uiState.value
-                if (currentState.avatarState.model != null) {
-                    val shouldShow = trackingState == com.example.vtubercamera.data.vrm.TrackingState.TRACKING
-                    if (currentState.avatarState.isVisible != shouldShow) {
-                        updateUiState { 
-                            copy(
-                                avatarState = currentState.avatarState.copy(isVisible = shouldShow)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     /**
      * Clear AR error state
      */
@@ -1058,191 +874,64 @@ class CameraViewModel @Inject constructor(
     /**
      * Initialize avatar library and load avatars
      */
-    private fun initializeAvatarLibrary() {
-        loadAvatarsFromLibrary()
-        loadAvatarLibraryStats()
-    }
-
-    /**
-     * Load avatars from the library
-     */
-    private fun loadAvatarsFromLibrary() {
-        viewModelScope.launch {
-            try {
-                updateUiState { 
-                    copy(
-                        isLoadingAvatarLibrary = true,
-                        avatarLibraryError = null
-                    )
-                }
-
-                avatarLibraryManager.getAvatarsSortedBy(_uiState.value.avatarSortBy)
-                    .catch { error: Throwable ->
-                        updateUiState { 
-                            copy(
-                                avatarLibraryError = error.message ?: "Failed to load avatars",
-                                isLoadingAvatarLibrary = false
-                            )
-                        }
-                    }
-                    .collect { avatars: List<AvatarInfo> ->
-                        updateUiState { 
-                            copy(
-                                avatarLibrary = avatars,
-                                isLoadingAvatarLibrary = false,
-                                avatarLibraryError = null
-                            )
-                        }
-                    }
-            } catch (e: Exception) {
-                Log.e("CameraViewModel", "Error in loadAvatarsFromLibrary", e)
-                updateUiState { 
-                    copy(
-                        avatarLibraryError = e.message ?: "Unknown error occurred",
-                        isLoadingAvatarLibrary = false
-                    )
-                }
-            }
-        }
-    }
-
-    /**
-     * Load library statistics
-     */
-    private fun loadAvatarLibraryStats() {
-        viewModelScope.launch {
-            try {
-                val stats = vrmRepository.getLibraryStatistics()
-                updateUiState { copy(avatarLibraryStats = stats) }
-            } catch (e: Exception) {
-                Log.w("CameraViewModel", "Failed to load avatar library statistics: ${e.message}")
-            }
-        }
-    }
-
     /**
      * Refresh the avatar library
      */
     fun refreshAvatarLibrary() {
-        loadAvatarsFromLibrary()
-        loadAvatarLibraryStats()
+        avatarFeature.refreshAvatarLibrary(
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     /**
      * Select an avatar from the library and load it
      */
     fun selectAvatarFromLibrary(avatarId: String) {
-        viewModelScope.launch {
-            try {
-                // Record usage
-                vrmRepository.recordAvatarUsage(avatarId)
-
-                // Update selected avatar
-                updateUiState { copy(selectedAvatarId = avatarId) }
-
-                // Find avatar info and load the model
-                val avatarInfo = _uiState.value.avatarLibrary.find { it.id == avatarId }
-                if (avatarInfo != null) {
-                    // Load the avatar from its file path
-                    loadAvatar(Uri.fromFile(java.io.File(avatarInfo.filePath)))
-                    Log.d("CameraViewModel", "Selected and loading avatar: ${avatarInfo.name}")
-                } else {
-                    updateUiState { copy(avatarLibraryError = "Avatar not found in library") }
-                }
-
-                // Refresh to show updated usage
-                refreshAvatarLibrary()
-            } catch (e: Exception) {
-                updateUiState { copy(avatarLibraryError = "Failed to select avatar: ${e.message}") }
-                Log.e("CameraViewModel", "Failed to select avatar", e)
-            }
-        }
+        avatarFeature.selectAvatarFromLibrary(
+            avatarId = avatarId,
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     /**
      * Toggle favorite status of an avatar
      */
     fun toggleAvatarFavorite(avatarId: String) {
-        viewModelScope.launch {
-            try {
-                val avatar = _uiState.value.avatarLibrary.find { it.id == avatarId }
-                if (avatar != null) {
-                    val result = vrmRepository.setAvatarFavorite(avatarId, !avatar.isFavorite)
-                    if (result.isFailure) {
-                        updateUiState { copy(avatarLibraryError = "Failed to update favorite: ${result.exceptionOrNull()?.message}") }
-                    } else {
-                        refreshAvatarLibrary()
-                        Log.d("CameraViewModel", "Toggled favorite for avatar: ${avatar.name}")
-                    }
-                }
-            } catch (e: Exception) {
-                updateUiState { copy(avatarLibraryError = "Failed to toggle favorite: ${e.message}") }
-                Log.e("CameraViewModel", "Failed to toggle favorite", e)
-            }
-        }
+        avatarFeature.toggleAvatarFavorite(
+            avatarId = avatarId,
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     /**
      * Delete an avatar from the library
      */
     fun deleteAvatarFromLibrary(avatarId: String) {
-        viewModelScope.launch {
-            try {
-                updateUiState { copy(isLoadingAvatarLibrary = true) }
-
-                val result = vrmRepository.deleteAvatar(avatarId)
-                if (result.isFailure) {
-                    updateUiState { 
-                        copy(
-                            avatarLibraryError = "Failed to delete avatar: ${result.exceptionOrNull()?.message}",
-                            isLoadingAvatarLibrary = false
-                        )
-                    }
-                } else {
-                    // If the deleted avatar was the current one, clear it
-                    if (_uiState.value.selectedAvatarId == avatarId) {
-                        updateUiState { 
-                            copy(
-                                selectedAvatarId = null,
-                                currentAvatar = null,
-                                avatarState = AvatarState()
-                            )
-                        }
-                    }
-                    refreshAvatarLibrary()
-                    Log.d("CameraViewModel", "Deleted avatar: $avatarId")
-                }
-            } catch (e: Exception) {
-                updateUiState { 
-                    copy(
-                        avatarLibraryError = "Failed to delete avatar: ${e.message}",
-                        isLoadingAvatarLibrary = false
-                    )
-                }
-                Log.e("CameraViewModel", "Failed to delete avatar", e)
-            }
-        }
+        avatarFeature.deleteAvatarFromLibrary(
+            avatarId = avatarId,
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     /**
      * Rename an avatar in the library
      */
     fun renameAvatarInLibrary(avatarId: String, newName: String) {
-        viewModelScope.launch {
-            try {
-                val result = vrmRepository.renameAvatar(avatarId, newName)
-                if (result.isFailure) {
-                    updateUiState { copy(avatarLibraryError = "Failed to rename avatar: ${result.exceptionOrNull()?.message}") }
-                } else {
-                    hideRenameDialog()
-                    refreshAvatarLibrary()
-                    Log.d("CameraViewModel", "Renamed avatar $avatarId to: $newName")
-                }
-            } catch (e: Exception) {
-                updateUiState { copy(avatarLibraryError = "Failed to rename avatar: ${e.message}") }
-                Log.e("CameraViewModel", "Failed to rename avatar", e)
-            }
-        }
+        avatarFeature.renameAvatarInLibrary(
+            avatarId = avatarId,
+            newName = newName,
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     /**
@@ -1250,7 +939,11 @@ class CameraViewModel @Inject constructor(
      */
     fun setAvatarSortBy(sortBy: AvatarSortBy) {
         updateUiState { copy(avatarSortBy = sortBy) }
-        loadAvatarsFromLibrary()
+        avatarFeature.loadAvatarsFromLibrary(
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     /**
@@ -1300,43 +993,18 @@ class CameraViewModel @Inject constructor(
      * Cleanup avatar library (remove orphaned files, etc.)
      */
     fun cleanupAvatarLibrary() {
-        viewModelScope.launch {
-            try {
-               _uiState.value = _uiState.value.copy(
-                   isLoadingAvatarLibrary = true
-               )
-
-
-                val result = vrmRepository.cleanupLibrary()
-                _uiState.value = _uiState.value.copy(
-                    isLoadingAvatarLibrary = false
-                )
-
-                if (result.success) {
-                    refreshAvatarLibrary()
-                    Log.d("CameraViewModel", "Avatar library cleanup completed")
-                } else {
-                    _uiState.value = _uiState.value.copy(
-                        avatarLibraryError = result.error
-                    )
-                }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    avatarLibraryError = "Failed to cleanup library: ${e.message}",
-                    isLoadingAvatarLibrary = false
-                )
-                Log.e("CameraViewModel", "Failed to cleanup avatar library", e)
-            }
-        }
+        avatarFeature.cleanupAvatarLibrary(
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     /**
      * Clear avatar library error
      */
     fun clearAvatarLibraryError() {
-        _uiState.value = _uiState.value.copy(
-            avatarLibraryError = null
-        )
+        avatarFeature.clearAvatarLibraryError(updateUiState = this::updateUiState)
     }
 
     // ========== Avatar Control Functions ==========
@@ -1344,121 +1012,44 @@ class CameraViewModel @Inject constructor(
     /**
      * Initialize avatar control observers
      */
-    private fun initializeAvatarControlObservers() {
-        // Observe avatar controller state (single source of truth for avatar state)
-        viewModelScope.launch {
-            avatarController.avatarState.collect { avatarControllerState ->
-                // Sync local avatar state with controller state
-                updateUiState { 
-                    copy(
-                        avatarState = avatarControllerState,
-                        avatarTransform = avatarControllerState.transform,
-                        currentAvatar = avatarControllerState.model,
-                        currentExpression = avatarControllerState.currentExpression,
-                        currentPose = avatarControllerState.currentPose
-                    )
-                }
-            }
-        }
-
-        // Observe expression controller state
-        viewModelScope.launch {
-            expressionController.currentExpression.collect { expression ->
-                updateUiState { copy(currentExpression = expression) }
-            }
-        }
-
-        viewModelScope.launch {
-            expressionController.activeBlendShapes.collect { blendShapes ->
-                updateUiState { copy(activeBlendShapes = blendShapes) }
-            }
-        }
-
-        viewModelScope.launch {
-            expressionController.isTransitioning.collect { isTransitioning ->
-                updateUiState { copy(isExpressionTransitioning = isTransitioning) }
-            }
-        }
-
-        viewModelScope.launch {
-            expressionController.transitionProgress.collect { progress ->
-                updateUiState { copy(expressionTransitionProgress = progress) }
-            }
-        }
-
-        // Observe pose controller state
-        viewModelScope.launch {
-            poseController.currentPose.collect { pose ->
-                updateUiState { copy(currentPose = pose) }
-            }
-        }
-
-        viewModelScope.launch {
-            poseController.activeBoneTransforms.collect { transforms ->
-                updateUiState { copy(activeBoneTransforms = transforms) }
-            }
-        }
-
-        viewModelScope.launch {
-            poseController.boneLocks.collect { locks ->
-                updateUiState { copy(boneLocks = locks) }
-            }
-        }
-
-        viewModelScope.launch {
-            poseController.isTransitioning.collect { isTransitioning ->
-                updateUiState { copy(isPoseTransitioning = isTransitioning) }
-            }
-        }
-
-        viewModelScope.launch {
-            poseController.transitionProgress.collect { progress ->
-                updateUiState { copy(poseTransitionProgress = progress) }
-            }
-        }
-    }
-
     // Expression Control Methods
 
     /**
      * Select expression for current avatar
      */
     fun selectExpression(expression: Expression?) {
-        if (_uiState.value.smoothTransitions && expression != null) {
-            expressionController.transitionToExpression(expression)
-        } else {
-            expressionController.applyExpression(expression)
-        }
-        Log.d("CameraViewModel", "Selected expression: ${expression?.name ?: "none"}")
+        avatarFeature.selectExpression(
+            expression = expression,
+            smoothTransitions = _uiState.value.smoothTransitions,
+        )
     }
 
     /**
      * Set blend shape weight
      */
     fun setBlendShapeWeight(shapeName: String, weight: Float) {
-        expressionController.setBlendShapeWeight(shapeName, weight)
+        avatarFeature.setBlendShapeWeight(shapeName, weight)
     }
 
     /**
      * Clear current expression
      */
     fun clearExpression() {
-        expressionController.clearExpression()
-        Log.d("CameraViewModel", "Cleared expression")
+        avatarFeature.clearExpression()
     }
 
     /**
      * Set expression transition duration
      */
     fun setExpressionTransitionDuration(duration: Float) {
-        expressionController.setTransitionDuration(duration)
+        avatarFeature.setExpressionTransitionDuration(duration)
     }
 
     /**
      * Blend multiple expressions
      */
     fun blendExpressions(expressionWeights: Map<Expression, Float>) {
-        expressionController.blendExpressions(expressionWeights)
+        avatarFeature.blendExpressions(expressionWeights)
     }
 
     // Pose Control Methods
@@ -1467,61 +1058,52 @@ class CameraViewModel @Inject constructor(
      * Select pose for current avatar
      */
     fun selectPose(pose: Pose?) {
-        if (_uiState.value.smoothTransitions && pose != null) {
-            poseController.transitionToPose(pose)
-        } else {
-            poseController.applyPose(pose)
-        }
-        Log.d("CameraViewModel", "Selected pose: ${pose?.name ?: "none"}")
+        avatarFeature.selectPose(
+            pose = pose,
+            smoothTransitions = _uiState.value.smoothTransitions,
+        )
     }
 
     /**
      * Set bone transform
      */
     fun setBoneTransform(boneName: String, transform: Transform) {
-        poseController.setBoneTransform(boneName, transform)
+        avatarFeature.setBoneTransform(boneName, transform)
     }
 
     /**
      * Toggle bone lock
      */
     fun toggleBoneLock(boneName: String) {
-        if (poseController.isBoneLocked(boneName)) {
-            poseController.unlockBone(boneName)
-        } else {
-            poseController.lockBone(boneName)
-        }
-        Log.d("CameraViewModel", "Toggled bone lock for: $boneName")
+        avatarFeature.toggleBoneLock(boneName)
     }
 
     /**
      * Clear current pose
      */
     fun clearPose() {
-        poseController.clearPose()
-        Log.d("CameraViewModel", "Cleared pose")
+        avatarFeature.clearPose()
     }
 
     /**
      * Reset to default pose
      */
     fun resetToDefaultPose() {
-        poseController.resetToDefaultPose()
-        Log.d("CameraViewModel", "Reset to default pose")
+        avatarFeature.resetToDefaultPose()
     }
 
     /**
      * Set pose transition duration
      */
     fun setPoseTransitionDuration(duration: Float) {
-        poseController.setTransitionDuration(duration)
+        avatarFeature.setPoseTransitionDuration(duration)
     }
 
     /**
      * Blend multiple poses
      */
     fun blendPoses(poseWeights: Map<Pose, Float>) {
-        poseController.blendPoses(poseWeights)
+        avatarFeature.blendPoses(poseWeights)
     }
 
     // Avatar Control Settings
@@ -1546,8 +1128,7 @@ class CameraViewModel @Inject constructor(
      * Update expression and pose transitions (called from render loop)
      */
     fun updateAvatarTransitions(deltaTime: Float) {
-        expressionController.updateTransition(deltaTime)
-        poseController.updateTransition(deltaTime)
+        avatarFeature.updateAvatarTransitions(deltaTime)
     }
 
     // ========== Lighting Control Functions ==========
@@ -1556,34 +1137,28 @@ class CameraViewModel @Inject constructor(
      * Update lighting settings
      */
     fun updateLightingSettings(settings: LightingSettings) {
-        viewModelScope.launch {
-            lightingSystem.updateLightingSettings(settings)
-        }
+        lightingFeature.updateLightingSettings(viewModelScope, settings)
     }
 
     /**
      * Select a lighting preset
      */
     fun selectLightingPreset(preset: LightingPreset) {
-        viewModelScope.launch {
-            lightingSystem.updateLightingSettings(preset.settings)
-        }
+        lightingFeature.selectLightingPreset(viewModelScope, preset)
     }
 
     /**
      * Reset lighting settings to defaults
      */
     fun resetLightingToDefaults() {
-        viewModelScope.launch {
-            lightingSystem.resetToDefaults()
-        }
+        lightingFeature.resetLightingToDefaults(viewModelScope)
     }
 
     /**
      * Get available lighting presets
      */
     fun getLightingPresets(): List<LightingPreset> {
-        return lightingSystem.getLightingPresets()
+        return lightingFeature.getLightingPresets()
     }
 
     /**
@@ -1591,9 +1166,7 @@ class CameraViewModel @Inject constructor(
      */
     private fun getCurrentLightingPresetName(): String? {
         val currentSettings = lightingSettings.value
-        return lightingSystem.getLightingPresets().find { preset ->
-            preset.settings == currentSettings
-        }?.name
+        return lightingFeature.getCurrentLightingPresetName(currentSettings)
     }
 
     // ========== Photo Management and Filtering Functions ==========
