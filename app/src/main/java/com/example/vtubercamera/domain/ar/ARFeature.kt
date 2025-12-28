@@ -36,8 +36,12 @@ class ARFeature @Inject constructor(
                 Log.d("CameraViewModel", "Enabling AR mode...")
                 updateUiState {
                     copy(
-                        isARMode = true,
-                        needsCameraRebind = true,
+                        ar = ar.copy(
+                            isARMode = true,
+                        ),
+                        camera = camera.copy(
+                            needsCameraRebind = true,
+                        )
                     )
                 }
 
@@ -54,7 +58,7 @@ class ARFeature @Inject constructor(
                     },
                     onError = { error ->
                         Log.e("CameraViewModel", "AR session initialization failed: $error")
-                        updateUiState { copy(arError = error) }
+                        updateUiState { copy(ar = ar.copy(arError = error)) }
                         disableARMode(
                             scope = scope,
                             updateUiState = updateUiState,
@@ -65,7 +69,7 @@ class ARFeature @Inject constructor(
             } catch (e: Exception) {
                 Log.e("CameraViewModel", "Failed to enable AR mode", e)
                 updateUiState {
-                    copy(arError = ARError.SessionError("Failed to enable AR mode: ${e.message}"))
+                    copy(ar = ar.copy(arError = ARError.SessionError("Failed to enable AR mode: ${e.message}")))
                 }
                 disableARMode(
                     scope = scope,
@@ -95,16 +99,22 @@ class ARFeature @Inject constructor(
                 val currentAvatarState = uiStateProvider().avatarState
                 updateUiState {
                     copy(
-                        isARMode = false,
-                        arSessionState = ARSessionState(),
-                        arCameraState = ARCameraState.default(),
-                        arError = null,
-                        avatarState = currentAvatarState.copy(
-                            transform = Transform.identity(),
-                            isVisible = false,
+                        ar = ar.copy(
+                            isARMode = false,
+                            arSessionState = ARSessionState(),
+                            arCameraState = ARCameraState.default(),
+                            arError = null,
                         ),
-                        avatarTransform = Transform.identity(),
-                        needsCameraRebind = true,
+                        avatar = avatar.copy(
+                            avatarState = currentAvatarState.copy(
+                                transform = Transform.identity(),
+                                isVisible = false,
+                            ),
+                            avatarTransform = Transform.identity(),
+                        ),
+                        camera = camera.copy(
+                            needsCameraRebind = true,
+                        )
                     )
                 }
 
@@ -146,13 +156,13 @@ class ARFeature @Inject constructor(
     ) {
         scope.launch {
             arRepository.sessionState.collect { sessionState ->
-                updateUiState { copy(arSessionState = sessionState) }
+                updateUiState { copy(ar = ar.copy(arSessionState = sessionState)) }
             }
         }
 
         scope.launch {
             arRepository.cameraState.collect { cameraState ->
-                updateUiState { copy(arCameraState = cameraState) }
+                updateUiState { copy(ar = ar.copy(arCameraState = cameraState)) }
             }
         }
 
@@ -165,7 +175,9 @@ class ARFeature @Inject constructor(
                     if (currentState.avatarState.isVisible != shouldShow) {
                         updateUiState {
                             copy(
-                                avatarState = currentState.avatarState.copy(isVisible = shouldShow)
+                                avatar = avatar.copy(
+                                    avatarState = currentState.avatarState.copy(isVisible = shouldShow)
+                                )
                             )
                         }
                     }

@@ -30,9 +30,11 @@ class GalleryFeature @Inject constructor(
         }
         updateUiState {
             copy(
-                lastCapturedImageUri = null,
-                isPreviewMode = false,
-                needsCameraRebind = true,
+                camera = camera.copy(
+                    lastCapturedImageUri = null,
+                    isPreviewMode = false,
+                    needsCameraRebind = true,
+                )
             )
         }
     }
@@ -55,10 +57,12 @@ class GalleryFeature @Inject constructor(
                     if (shouldClearLastCaptured || shouldClearLatest) {
                         updateUiState {
                             copy(
-                                lastCapturedImageUri = if (shouldClearLastCaptured) null else lastCapturedImageUri,
-                                latestLibraryPhotoUri = if (shouldClearLatest) null else latestLibraryPhotoUri,
-                                isPreviewMode = if (shouldClearLatest) false else isPreviewMode,
-                                needsCameraRebind = if (shouldClearLastCaptured) true else needsCameraRebind,
+                                camera = camera.copy(
+                                    lastCapturedImageUri = if (shouldClearLastCaptured) null else camera.lastCapturedImageUri,
+                                    latestLibraryPhotoUri = if (shouldClearLatest) null else camera.latestLibraryPhotoUri,
+                                    isPreviewMode = if (shouldClearLatest) false else camera.isPreviewMode,
+                                    needsCameraRebind = if (shouldClearLastCaptured) true else camera.needsCameraRebind,
+                                )
                             )
                         }
                     }
@@ -85,8 +89,10 @@ class GalleryFeature @Inject constructor(
                 if (successCount > 0) {
                     updateUiState {
                         copy(
-                            selectedPhotos = emptySet(),
-                            isSelectionMode = false,
+                            gallery = gallery.copy(
+                                selectedPhotos = emptySet(),
+                                isSelectionMode = false,
+                            )
                         )
                     }
                 }
@@ -103,12 +109,12 @@ class GalleryFeature @Inject constructor(
         updateUiState: UiStateUpdater,
     ) {
         scope.launch {
-            updateUiState { copy(isLoadingPhotos = true) }
+            updateUiState { copy(gallery = gallery.copy(isLoadingPhotos = true)) }
             try {
                 mediaRepository.refreshPhotos()
             } catch (_: Exception) {
             } finally {
-                updateUiState { copy(isLoadingPhotos = false) }
+                updateUiState { copy(gallery = gallery.copy(isLoadingPhotos = false)) }
             }
         }
     }
@@ -127,8 +133,10 @@ class GalleryFeature @Inject constructor(
 
         updateUiState {
             copy(
-                selectedPhotos = currentSelection,
-                isSelectionMode = if (currentSelection.isEmpty()) false else isSelectionMode,
+                gallery = gallery.copy(
+                    selectedPhotos = currentSelection,
+                    isSelectionMode = if (currentSelection.isEmpty()) false else gallery.isSelectionMode,
+                )
             )
         }
     }
@@ -136,8 +144,10 @@ class GalleryFeature @Inject constructor(
     fun startSelectionMode(updateUiState: UiStateUpdater) {
         updateUiState {
             copy(
-                isSelectionMode = true,
-                selectedPhotos = emptySet(),
+                gallery = gallery.copy(
+                    isSelectionMode = true,
+                    selectedPhotos = emptySet(),
+                )
             )
         }
     }
@@ -145,9 +155,13 @@ class GalleryFeature @Inject constructor(
     fun exitSelectionMode(updateUiState: UiStateUpdater) {
         updateUiState {
             copy(
-                isSelectionMode = false,
-                selectedPhotos = emptySet(),
-                needsCameraRebind = true,
+                gallery = gallery.copy(
+                    isSelectionMode = false,
+                    selectedPhotos = emptySet(),
+                ),
+                camera = camera.copy(
+                    needsCameraRebind = true,
+                )
             )
         }
     }
@@ -163,14 +177,16 @@ class GalleryFeature @Inject constructor(
         } else {
             photosList.map { it.uri }.toSet()
         }
-        updateUiState { copy(selectedPhotos = newSelection) }
+        updateUiState { copy(gallery = gallery.copy(selectedPhotos = newSelection)) }
     }
 
     fun clearSelection(updateUiState: UiStateUpdater) {
         updateUiState {
             copy(
-                selectedPhotos = emptySet(),
-                isSelectionMode = false,
+                gallery = gallery.copy(
+                    selectedPhotos = emptySet(),
+                    isSelectionMode = false,
+                )
             )
         }
     }
@@ -196,8 +212,12 @@ class GalleryFeature @Inject constructor(
     ) {
         updateUiState {
             copy(
-                currentViewingPhoto = photo,
-                needsCameraRebind = photo == null,
+                gallery = gallery.copy(
+                    currentViewingPhoto = photo,
+                ),
+                camera = camera.copy(
+                    needsCameraRebind = photo == null,
+                )
             )
         }
     }
@@ -210,7 +230,7 @@ class GalleryFeature @Inject constructor(
         val photosList = uiStateProvider().allPhotos
         val currentIndex = photosList.indexOfFirst { it.id == currentPhoto.id }
         if (currentIndex >= 0 && currentIndex < photosList.size - 1) {
-            updateUiState { copy(currentViewingPhoto = photosList[currentIndex + 1]) }
+            updateUiState { copy(gallery = gallery.copy(currentViewingPhoto = photosList[currentIndex + 1])) }
         }
     }
 
@@ -222,7 +242,7 @@ class GalleryFeature @Inject constructor(
         val photosList = uiStateProvider().allPhotos
         val currentIndex = photosList.indexOfFirst { it.id == currentPhoto.id }
         if (currentIndex > 0) {
-            updateUiState { copy(currentViewingPhoto = photosList[currentIndex - 1]) }
+            updateUiState { copy(gallery = gallery.copy(currentViewingPhoto = photosList[currentIndex - 1])) }
         }
     }
 }

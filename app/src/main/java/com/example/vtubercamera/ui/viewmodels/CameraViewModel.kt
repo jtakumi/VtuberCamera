@@ -322,25 +322,25 @@ class CameraViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             mediaRepository.getAllPhotos().collect { photos ->
-                updateUiState { copy(allPhotos = photos) }
+                updateUiState { copy(gallery = gallery.copy(allPhotos = photos)) }
             }
         }
 
         viewModelScope.launch {
             mediaRepository.getARPhotos().collect { photos ->
-                updateUiState { copy(arPhotos = photos) }
+                updateUiState { copy(gallery = gallery.copy(arPhotos = photos)) }
             }
         }
 
         viewModelScope.launch {
             mediaRepository.getNormalPhotos().collect { photos ->
-                updateUiState { copy(normalPhotos = photos) }
+                updateUiState { copy(gallery = gallery.copy(normalPhotos = photos)) }
             }
         }
 
         viewModelScope.launch {
             mediaRepository.getLatestPhotoUri().collect { latestUri ->
-                updateUiState { copy(latestLibraryPhotoUri = latestUri) }
+                updateUiState { copy(camera = camera.copy(latestLibraryPhotoUri = latestUri)) }
             }
         }
 
@@ -364,7 +364,13 @@ class CameraViewModel @Inject constructor(
                 )
             } catch (e: Exception) {
                 Log.e("CameraViewModel", "Failed to initialize avatar library", e)
-                updateUiState { copy(avatarLibraryError = "Failed to initialize avatar library: ${e.message}") }
+                updateUiState {
+                    copy(
+                        avatarLibraryState = avatarLibraryState.copy(
+                            avatarLibraryError = "Failed to initialize avatar library: ${e.message}"
+                        )
+                    )
+                }
             }
         }
 
@@ -432,11 +438,11 @@ class CameraViewModel @Inject constructor(
     }
 
     fun setMaxZoomRatio(maxZoomRatio: Float) {
-        updateUiState { copy(maxZoomRatio = maxZoomRatio) }
+        updateUiState { copy(camera = camera.copy(maxZoomRatio = maxZoomRatio)) }
     }
 
     fun setMinZoomRatio(minZoomRatio: Float) {
-        updateUiState { copy(minZoomRatio = minZoomRatio) }
+        updateUiState { copy(camera = camera.copy(minZoomRatio = minZoomRatio)) }
     }
 
     fun takePhoto(
@@ -451,7 +457,9 @@ class CameraViewModel @Inject constructor(
                     val msg = "写真を保存しました: $uri"
                     updateUiState {
                         copy(
-                            lastCapturedImageUri = uri,
+                            camera = camera.copy(
+                                lastCapturedImageUri = uri,
+                            )
                         )
                     }
                     onPhotoSaved(msg)
@@ -464,15 +472,17 @@ class CameraViewModel @Inject constructor(
 
     fun enterPreviewMode() {
         if (_uiState.value.latestLibraryPhotoUri != null) {
-            updateUiState { copy(isPreviewMode = true) }
+            updateUiState { copy(camera = camera.copy(isPreviewMode = true)) }
         }
     }
 
     fun exitPreviewMode() {
         updateUiState { 
             copy(
-                isPreviewMode = false,
-                needsCameraRebind = true
+                camera = camera.copy(
+                    isPreviewMode = false,
+                    needsCameraRebind = true
+                )
             )
         }
     }
@@ -614,7 +624,7 @@ class CameraViewModel @Inject constructor(
 
     fun onCameraRebound() {
         // カメラが再バインドされたらフラグをリセット
-        updateUiState { copy(needsCameraRebind = false) }
+        updateUiState { copy(camera = camera.copy(needsCameraRebind = false)) }
     }
 
     fun initializePhotos() {
@@ -804,8 +814,11 @@ class CameraViewModel @Inject constructor(
                     arMetadata = arMetadata,
                     onPhotoSaved = { uri ->
                         val msg = "AR写真を保存しました: $uri"
-                        _uiState.value = _uiState.value.copy(
-                            lastCapturedImageUri = uri
+                        val currentState = _uiState.value
+                        _uiState.value = currentState.copy(
+                            camera = currentState.camera.copy(
+                                lastCapturedImageUri = uri
+                            )
                         )
                         onPhotoSaved(msg)
                         refreshPhotos()
@@ -832,7 +845,7 @@ class CameraViewModel @Inject constructor(
      * Clear AR error state
      */
     fun clearARError() {
-        updateUiState { copy(arError = null) }
+        updateUiState { copy(ar = ar.copy(arError = null)) }
     }
 
     /**
@@ -938,7 +951,7 @@ class CameraViewModel @Inject constructor(
      * Change avatar library sort order
      */
     fun setAvatarSortBy(sortBy: AvatarSortBy) {
-        updateUiState { copy(avatarSortBy = sortBy) }
+        updateUiState { copy(avatarLibraryState = avatarLibraryState.copy(avatarSortBy = sortBy)) }
         avatarFeature.loadAvatarsFromLibrary(
             scope = viewModelScope,
             updateUiState = this::updateUiState,
@@ -950,14 +963,14 @@ class CameraViewModel @Inject constructor(
      * Show import dialog
      */
     fun showAvatarImportDialog() {
-        updateUiState { copy(showImportDialog = true) }
+        updateUiState { copy(avatarLibraryState = avatarLibraryState.copy(showImportDialog = true)) }
     }
 
     /**
      * Hide import dialog
      */
     fun hideAvatarImportDialog() {
-        updateUiState { copy(showImportDialog = false) }
+        updateUiState { copy(avatarLibraryState = avatarLibraryState.copy(showImportDialog = false)) }
     }
 
     /**
@@ -968,9 +981,11 @@ class CameraViewModel @Inject constructor(
         if (avatar != null) {
             updateUiState { 
                 copy(
-                    showRenameDialog = true,
-                    renameAvatarId = avatarId,
-                    renameCurrentName = avatar.name
+                    avatarLibraryState = avatarLibraryState.copy(
+                        showRenameDialog = true,
+                        renameAvatarId = avatarId,
+                        renameCurrentName = avatar.name
+                    )
                 )
             }
         }
@@ -982,9 +997,11 @@ class CameraViewModel @Inject constructor(
     fun hideRenameDialog() {
         updateUiState { 
             copy(
-                showRenameDialog = false,
-                renameAvatarId = null,
-                renameCurrentName = ""
+                avatarLibraryState = avatarLibraryState.copy(
+                    showRenameDialog = false,
+                    renameAvatarId = null,
+                    renameCurrentName = ""
+                )
             )
         }
     }
@@ -1112,7 +1129,7 @@ class CameraViewModel @Inject constructor(
      * Enable/disable smooth transitions
      */
     fun setSmoothTransitions(enabled: Boolean) {
-        updateUiState { copy(smoothTransitions = enabled) }
+        updateUiState { copy(avatarControl = avatarControl.copy(smoothTransitions = enabled)) }
         Log.d("CameraViewModel", "Smooth transitions: $enabled")
     }
 
@@ -1120,7 +1137,7 @@ class CameraViewModel @Inject constructor(
      * Enable/disable auto reset on avatar change
      */
     fun setAutoResetOnAvatarChange(enabled: Boolean) {
-        updateUiState { copy(autoResetOnAvatarChange = enabled) }
+        updateUiState { copy(avatarControl = avatarControl.copy(autoResetOnAvatarChange = enabled)) }
         Log.d("CameraViewModel", "Auto reset on avatar change: $enabled")
     }
 
@@ -1175,8 +1192,11 @@ class CameraViewModel @Inject constructor(
      * Set photo filter mode
      */
     fun setPhotoFilterMode(mode: PhotoFilterMode) {
-        _uiState.value = _uiState.value.copy(
-            photoFilterMode = mode
+        val currentState = _uiState.value
+        _uiState.value = currentState.copy(
+            gallery = currentState.gallery.copy(
+                photoFilterMode = mode
+            )
         )
     }
 

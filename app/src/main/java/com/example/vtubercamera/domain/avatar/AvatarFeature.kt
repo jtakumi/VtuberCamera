@@ -38,11 +38,13 @@ class AvatarFeature @Inject constructor(
             avatarController.avatarState.collect { avatarControllerState ->
                 updateUiState {
                     copy(
-                        avatarState = avatarControllerState,
-                        avatarTransform = avatarControllerState.transform,
-                        currentAvatar = avatarControllerState.model,
-                        currentExpression = avatarControllerState.currentExpression,
-                        currentPose = avatarControllerState.currentPose,
+                        avatar = avatar.copy(
+                            avatarState = avatarControllerState,
+                            avatarTransform = avatarControllerState.transform,
+                            currentAvatar = avatarControllerState.model,
+                            currentExpression = avatarControllerState.currentExpression,
+                            currentPose = avatarControllerState.currentPose,
+                        )
                     )
                 }
             }
@@ -50,55 +52,55 @@ class AvatarFeature @Inject constructor(
 
         scope.launch {
             expressionController.currentExpression.collect { expression ->
-                updateUiState { copy(currentExpression = expression) }
+                updateUiState { copy(avatar = avatar.copy(currentExpression = expression)) }
             }
         }
 
         scope.launch {
             expressionController.activeBlendShapes.collect { blendShapes ->
-                updateUiState { copy(activeBlendShapes = blendShapes) }
+                updateUiState { copy(avatarControl = avatarControl.copy(activeBlendShapes = blendShapes)) }
             }
         }
 
         scope.launch {
             expressionController.isTransitioning.collect { isTransitioning ->
-                updateUiState { copy(isExpressionTransitioning = isTransitioning) }
+                updateUiState { copy(avatarControl = avatarControl.copy(isExpressionTransitioning = isTransitioning)) }
             }
         }
 
         scope.launch {
             expressionController.transitionProgress.collect { progress ->
-                updateUiState { copy(expressionTransitionProgress = progress) }
+                updateUiState { copy(avatarControl = avatarControl.copy(expressionTransitionProgress = progress)) }
             }
         }
 
         scope.launch {
             poseController.currentPose.collect { pose ->
-                updateUiState { copy(currentPose = pose) }
+                updateUiState { copy(avatar = avatar.copy(currentPose = pose)) }
             }
         }
 
         scope.launch {
             poseController.activeBoneTransforms.collect { transforms ->
-                updateUiState { copy(activeBoneTransforms = transforms) }
+                updateUiState { copy(avatarControl = avatarControl.copy(activeBoneTransforms = transforms)) }
             }
         }
 
         scope.launch {
             poseController.boneLocks.collect { locks ->
-                updateUiState { copy(boneLocks = locks) }
+                updateUiState { copy(avatarControl = avatarControl.copy(boneLocks = locks)) }
             }
         }
 
         scope.launch {
             poseController.isTransitioning.collect { isTransitioning ->
-                updateUiState { copy(isPoseTransitioning = isTransitioning) }
+                updateUiState { copy(avatarControl = avatarControl.copy(isPoseTransitioning = isTransitioning)) }
             }
         }
 
         scope.launch {
             poseController.transitionProgress.collect { progress ->
-                updateUiState { copy(poseTransitionProgress = progress) }
+                updateUiState { copy(avatarControl = avatarControl.copy(poseTransitionProgress = progress)) }
             }
         }
     }
@@ -116,9 +118,11 @@ class AvatarFeature @Inject constructor(
                 val currentState = uiStateProvider()
                 updateUiState {
                     copy(
-                        avatarState = currentState.avatarState.copy(
-                            isLoading = true,
-                            loadingProgress = 0.0f,
+                        avatar = avatar.copy(
+                            avatarState = currentState.avatarState.copy(
+                                isLoading = true,
+                                loadingProgress = 0.0f,
+                            )
                         )
                     )
                 }
@@ -131,15 +135,17 @@ class AvatarFeature @Inject constructor(
 
                         updateUiState {
                             copy(
-                                currentAvatar = vrmModel,
-                                avatarState = AvatarState(
-                                    model = vrmModel,
-                                    transform = currentState.avatarTransform,
-                                    currentExpression = currentState.currentExpression,
-                                    currentPose = currentState.currentPose,
-                                    isVisible = currentState.isARMode,
-                                    isLoading = false,
-                                    loadingProgress = 1.0f,
+                                avatar = avatar.copy(
+                                    currentAvatar = vrmModel,
+                                    avatarState = AvatarState(
+                                        model = vrmModel,
+                                        transform = currentState.avatarTransform,
+                                        currentExpression = currentState.currentExpression,
+                                        currentPose = currentState.currentPose,
+                                        isVisible = currentState.isARMode,
+                                        isLoading = false,
+                                        loadingProgress = 1.0f,
+                                    ),
                                 )
                             )
                         }
@@ -162,11 +168,15 @@ class AvatarFeature @Inject constructor(
                         Log.e("CameraViewModel", "Failed to load avatar", error)
                         updateUiState {
                             copy(
-                                avatarState = currentState.avatarState.copy(
-                                    isLoading = false,
-                                    loadingProgress = 0.0f,
+                                avatar = avatar.copy(
+                                    avatarState = currentState.avatarState.copy(
+                                        isLoading = false,
+                                        loadingProgress = 0.0f,
+                                    ),
                                 ),
-                                arError = ARError.AvatarError("Failed to load avatar: ${error.message}"),
+                                ar = ar.copy(
+                                    arError = ARError.AvatarError("Failed to load avatar: ${error.message}"),
+                                )
                             )
                         }
                     }
@@ -175,11 +185,15 @@ class AvatarFeature @Inject constructor(
                 Log.e("CameraViewModel", "Error loading avatar", e)
                 updateUiState {
                     copy(
-                        avatarState = avatarState.copy(
-                            isLoading = false,
-                            loadingProgress = 0.0f,
+                        avatar = avatar.copy(
+                            avatarState = avatar.avatarState.copy(
+                                isLoading = false,
+                                loadingProgress = 0.0f,
+                            )
                         ),
-                        arError = ARError.AvatarError("Error loading avatar: ${e.message}"),
+                        ar = ar.copy(
+                            arError = ARError.AvatarError("Error loading avatar: ${e.message}"),
+                        )
                     )
                 }
             }
@@ -312,8 +326,10 @@ class AvatarFeature @Inject constructor(
             try {
                 updateUiState {
                     copy(
-                        isLoadingAvatarLibrary = true,
-                        avatarLibraryError = null,
+                        avatarLibraryState = avatarLibraryState.copy(
+                            isLoadingAvatarLibrary = true,
+                            avatarLibraryError = null,
+                        )
                     )
                 }
 
@@ -323,17 +339,21 @@ class AvatarFeature @Inject constructor(
                     .catch { error: Throwable ->
                         updateUiState {
                             copy(
-                                avatarLibraryError = error.message ?: "Failed to load avatars",
-                                isLoadingAvatarLibrary = false,
+                                avatarLibraryState = avatarLibraryState.copy(
+                                    avatarLibraryError = error.message ?: "Failed to load avatars",
+                                    isLoadingAvatarLibrary = false,
+                                )
                             )
                         }
                     }
                     .collect { avatars: List<AvatarInfo> ->
                         updateUiState {
                             copy(
-                                avatarLibrary = avatars,
-                                isLoadingAvatarLibrary = false,
-                                avatarLibraryError = null,
+                                avatarLibraryState = avatarLibraryState.copy(
+                                    avatarLibrary = avatars,
+                                    isLoadingAvatarLibrary = false,
+                                    avatarLibraryError = null,
+                                )
                             )
                         }
                     }
@@ -341,8 +361,10 @@ class AvatarFeature @Inject constructor(
                 Log.e("CameraViewModel", "Error in loadAvatarsFromLibrary", e)
                 updateUiState {
                     copy(
-                        avatarLibraryError = e.message ?: "Unknown error occurred",
-                        isLoadingAvatarLibrary = false,
+                        avatarLibraryState = avatarLibraryState.copy(
+                            avatarLibraryError = e.message ?: "Unknown error occurred",
+                            isLoadingAvatarLibrary = false,
+                        )
                     )
                 }
             }
@@ -356,7 +378,7 @@ class AvatarFeature @Inject constructor(
         scope.launch {
             try {
                 val stats = vrmRepository.getLibraryStatistics()
-                updateUiState { copy(avatarLibraryStats = stats) }
+                updateUiState { copy(avatarLibraryState = avatarLibraryState.copy(avatarLibraryStats = stats)) }
             } catch (e: Exception) {
                 Log.w("CameraViewModel", "Failed to load avatar library statistics: ${e.message}")
             }
@@ -373,7 +395,7 @@ class AvatarFeature @Inject constructor(
             try {
                 vrmRepository.recordAvatarUsage(avatarId)
 
-                updateUiState { copy(selectedAvatarId = avatarId) }
+                updateUiState { copy(avatarLibraryState = avatarLibraryState.copy(selectedAvatarId = avatarId)) }
 
                 val avatarInfo = uiStateProvider().avatarLibrary.find { it.id == avatarId }
                 if (avatarInfo != null) {
@@ -385,7 +407,7 @@ class AvatarFeature @Inject constructor(
                     )
                     Log.d("CameraViewModel", "Selected and loading avatar: ${avatarInfo.name}")
                 } else {
-                    updateUiState { copy(avatarLibraryError = "Avatar not found in library") }
+                    updateUiState { copy(avatarLibraryState = avatarLibraryState.copy(avatarLibraryError = "Avatar not found in library")) }
                 }
 
                 refreshAvatarLibrary(
@@ -394,7 +416,7 @@ class AvatarFeature @Inject constructor(
                     uiStateProvider = uiStateProvider,
                 )
             } catch (e: Exception) {
-                updateUiState { copy(avatarLibraryError = "Failed to select avatar: ${e.message}") }
+                updateUiState { copy(avatarLibraryState = avatarLibraryState.copy(avatarLibraryError = "Failed to select avatar: ${e.message}")) }
                 Log.e("CameraViewModel", "Failed to select avatar", e)
             }
         }
@@ -413,7 +435,11 @@ class AvatarFeature @Inject constructor(
                     val result = vrmRepository.setAvatarFavorite(avatarId, !avatar.isFavorite)
                     if (result.isFailure) {
                         updateUiState {
-                            copy(avatarLibraryError = "Failed to update favorite: ${result.exceptionOrNull()?.message}")
+                            copy(
+                                avatarLibraryState = avatarLibraryState.copy(
+                                    avatarLibraryError = "Failed to update favorite: ${result.exceptionOrNull()?.message}"
+                                )
+                            )
                         }
                     } else {
                         refreshAvatarLibrary(
@@ -425,7 +451,7 @@ class AvatarFeature @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                updateUiState { copy(avatarLibraryError = "Failed to toggle favorite: ${e.message}") }
+                updateUiState { copy(avatarLibraryState = avatarLibraryState.copy(avatarLibraryError = "Failed to toggle favorite: ${e.message}")) }
                 Log.e("CameraViewModel", "Failed to toggle favorite", e)
             }
         }
@@ -439,23 +465,29 @@ class AvatarFeature @Inject constructor(
     ) {
         scope.launch {
             try {
-                updateUiState { copy(isLoadingAvatarLibrary = true) }
+                updateUiState { copy(avatarLibraryState = avatarLibraryState.copy(isLoadingAvatarLibrary = true)) }
 
                 val result = vrmRepository.deleteAvatar(avatarId)
                 if (result.isFailure) {
                     updateUiState {
                         copy(
-                            avatarLibraryError = "Failed to delete avatar: ${result.exceptionOrNull()?.message}",
-                            isLoadingAvatarLibrary = false,
+                            avatarLibraryState = avatarLibraryState.copy(
+                                avatarLibraryError = "Failed to delete avatar: ${result.exceptionOrNull()?.message}",
+                                isLoadingAvatarLibrary = false,
+                            )
                         )
                     }
                 } else {
                     if (uiStateProvider().selectedAvatarId == avatarId) {
                         updateUiState {
                             copy(
-                                selectedAvatarId = null,
-                                currentAvatar = null,
-                                avatarState = AvatarState(),
+                                avatarLibraryState = avatarLibraryState.copy(
+                                    selectedAvatarId = null,
+                                ),
+                                avatar = avatar.copy(
+                                    currentAvatar = null,
+                                    avatarState = AvatarState(),
+                                )
                             )
                         }
                     }
@@ -470,8 +502,10 @@ class AvatarFeature @Inject constructor(
             } catch (e: Exception) {
                 updateUiState {
                     copy(
-                        avatarLibraryError = "Failed to delete avatar: ${e.message}",
-                        isLoadingAvatarLibrary = false,
+                        avatarLibraryState = avatarLibraryState.copy(
+                            avatarLibraryError = "Failed to delete avatar: ${e.message}",
+                            isLoadingAvatarLibrary = false,
+                        )
                     )
                 }
                 Log.e("CameraViewModel", "Failed to delete avatar", e)
@@ -491,14 +525,20 @@ class AvatarFeature @Inject constructor(
                 val result = vrmRepository.renameAvatar(avatarId, newName)
                 if (result.isFailure) {
                     updateUiState {
-                        copy(avatarLibraryError = "Failed to rename avatar: ${result.exceptionOrNull()?.message}")
+                        copy(
+                            avatarLibraryState = avatarLibraryState.copy(
+                                avatarLibraryError = "Failed to rename avatar: ${result.exceptionOrNull()?.message}"
+                            )
+                        )
                     }
                 } else {
                     updateUiState {
                         copy(
-                            showRenameDialog = false,
-                            renameAvatarId = null,
-                            renameCurrentName = "",
+                            avatarLibraryState = avatarLibraryState.copy(
+                                showRenameDialog = false,
+                                renameAvatarId = null,
+                                renameCurrentName = "",
+                            )
                         )
                     }
 
@@ -510,7 +550,7 @@ class AvatarFeature @Inject constructor(
                     Log.d("CameraViewModel", "Renamed avatar $avatarId to: $newName")
                 }
             } catch (e: Exception) {
-                updateUiState { copy(avatarLibraryError = "Failed to rename avatar: ${e.message}") }
+                updateUiState { copy(avatarLibraryState = avatarLibraryState.copy(avatarLibraryError = "Failed to rename avatar: ${e.message}")) }
                 Log.e("CameraViewModel", "Failed to rename avatar", e)
             }
         }
@@ -523,11 +563,11 @@ class AvatarFeature @Inject constructor(
     ) {
         scope.launch {
             try {
-                updateUiState { copy(isLoadingAvatarLibrary = true) }
+                updateUiState { copy(avatarLibraryState = avatarLibraryState.copy(isLoadingAvatarLibrary = true)) }
 
                 val result = vrmRepository.cleanupLibrary()
 
-                updateUiState { copy(isLoadingAvatarLibrary = false) }
+                updateUiState { copy(avatarLibraryState = avatarLibraryState.copy(isLoadingAvatarLibrary = false)) }
 
                 if (result.success) {
                     refreshAvatarLibrary(
@@ -537,13 +577,15 @@ class AvatarFeature @Inject constructor(
                     )
                     Log.d("CameraViewModel", "Avatar library cleanup completed")
                 } else {
-                    updateUiState { copy(avatarLibraryError = result.error) }
+                    updateUiState { copy(avatarLibraryState = avatarLibraryState.copy(avatarLibraryError = result.error)) }
                 }
             } catch (e: Exception) {
                 updateUiState {
                     copy(
-                        avatarLibraryError = "Failed to cleanup library: ${e.message}",
-                        isLoadingAvatarLibrary = false,
+                        avatarLibraryState = avatarLibraryState.copy(
+                            avatarLibraryError = "Failed to cleanup library: ${e.message}",
+                            isLoadingAvatarLibrary = false,
+                        )
                     )
                 }
                 Log.e("CameraViewModel", "Failed to cleanup avatar library", e)
@@ -552,6 +594,6 @@ class AvatarFeature @Inject constructor(
     }
 
     fun clearAvatarLibraryError(updateUiState: UiStateUpdater) {
-        updateUiState { copy(avatarLibraryError = null) }
+        updateUiState { copy(avatarLibraryState = avatarLibraryState.copy(avatarLibraryError = null)) }
     }
 }

@@ -21,7 +21,7 @@ class LensSwitchFeature @Inject constructor(
                 val success = cameraCapabilityManager.detectCameraCapabilities()
                 if (success) {
                     val canSwitch = cameraCapabilityManager.canSwitchLens()
-                    updateUiState { copy(canSwitchLens = canSwitch) }
+                    updateUiState { copy(lens = lens.copy(canSwitchLens = canSwitch)) }
                     updateLensDisplayInfo(updateUiState, uiStateProvider)
                     Log.d("CameraViewModel", "Camera capabilities initialized. Can switch lens: $canSwitch")
                 }
@@ -40,8 +40,10 @@ class LensSwitchFeature @Inject constructor(
         val lensName = cameraCapabilityManager.getLensDisplayName(currentSelector)
         updateUiState {
             copy(
-                currentLensType = lensType,
-                lensDisplayName = lensName,
+                lens = lens.copy(
+                    currentLensType = lensType,
+                    lensDisplayName = lensName,
+                )
             )
         }
     }
@@ -61,9 +63,9 @@ class LensSwitchFeature @Inject constructor(
 
             if (alternateSelector != null && alternateSelector != currentSelector) {
                 val previousLensName = uiStateProvider().lensDisplayName
-                updateUiState { copy(cameraSelector = alternateSelector) }
+                updateUiState { copy(camera = camera.copy(cameraSelector = alternateSelector)) }
                 updateLensDisplayInfo(updateUiState, uiStateProvider)
-                updateUiState { copy(needsCameraRebind = true) }
+                updateUiState { copy(camera = camera.copy(needsCameraRebind = true)) }
 
                 val newLensName = uiStateProvider().lensDisplayName
                 Log.d("CameraViewModel", "Switched from '$previousLensName' to '$newLensName'")

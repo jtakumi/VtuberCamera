@@ -20,14 +20,14 @@ typealias UiStateProvider = () -> CameraUiState
 
 class CameraControlsFeature @Inject constructor() {
 
-    private var camera: Camera? = null
+    private var boundCamera: Camera? = null
 
     fun setCamera(
         camera: Camera?,
         updateUiState: UiStateUpdater,
         uiStateProvider: UiStateProvider,
     ) {
-        this.camera = camera
+        this.boundCamera = camera
 
         camera?.let { cam ->
             try {
@@ -38,8 +38,10 @@ class CameraControlsFeature @Inject constructor() {
 
                     updateUiState {
                         copy(
-                            minZoomRatio = actualMinZoom,
-                            maxZoomRatio = actualMaxZoom,
+                            camera = this.camera.copy(
+                                minZoomRatio = actualMinZoom,
+                                maxZoomRatio = actualMaxZoom,
+                            ),
                         )
                     }
 
@@ -51,7 +53,7 @@ class CameraControlsFeature @Inject constructor() {
                     }
 
                     if (adjustedZoom != currentZoom) {
-                        updateUiState { copy(zoomRatio = adjustedZoom) }
+                        updateUiState { copy(camera = this.camera.copy(zoomRatio = adjustedZoom)) }
                         cam.cameraControl.setZoomRatio(adjustedZoom)
                         Log.d("CameraViewModel", "Adjusted zoom from ${currentZoom}x to ${adjustedZoom}x")
                     }
@@ -75,8 +77,10 @@ class CameraControlsFeature @Inject constructor() {
         }
         updateUiState {
             copy(
-                cameraSelector = newSelector,
-                needsCameraRebind = true,
+                camera = this.camera.copy(
+                    cameraSelector = newSelector,
+                    needsCameraRebind = true,
+                ),
             )
         }
     }
@@ -90,7 +94,7 @@ class CameraControlsFeature @Inject constructor() {
             ImageCapture.FLASH_MODE_AUTO -> ImageCapture.FLASH_MODE_OFF
             else -> ImageCapture.FLASH_MODE_ON
         }
-        updateUiState { copy(flashMode = newFlashMode) }
+        updateUiState { copy(camera = this.camera.copy(flashMode = newFlashMode)) }
     }
 
     fun setZoom(
@@ -100,10 +104,10 @@ class CameraControlsFeature @Inject constructor() {
     ) {
         val state = uiStateProvider()
         val minZoom = state.minZoomRatio
-        val maxZoom = camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: state.maxZoomRatio
+        val maxZoom = boundCamera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: state.maxZoomRatio
         val clampedZoom = zoom.coerceIn(minZoom, maxZoom)
-        updateUiState { copy(zoomRatio = clampedZoom) }
-        camera?.cameraControl?.setZoomRatio(clampedZoom)
+        updateUiState { copy(camera = this.camera.copy(zoomRatio = clampedZoom)) }
+        boundCamera?.cameraControl?.setZoomRatio(clampedZoom)
     }
 
     fun smoothZoomTo(
@@ -149,12 +153,12 @@ class CameraControlsFeature @Inject constructor() {
         val factory = previewView.meteringPointFactory
         val point = factory.createPoint(x, y)
         val action = FocusMeteringAction.Builder(point).build()
-        camera?.cameraControl?.startFocusAndMetering(action)
+        boundCamera?.cameraControl?.startFocusAndMetering(action)
 
-        updateUiState { copy(focusPoint = Pair(x, y)) }
+        updateUiState { copy(camera = this.camera.copy(focusPoint = Pair(x, y))) }
         scope.launch {
             delay(1000)
-            updateUiState { copy(focusPoint = null) }
+            updateUiState { copy(camera = this.camera.copy(focusPoint = null)) }
         }
     }
 }
