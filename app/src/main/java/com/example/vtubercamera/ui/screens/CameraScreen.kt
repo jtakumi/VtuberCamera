@@ -5,7 +5,6 @@ import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.os.Build
 import android.util.Log
-import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -85,6 +84,7 @@ import com.example.vtubercamera.ui.components.PhotoDetailView
 import com.example.vtubercamera.ui.components.PhotoPreviewComponent
 import com.example.vtubercamera.ui.modifiers.modernCameraGestures
 import com.example.vtubercamera.ui.camerax.bindCameraWithPreview
+import com.example.vtubercamera.ui.camerax.CameraXPreviewHost
 import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 import com.example.vtubercamera.utils.CameraCapabilityManager
 import com.example.vtubercamera.utils.PermissionUtils
@@ -619,16 +619,13 @@ private fun CameraCaptureContent(
                     }
                 }
         ) {
-            AndroidView(
-                factory = { ctx ->
-                    PreviewView(ctx).apply {
-                        layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                        onPreviewViewChanged(this)
-                    }
-                },
+            CameraXPreviewHost(
+                context = context,
+                lifecycleOwner = lifecycleOwner,
+                cameraSelector = cameraSelector,
+                flashMode = flashMode,
+                zoomRatio = zoomRatio,
+                needsCameraRebind = needsCameraRebind,
                 modifier = Modifier
                     .fillMaxSize()
                     .modernCameraGestures(
@@ -662,37 +659,25 @@ private fun CameraCaptureContent(
                         enableHapticFeedback = true,
                         zoomSensitivity = 2.4f,
                         lensSwitchThreshold = 1.0f
-                    )
-            ) { view ->
-                if (cameraProvider == null) {
-                    val cameraProviderFuture =
-                        ProcessCameraProvider.getInstance(context)
-                    cameraProviderFuture.addListener({
-                        onCameraProviderChanged(cameraProviderFuture.get())
-
-                        val createdPreview = Preview.Builder().build().also {
-                            it.surfaceProvider = view.surfaceProvider
-                        }
-                        onPreviewChanged(createdPreview)
-
-                        bindCameraWithPreview(
-                            lifecycleOwner = lifecycleOwner,
-                            cameraProvider = cameraProviderFuture.get(),
-                            preview = createdPreview,
-                            cameraSelector = cameraSelector,
-                            flashMode = flashMode,
-                            initialZoomRatio = zoomRatio,
-                            onImageCaptureCreated = { capture ->
-                                onImageCaptureChanged(capture)
-                            },
-                            onCameraCreated = { cam ->
-                                onCameraChanged(cam)
-                                viewModel.setCamera(cam)
-                            }
-                        )
-                    }, ContextCompat.getMainExecutor(context))
+                    ),
+                onCameraReboundHandled = { viewModel.onCameraRebound() },
+                onImageCaptureCreated = { capture ->
+                    onImageCaptureChanged(capture)
+                },
+                onCameraCreated = { cam ->
+                    onCameraChanged(cam)
+                    viewModel.setCamera(cam)
+                },
+                onCameraProviderChanged = { provider ->
+                    onCameraProviderChanged(provider)
+                },
+                onPreviewViewChanged = { view ->
+                    onPreviewViewChanged(view)
+                },
+                onPreviewChanged = { createdPreview ->
+                    onPreviewChanged(createdPreview)
                 }
-            }
+            )
 
             ZoomLevelButtons(
                 zoomRatio = zoomRatio,
@@ -705,39 +690,7 @@ private fun CameraCaptureContent(
             )
         }
 
-        LaunchedEffect(cameraSelector, needsCameraRebind) {
-            if (cameraProvider != null && preview != null) {
-                Log.d(
-                    "CameraScreen",
-                    "Rebinding camera - Selector: ${if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) "BACK" else "FRONT"}, Flash: $flashMode, NeedsRebind: $needsCameraRebind"
-                )
-
-                if (needsCameraRebind && previewView != null) {
-                    Log.d("CameraScreen", "Creating new Preview for rebind")
-                    val newPreview = Preview.Builder().build().also {
-                        it.surfaceProvider = previewView.surfaceProvider
-                    }
-                    onPreviewChanged(newPreview)
-                    viewModel.onCameraRebound()
-                }
-
-                bindCameraWithPreview(
-                    lifecycleOwner = lifecycleOwner,
-                    cameraProvider = cameraProvider,
-                    preview = preview,
-                    cameraSelector = cameraSelector,
-                    flashMode = flashMode,
-                    initialZoomRatio = zoomRatio,
-                    onImageCaptureCreated = { capture ->
-                        onImageCaptureChanged(capture)
-                    },
-                    onCameraCreated = { cam ->
-                        onCameraChanged(cam)
-                        viewModel.setCamera(cam)
-                    }
-                )
-            }
-        }
+        // Rebind handling is owned by CameraXPreviewHost.
 
         ZoomInfoOverlay(
             zoomRatio = zoomRatio,
