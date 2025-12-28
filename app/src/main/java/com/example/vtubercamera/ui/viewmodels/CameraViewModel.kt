@@ -1,14 +1,10 @@
 package com.example.vtubercamera.ui.viewmodels
 
-import android.animation.ValueAnimator
 import android.net.Uri
 import android.util.Log
-import android.view.animation.DecelerateInterpolator
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageCapture
-import androidx.camera.view.PreviewView
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.vtubercamera.data.CameraRepository
@@ -35,6 +31,9 @@ import com.example.vtubercamera.data.vrm.LightingSystem
 import com.example.vtubercamera.data.vrm.LightingSettings
 import com.example.vtubercamera.data.vrm.LightingPreset
 import com.example.vtubercamera.data.vrm.EnvironmentLighting
+import com.example.vtubercamera.domain.camera.CameraControlsFeature
+import com.example.vtubercamera.domain.camera.GalleryFeature
+import com.example.vtubercamera.domain.camera.LensSwitchFeature
 import com.example.vtubercamera.utils.CameraCapabilityManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -56,7 +55,6 @@ enum class PhotoFilterMode {
 class CameraViewModel @Inject constructor(
     private val cameraRepository: CameraRepository,
     private val mediaRepository: MediaRepository,
-    private val cameraCapabilityManager: CameraCapabilityManager,
     private val arRepository: ARRepository,
     private val vrmRepository: VRMRepository,
     private val avatarLibraryManager: AvatarLibraryManager,
@@ -64,6 +62,9 @@ class CameraViewModel @Inject constructor(
     private val expressionController: ExpressionController,
     private val poseController: PoseController,
     private val lightingSystem: LightingSystem,
+    private val cameraControlsFeature: CameraControlsFeature,
+    private val galleryFeature: GalleryFeature,
+    private val lensSwitchFeature: LensSwitchFeature,
 ) : ViewModel() {
 
     // UI状態の管理
@@ -321,8 +322,6 @@ class CameraViewModel @Inject constructor(
         initialValue = emptyList()
     )
 
-    private var _camera: Camera? = null
-
     // UI状態を更新するヘルパー関数
     private fun updateUiState(update: CameraUiState.() -> CameraUiState) {
         _uiState.value = _uiState.value.update()
@@ -354,7 +353,11 @@ class CameraViewModel @Inject constructor(
         }
 
         // Initialize camera capabilities
-        initializeCameraCapabilities()
+        lensSwitchFeature.initializeCameraCapabilities(
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
 
         // Initialize AR state observation
         initializeARStateObservation()
@@ -374,104 +377,59 @@ class CameraViewModel @Inject constructor(
     }
 
     fun setCamera(camera: Camera?) {
-        _camera = camera
-        
-        // Update zoom range based on actual camera capabilities
-        camera?.let { cam ->
-            try {
-                val zoomState = cam.cameraInfo.zoomState.value
-                zoomState?.let { state ->
-                    val actualMinZoom = state.minZoomRatio
-                    val actualMaxZoom = state.maxZoomRatio
-                    
-                    updateUiState { 
-                        copy(
-                            minZoomRatio = actualMinZoom,
-                            maxZoomRatio = actualMaxZoom
-                        )
-                    }
-                    
-                    // Adjust current zoom to fit within the new range
-                    val currentZoom = _uiState.value.zoomRatio
-                    val adjustedZoom = when {
-                        currentZoom < actualMinZoom -> actualMinZoom
-                        currentZoom > actualMaxZoom -> actualMaxZoom
-                        else -> currentZoom
-                    }
-                    
-                    if (adjustedZoom != currentZoom) {
-                        updateUiState { copy(zoomRatio = adjustedZoom) }
-                        cam.cameraControl.setZoomRatio(adjustedZoom)
-                        Log.d("CameraViewModel", "Adjusted zoom from ${currentZoom}x to ${adjustedZoom}x")
-                    }
-                    
-                    Log.d("CameraViewModel", "Updated zoom range: ${actualMinZoom}x - ${actualMaxZoom}x")
-                }
-            } catch (e: Exception) {
-                Log.w("CameraViewModel", "Failed to get zoom range from camera: ${e.message}")
-            }
-        }
+        cameraControlsFeature.setCamera(
+            camera = camera,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     fun switchCamera() {
-        val newSelector = when (_uiState.value.cameraSelector) {
-            CameraSelector.DEFAULT_BACK_CAMERA -> CameraSelector.DEFAULT_FRONT_CAMERA
-            CameraSelector.DEFAULT_FRONT_CAMERA -> CameraSelector.DEFAULT_BACK_CAMERA
-            else -> CameraSelector.DEFAULT_BACK_CAMERA
-        }
-        updateUiState { 
-            copy(
-                cameraSelector = newSelector,
-                needsCameraRebind = true
-            )
-        }
+        cameraControlsFeature.switchCamera(
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     fun toggleFlash() {
-        val newFlashMode = when (_uiState.value.flashMode) {
-            ImageCapture.FLASH_MODE_ON -> ImageCapture.FLASH_MODE_AUTO
-            ImageCapture.FLASH_MODE_AUTO -> ImageCapture.FLASH_MODE_OFF
-            else -> ImageCapture.FLASH_MODE_ON
-        }
-        updateUiState { copy(flashMode = newFlashMode) }
+        cameraControlsFeature.toggleFlash(
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     fun setZoom(zoom: Float) {
-        val minZoom = _uiState.value.minZoomRatio
-        val maxZoom = _camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: _uiState.value.maxZoomRatio
-        val clampedZoom = zoom.coerceIn(minZoom, maxZoom)
-        updateUiState { copy(zoomRatio = clampedZoom) }
-        _camera?.cameraControl?.setZoomRatio(clampedZoom)
+        cameraControlsFeature.setZoom(
+            zoom = zoom,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     fun smoothZoomTo(targetZoom: Float, duration: Long = 300) {
-        val currentZoom = _uiState.value.zoomRatio
-        val animator = ValueAnimator.ofFloat(currentZoom, targetZoom)
-        animator.duration = duration
-        animator.interpolator = DecelerateInterpolator()
-        animator.addUpdateListener { animation ->
-            val animatedZoom = animation.animatedValue as Float
-            setZoom(animatedZoom)
-        }
-        animator.start()
+        cameraControlsFeature.smoothZoomTo(
+            targetZoom = targetZoom,
+            duration = duration,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     fun resetZoom() {
-        smoothZoomTo(1.0f)
+        cameraControlsFeature.resetZoom(
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
-    fun focusOnPoint(previewView: PreviewView, x: Float, y: Float) {
-        val factory = previewView.meteringPointFactory
-        val point = factory.createPoint(x, y)
-        val action = FocusMeteringAction.Builder(point).build()
-        _camera?.cameraControl?.startFocusAndMetering(action)
-
-        // フォーカスポイントを設定し、1秒後に消す
-        updateUiState { copy(focusPoint = Pair(x, y)) }
-        viewModelScope.launch {
-            delay(1000) // 1秒待機
-            updateUiState { copy(focusPoint = null) }
-        }
+    fun focusOnPoint(previewView: androidx.camera.view.PreviewView, x: Float, y: Float) {
+        cameraControlsFeature.focusOnPoint(
+            previewView = previewView,
+            x = x,
+            y = y,
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+        )
     }
 
     fun setMaxZoomRatio(maxZoomRatio: Float) {
@@ -521,23 +479,11 @@ class CameraViewModel @Inject constructor(
     }
 
     fun clearLastCapturedImage() {
-        _uiState.value.lastCapturedImageUri?.let { uri ->
-            viewModelScope.launch {
-                try {
-                    mediaRepository.deletePhoto(uri)
-                    Log.d("CameraViewModel", "写真を削除しました: $uri")
-                } catch (e: Exception) {
-                    Log.e("CameraViewModel", "写真の削除に失敗しました", e)
-                }
-            }
-        }
-        updateUiState { 
-            copy(
-                lastCapturedImageUri = null,
-                isPreviewMode = false,
-                needsCameraRebind = true
-            )
-        }
+        galleryFeature.clearLastCapturedImage(
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     /**
@@ -546,33 +492,13 @@ class CameraViewModel @Inject constructor(
      * @return 削除が成功したかどうか
      */
     fun deletePhoto(uri: Uri, onResult: (Boolean) -> Unit) {
-        viewModelScope.launch {
-            try {
-                val success = mediaRepository.deletePhoto(uri)
-                if (success) {
-                    Log.d("CameraViewModel", "写真を削除しました: $uri")
-                    val currentState = _uiState.value
-                    val shouldClearLastCaptured = uri == currentState.lastCapturedImageUri
-                    val shouldClearLatest = uri == currentState.latestLibraryPhotoUri
-                    if (shouldClearLastCaptured || shouldClearLatest) {
-                        updateUiState {
-                            copy(
-                                lastCapturedImageUri = if (shouldClearLastCaptured) null else lastCapturedImageUri,
-                                latestLibraryPhotoUri = if (shouldClearLatest) null else latestLibraryPhotoUri,
-                                isPreviewMode = if (shouldClearLatest) false else isPreviewMode,
-                                needsCameraRebind = if (shouldClearLastCaptured) true else needsCameraRebind
-                            )
-                        }
-                    }
-                } else {
-                    Log.w("CameraViewModel", "写真の削除に失敗しました: $uri")
-                }
-                onResult(success)
-            } catch (e: Exception) {
-                Log.e("CameraViewModel", "写真の削除中にエラーが発生しました", e)
-                onResult(false)
-            }
-        }
+        galleryFeature.deletePhoto(
+            uri = uri,
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+            onResult = onResult
+        )
     }
 
     /**
@@ -581,33 +507,22 @@ class CameraViewModel @Inject constructor(
      * @return 削除に成功した写真の数
      */
     fun deleteMultiplePhotos(uris: List<Uri>, onResult: (Int) -> Unit) {
-        viewModelScope.launch {
-            try {
-                val successCount = mediaRepository.deleteMultiplePhotos(uris)
-                if (successCount > 0) {
-                    clearSelection()
-                }
-                onResult(successCount)
-            } catch (e: Exception) {
-                Log.e("CameraViewModel", "複数写真の削除中にエラーが発生しました", e)
-                onResult(0)
-            }
-        }
+        galleryFeature.deleteMultiplePhotos(
+            uris = uris,
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            onResult = onResult
+        )
     }
 
     /**
      * 端末内の全ての写真を取得
      */
     fun refreshPhotos() {
-        viewModelScope.launch {
-            updateUiState { copy(isLoadingPhotos = true) }
-            try {
-                mediaRepository.refreshPhotos()
-            } catch (_: Exception) {
-            } finally {
-                updateUiState { copy(isLoadingPhotos = false) }
-            }
-        }
+        galleryFeature.refreshPhotos(
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+        )
     }
 
     /**
@@ -618,116 +533,84 @@ class CameraViewModel @Inject constructor(
      * 写真の選択状態を切り替え
      */
     fun togglePhotoSelection(uri: Uri) {
-        val currentSelection = _uiState.value.selectedPhotos.toMutableSet()
-        if (currentSelection.contains(uri)) {
-            currentSelection.remove(uri)
-        } else {
-            currentSelection.add(uri)
-        }
-        
-        updateUiState { 
-            copy(
-                selectedPhotos = currentSelection,
-                isSelectionMode = if (currentSelection.isEmpty()) false else isSelectionMode
-            )
-        }
+        galleryFeature.togglePhotoSelection(
+            uri = uri,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     /**
      * 選択モードを開始
      */
     fun startSelectionMode() {
-        updateUiState { 
-            copy(
-                isSelectionMode = true,
-                selectedPhotos = emptySet()
-            )
-        }
+        galleryFeature.startSelectionMode(updateUiState = this::updateUiState)
     }
 
     /**
      * 選択モードを終了
      */
     fun exitSelectionMode() {
-        updateUiState { 
-            copy(
-                isSelectionMode = false,
-                selectedPhotos = emptySet(),
-                needsCameraRebind = true
-            )
-        }
+        galleryFeature.exitSelectionMode(updateUiState = this::updateUiState)
     }
 
     /**
      * 全選択/全選択解除
      */
     fun toggleSelectAll() {
-        val photosList = _uiState.value.allPhotos
-        val currentSelection = _uiState.value.selectedPhotos
-        val newSelection = if (currentSelection.size == photosList.size) {
-            // 全選択されている場合は全選択解除
-            emptySet()
-        } else {
-            // そうでなければ全選択
-            photosList.map { it.uri }.toSet()
-        }
-        updateUiState { copy(selectedPhotos = newSelection) }
+        galleryFeature.toggleSelectAll(
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     /**
      * 選択をクリア
      */
     fun clearSelection() {
-        updateUiState { 
-            copy(
-                selectedPhotos = emptySet(),
-                isSelectionMode = false
-            )
-        }
+        galleryFeature.clearSelection(updateUiState = this::updateUiState)
     }
 
     /**
      * 選択された写真を削除
      */
     fun deleteSelectedPhotos(onResult: (Int) -> Unit) {
-        val selectedUris = _uiState.value.selectedPhotos.toList()
-        deleteMultiplePhotos(selectedUris, onResult)
+        galleryFeature.deleteSelectedPhotos(
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+            onResult = onResult
+        )
     }
 
     /**
      * 特定の写真を拡大表示用に設定
      */
     fun setCurrentViewingPhoto(photo: PhotoItem?) {
-        updateUiState { 
-            copy(
-                currentViewingPhoto = photo,
-                needsCameraRebind = photo == null
-            )
-        }
+        galleryFeature.setCurrentViewingPhoto(
+            photo = photo,
+            updateUiState = this::updateUiState
+        )
     }
 
     /**
      * 次の写真に移動
      */
     fun goToNextPhoto() {
-        val currentPhoto = _uiState.value.currentViewingPhoto ?: return
-        val photosList = _uiState.value.allPhotos
-        val currentIndex = photosList.indexOfFirst { it.id == currentPhoto.id }
-        if (currentIndex >= 0 && currentIndex < photosList.size - 1) {
-            updateUiState { copy(currentViewingPhoto = photosList[currentIndex + 1]) }
-        }
+        galleryFeature.goToNextPhoto(
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     /**
      * 前の写真に移動
      */
     fun goToPreviousPhoto() {
-        val currentPhoto = _uiState.value.currentViewingPhoto ?: return
-        val photosList = _uiState.value.allPhotos
-        val currentIndex = photosList.indexOfFirst { it.id == currentPhoto.id }
-        if (currentIndex > 0) {
-            updateUiState { copy(currentViewingPhoto = photosList[currentIndex - 1]) }
-        }
+        galleryFeature.goToPreviousPhoto(
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     fun onCameraRebound() {
@@ -739,61 +622,14 @@ class CameraViewModel @Inject constructor(
         refreshPhotos()
     }
 
-    private fun initializeCameraCapabilities() {
-        viewModelScope.launch {
-            try {
-                val success = cameraCapabilityManager.detectCameraCapabilities()
-                if (success) {
-                    val canSwitch = cameraCapabilityManager.canSwitchLens()
-                    updateUiState { copy(canSwitchLens = canSwitch) }
-                    updateLensDisplayInfo()
-                    Log.d("CameraViewModel", "Camera capabilities initialized. Can switch lens: $canSwitch")
-                }
-            } catch (e: Exception) {
-                Log.e("CameraViewModel", "Failed to initialize camera capabilities", e)
-            }
-        }
-    }
-
-    private fun updateLensDisplayInfo() {
-        val currentSelector = _uiState.value.cameraSelector
-        val lensType = cameraCapabilityManager.getLensType(currentSelector)
-        val lensName = cameraCapabilityManager.getLensDisplayName(currentSelector)
-        updateUiState { 
-            copy(
-                currentLensType = lensType,
-                lensDisplayName = lensName
-            )
-        }
-    }
-
     /**
      * Switch between normal and wide-angle lenses using pinch gesture with error handling
      */
     fun switchLens() {
-        try {
-            if (!_uiState.value.canSwitchLens) {
-                Log.w("CameraViewModel", "Lens switching not supported on this device")
-                return
-            }
-
-            val currentSelector = _uiState.value.cameraSelector
-            val alternateSelector = cameraCapabilityManager.getAlternateRearCamera(currentSelector)
-            
-            if (alternateSelector != null && alternateSelector != currentSelector) {
-                val previousLensName = _uiState.value.lensDisplayName
-                updateUiState { copy(cameraSelector = alternateSelector) }
-                updateLensDisplayInfo()
-                updateUiState { copy(needsCameraRebind = true) }
-                
-                val newLensName = _uiState.value.lensDisplayName
-                Log.d("CameraViewModel", "Switched from '$previousLensName' to '$newLensName'")
-            } else {
-                Log.w("CameraViewModel", "No alternate camera available or already using the alternate camera")
-            }
-        } catch (e: Exception) {
-            Log.e("CameraViewModel", "Failed to switch lens", e)
-        }
+        lensSwitchFeature.switchLens(
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     /**
@@ -805,8 +641,7 @@ class CameraViewModel @Inject constructor(
      * Get current lens information for debugging
      */
     fun getCurrentLensInfo(): String {
-        val state = _uiState.value
-        return "${state.lensDisplayName} (${state.currentLensType})"
+        return lensSwitchFeature.getCurrentLensInfo(uiStateProvider = { _uiState.value })
     }
 
     /**
