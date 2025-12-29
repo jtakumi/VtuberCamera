@@ -50,6 +50,7 @@ internal fun CameraXPreviewHost(
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
     var preview by remember { mutableStateOf<Preview?>(null) }
+    var boundCamera by remember { mutableStateOf<Camera?>(null) }
     var providerListenerRegistered by remember { mutableStateOf(false) }
 
     fun bindIfReady(forceNewPreview: Boolean) {
@@ -75,7 +76,10 @@ internal fun CameraXPreviewHost(
             flashMode = flashMode,
             initialZoomRatio = zoomRatio,
             onImageCaptureCreated = onImageCaptureCreated,
-            onCameraCreated = onCameraCreated
+            onCameraCreated = { camera ->
+                boundCamera = camera
+                onCameraCreated(camera)
+            }
         )
     }
 
@@ -123,7 +127,6 @@ internal fun CameraXPreviewHost(
     LaunchedEffect(
         cameraSelector,
         flashMode,
-        zoomRatio,
         needsCameraRebind,
         cameraProvider,
         previewView
@@ -137,8 +140,17 @@ internal fun CameraXPreviewHost(
             bindIfReady(forceNewPreview = true)
             onCameraReboundHandled()
         } else {
-            // Re-bind for selector/flash/zoom changes without forcing a new Preview.
+            // Re-bind for selector/flash changes without forcing a new Preview.
             bindIfReady(forceNewPreview = false)
+        }
+    }
+
+    LaunchedEffect(zoomRatio, boundCamera) {
+        val camera = boundCamera ?: return@LaunchedEffect
+        try {
+            camera.cameraControl.setZoomRatio(zoomRatio)
+        } catch (e: Exception) {
+            Log.w("CameraXPreviewHost", "Failed to apply zoomRatio=$zoomRatio", e)
         }
     }
 }
