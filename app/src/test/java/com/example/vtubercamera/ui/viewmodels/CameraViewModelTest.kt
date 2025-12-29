@@ -23,6 +23,12 @@ import com.example.vtubercamera.data.vrm.VRMModel
 import com.example.vtubercamera.data.vrm.Expression
 import com.example.vtubercamera.data.vrm.Pose
 import com.example.vtubercamera.data.vrm.TrackingState
+import com.example.vtubercamera.domain.ar.ARFeature
+import com.example.vtubercamera.domain.avatar.AvatarFeature
+import com.example.vtubercamera.domain.camera.CameraControlsFeature
+import com.example.vtubercamera.domain.camera.GalleryFeature
+import com.example.vtubercamera.domain.camera.LensSwitchFeature
+import com.example.vtubercamera.domain.lighting.LightingFeature
 import com.example.vtubercamera.utils.CameraCapabilityManager
 import android.net.Uri
 import kotlinx.coroutines.Dispatchers
@@ -95,6 +101,7 @@ class CameraViewModelTest {
         whenever(mockMediaRepository.getAllPhotos()).thenReturn(flowOf(emptyList()))
         whenever(mockMediaRepository.getARPhotos()).thenReturn(flowOf(emptyList()))
         whenever(mockMediaRepository.getNormalPhotos()).thenReturn(flowOf(emptyList()))
+        whenever(mockMediaRepository.getLatestPhotoUri()).thenReturn(flowOf(Uri.parse("content://test/latest")))
 
         // Setup avatar library manager mock returns
         whenever(mockAvatarLibraryManager.getAvatarsSortedBy(org.mockito.kotlin.any())).thenReturn(flowOf(emptyList()))
@@ -123,18 +130,32 @@ class CameraViewModelTest {
         whenever(mockLightingSystem.environmentLighting).thenReturn(MutableStateFlow(null))
         whenever(mockLightingSystem.getLightingPresets()).thenReturn(emptyList())
 
-        viewModel = CameraViewModel(
-            cameraRepository = mockCameraRepository,
-            mediaRepository = mockMediaRepository,
-            cameraCapabilityManager = mockCameraCapabilityManager,
-            arRepository = mockARRepository,
+        val cameraControlsFeature = CameraControlsFeature()
+        val galleryFeature = GalleryFeature(mediaRepository = mockMediaRepository)
+        val lensSwitchFeature = LensSwitchFeature(cameraCapabilityManager = mockCameraCapabilityManager)
+        val arFeature = ARFeature(arRepository = mockARRepository)
+        val avatarFeature = AvatarFeature(
             vrmRepository = mockVRMRepository,
             avatarLibraryManager = mockAvatarLibraryManager,
             avatarController = mockAvatarController,
             expressionController = mockExpressionController,
             poseController = mockPoseController,
-            lightingSystem = mockLightingSystem
         )
+        val lightingFeature = LightingFeature(lightingSystem = mockLightingSystem)
+
+        viewModel = CameraViewModel(
+            cameraRepository = mockCameraRepository,
+            mediaRepository = mockMediaRepository,
+            cameraControlsFeature = cameraControlsFeature,
+            galleryFeature = galleryFeature,
+            lensSwitchFeature = lensSwitchFeature,
+            arFeature = arFeature,
+            avatarFeature = avatarFeature,
+            lightingFeature = lightingFeature,
+        )
+
+        // Run ViewModel init coroutines
+        testDispatcher.scheduler.advanceUntilIdle()
     }
 
     @Test

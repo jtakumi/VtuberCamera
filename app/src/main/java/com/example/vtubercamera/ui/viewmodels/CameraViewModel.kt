@@ -1,21 +1,15 @@
 package com.example.vtubercamera.ui.viewmodels
 
-import android.animation.ValueAnimator
 import android.net.Uri
 import android.util.Log
-import android.view.animation.DecelerateInterpolator
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageCapture
-import androidx.camera.view.PreviewView
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.vtubercamera.data.CameraRepository
 import com.example.vtubercamera.data.MediaRepository
 import com.example.vtubercamera.data.PhotoItem
-import com.example.vtubercamera.data.ARRepository
-import com.example.vtubercamera.data.VRMRepository
 import com.example.vtubercamera.data.vrm.AvatarState
 import com.example.vtubercamera.data.vrm.ARSessionState
 import com.example.vtubercamera.data.vrm.ARCameraState
@@ -25,16 +19,17 @@ import com.example.vtubercamera.data.vrm.Expression
 import com.example.vtubercamera.data.vrm.Pose
 import com.example.vtubercamera.data.vrm.math.Transform
 import com.example.vtubercamera.data.vrm.AvatarInfo
-import com.example.vtubercamera.data.vrm.AvatarLibraryManager
 import com.example.vtubercamera.data.vrm.AvatarLibraryStats
 import com.example.vtubercamera.data.vrm.AvatarSortBy
-import com.example.vtubercamera.data.vrm.AvatarController
-import com.example.vtubercamera.data.vrm.ExpressionController
-import com.example.vtubercamera.data.vrm.PoseController
-import com.example.vtubercamera.data.vrm.LightingSystem
 import com.example.vtubercamera.data.vrm.LightingSettings
 import com.example.vtubercamera.data.vrm.LightingPreset
 import com.example.vtubercamera.data.vrm.EnvironmentLighting
+import com.example.vtubercamera.domain.ar.ARFeature
+import com.example.vtubercamera.domain.avatar.AvatarFeature
+import com.example.vtubercamera.domain.camera.CameraControlsFeature
+import com.example.vtubercamera.domain.camera.GalleryFeature
+import com.example.vtubercamera.domain.camera.LensSwitchFeature
+import com.example.vtubercamera.domain.lighting.LightingFeature
 import com.example.vtubercamera.utils.CameraCapabilityManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -56,14 +51,12 @@ enum class PhotoFilterMode {
 class CameraViewModel @Inject constructor(
     private val cameraRepository: CameraRepository,
     private val mediaRepository: MediaRepository,
-    private val cameraCapabilityManager: CameraCapabilityManager,
-    private val arRepository: ARRepository,
-    private val vrmRepository: VRMRepository,
-    private val avatarLibraryManager: AvatarLibraryManager,
-    private val avatarController: AvatarController,
-    private val expressionController: ExpressionController,
-    private val poseController: PoseController,
-    private val lightingSystem: LightingSystem,
+    private val cameraControlsFeature: CameraControlsFeature,
+    private val galleryFeature: GalleryFeature,
+    private val lensSwitchFeature: LensSwitchFeature,
+    private val arFeature: ARFeature,
+    private val avatarFeature: AvatarFeature,
+    private val lightingFeature: LightingFeature,
 ) : ViewModel() {
 
     // UI状態の管理
@@ -313,15 +306,13 @@ class CameraViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = true
     )
-    val lightingSettings: StateFlow<LightingSettings> = lightingSystem.lightingSettings
-    val environmentLighting: StateFlow<EnvironmentLighting?> = lightingSystem.environmentLighting
+    val lightingSettings: StateFlow<LightingSettings> = lightingFeature.lightingSettings
+    val environmentLighting: StateFlow<EnvironmentLighting?> = lightingFeature.environmentLighting
     val lightingPresets: StateFlow<List<LightingPreset>> = _uiState.map { it.lightingPresets }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
-
-    private var _camera: Camera? = null
 
     // UI状態を更新するヘルパー関数
     private fun updateUiState(update: CameraUiState.() -> CameraUiState) {
@@ -331,30 +322,34 @@ class CameraViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             mediaRepository.getAllPhotos().collect { photos ->
-                updateUiState { copy(allPhotos = photos) }
+                updateUiState { copy(gallery = gallery.copy(allPhotos = photos)) }
             }
         }
 
         viewModelScope.launch {
             mediaRepository.getARPhotos().collect { photos ->
-                updateUiState { copy(arPhotos = photos) }
+                updateUiState { copy(gallery = gallery.copy(arPhotos = photos)) }
             }
         }
 
         viewModelScope.launch {
             mediaRepository.getNormalPhotos().collect { photos ->
-                updateUiState { copy(normalPhotos = photos) }
+                updateUiState { copy(gallery = gallery.copy(normalPhotos = photos)) }
             }
         }
 
         viewModelScope.launch {
             mediaRepository.getLatestPhotoUri().collect { latestUri ->
-                updateUiState { copy(latestLibraryPhotoUri = latestUri) }
+                updateUiState { copy(camera = camera.copy(latestLibraryPhotoUri = latestUri)) }
             }
         }
 
         // Initialize camera capabilities
-        initializeCameraCapabilities()
+        lensSwitchFeature.initializeCameraCapabilities(
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
 
         // Initialize AR state observation
         initializeARStateObservation()
@@ -362,124 +357,92 @@ class CameraViewModel @Inject constructor(
         // Initialize avatar library (deferred to avoid initialization race conditions)
         viewModelScope.launch {
             try {
-                initializeAvatarLibrary()
+                avatarFeature.initializeAvatarLibrary(
+                    scope = viewModelScope,
+                    updateUiState = this@CameraViewModel::updateUiState,
+                    uiStateProvider = { _uiState.value },
+                )
             } catch (e: Exception) {
                 Log.e("CameraViewModel", "Failed to initialize avatar library", e)
-                updateUiState { copy(avatarLibraryError = "Failed to initialize avatar library: ${e.message}") }
+                updateUiState {
+                    copy(
+                        avatarLibraryState = avatarLibraryState.copy(
+                            avatarLibraryError = "Failed to initialize avatar library: ${e.message}"
+                        )
+                    )
+                }
             }
         }
 
         // Initialize avatar control observers
-        initializeAvatarControlObservers()
+        avatarFeature.startAvatarControlObservers(
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+        )
     }
 
     fun setCamera(camera: Camera?) {
-        _camera = camera
-        
-        // Update zoom range based on actual camera capabilities
-        camera?.let { cam ->
-            try {
-                val zoomState = cam.cameraInfo.zoomState.value
-                zoomState?.let { state ->
-                    val actualMinZoom = state.minZoomRatio
-                    val actualMaxZoom = state.maxZoomRatio
-                    
-                    updateUiState { 
-                        copy(
-                            minZoomRatio = actualMinZoom,
-                            maxZoomRatio = actualMaxZoom
-                        )
-                    }
-                    
-                    // Adjust current zoom to fit within the new range
-                    val currentZoom = _uiState.value.zoomRatio
-                    val adjustedZoom = when {
-                        currentZoom < actualMinZoom -> actualMinZoom
-                        currentZoom > actualMaxZoom -> actualMaxZoom
-                        else -> currentZoom
-                    }
-                    
-                    if (adjustedZoom != currentZoom) {
-                        updateUiState { copy(zoomRatio = adjustedZoom) }
-                        cam.cameraControl.setZoomRatio(adjustedZoom)
-                        Log.d("CameraViewModel", "Adjusted zoom from ${currentZoom}x to ${adjustedZoom}x")
-                    }
-                    
-                    Log.d("CameraViewModel", "Updated zoom range: ${actualMinZoom}x - ${actualMaxZoom}x")
-                }
-            } catch (e: Exception) {
-                Log.w("CameraViewModel", "Failed to get zoom range from camera: ${e.message}")
-            }
-        }
+        cameraControlsFeature.setCamera(
+            camera = camera,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     fun switchCamera() {
-        val newSelector = when (_uiState.value.cameraSelector) {
-            CameraSelector.DEFAULT_BACK_CAMERA -> CameraSelector.DEFAULT_FRONT_CAMERA
-            CameraSelector.DEFAULT_FRONT_CAMERA -> CameraSelector.DEFAULT_BACK_CAMERA
-            else -> CameraSelector.DEFAULT_BACK_CAMERA
-        }
-        updateUiState { 
-            copy(
-                cameraSelector = newSelector,
-                needsCameraRebind = true
-            )
-        }
+        cameraControlsFeature.switchCamera(
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     fun toggleFlash() {
-        val newFlashMode = when (_uiState.value.flashMode) {
-            ImageCapture.FLASH_MODE_ON -> ImageCapture.FLASH_MODE_AUTO
-            ImageCapture.FLASH_MODE_AUTO -> ImageCapture.FLASH_MODE_OFF
-            else -> ImageCapture.FLASH_MODE_ON
-        }
-        updateUiState { copy(flashMode = newFlashMode) }
+        cameraControlsFeature.toggleFlash(
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     fun setZoom(zoom: Float) {
-        val minZoom = _uiState.value.minZoomRatio
-        val maxZoom = _camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: _uiState.value.maxZoomRatio
-        val clampedZoom = zoom.coerceIn(minZoom, maxZoom)
-        updateUiState { copy(zoomRatio = clampedZoom) }
-        _camera?.cameraControl?.setZoomRatio(clampedZoom)
+        cameraControlsFeature.setZoom(
+            zoom = zoom,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     fun smoothZoomTo(targetZoom: Float, duration: Long = 300) {
-        val currentZoom = _uiState.value.zoomRatio
-        val animator = ValueAnimator.ofFloat(currentZoom, targetZoom)
-        animator.duration = duration
-        animator.interpolator = DecelerateInterpolator()
-        animator.addUpdateListener { animation ->
-            val animatedZoom = animation.animatedValue as Float
-            setZoom(animatedZoom)
-        }
-        animator.start()
+        cameraControlsFeature.smoothZoomTo(
+            targetZoom = targetZoom,
+            duration = duration,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     fun resetZoom() {
-        smoothZoomTo(1.0f)
+        cameraControlsFeature.resetZoom(
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
-    fun focusOnPoint(previewView: PreviewView, x: Float, y: Float) {
-        val factory = previewView.meteringPointFactory
-        val point = factory.createPoint(x, y)
-        val action = FocusMeteringAction.Builder(point).build()
-        _camera?.cameraControl?.startFocusAndMetering(action)
-
-        // フォーカスポイントを設定し、1秒後に消す
-        updateUiState { copy(focusPoint = Pair(x, y)) }
-        viewModelScope.launch {
-            delay(1000) // 1秒待機
-            updateUiState { copy(focusPoint = null) }
-        }
+    fun focusOnPoint(previewView: androidx.camera.view.PreviewView, x: Float, y: Float) {
+        cameraControlsFeature.focusOnPoint(
+            previewView = previewView,
+            x = x,
+            y = y,
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+        )
     }
 
     fun setMaxZoomRatio(maxZoomRatio: Float) {
-        updateUiState { copy(maxZoomRatio = maxZoomRatio) }
+        updateUiState { copy(camera = camera.copy(maxZoomRatio = maxZoomRatio)) }
     }
 
     fun setMinZoomRatio(minZoomRatio: Float) {
-        updateUiState { copy(minZoomRatio = minZoomRatio) }
+        updateUiState { copy(camera = camera.copy(minZoomRatio = minZoomRatio)) }
     }
 
     fun takePhoto(
@@ -494,7 +457,9 @@ class CameraViewModel @Inject constructor(
                     val msg = "写真を保存しました: $uri"
                     updateUiState {
                         copy(
-                            lastCapturedImageUri = uri,
+                            camera = camera.copy(
+                                lastCapturedImageUri = uri,
+                            )
                         )
                     }
                     onPhotoSaved(msg)
@@ -507,37 +472,27 @@ class CameraViewModel @Inject constructor(
 
     fun enterPreviewMode() {
         if (_uiState.value.latestLibraryPhotoUri != null) {
-            updateUiState { copy(isPreviewMode = true) }
+            updateUiState { copy(camera = camera.copy(isPreviewMode = true)) }
         }
     }
 
     fun exitPreviewMode() {
         updateUiState { 
             copy(
-                isPreviewMode = false,
-                needsCameraRebind = true
+                camera = camera.copy(
+                    isPreviewMode = false,
+                    needsCameraRebind = true
+                )
             )
         }
     }
 
     fun clearLastCapturedImage() {
-        _uiState.value.lastCapturedImageUri?.let { uri ->
-            viewModelScope.launch {
-                try {
-                    mediaRepository.deletePhoto(uri)
-                    Log.d("CameraViewModel", "写真を削除しました: $uri")
-                } catch (e: Exception) {
-                    Log.e("CameraViewModel", "写真の削除に失敗しました", e)
-                }
-            }
-        }
-        updateUiState { 
-            copy(
-                lastCapturedImageUri = null,
-                isPreviewMode = false,
-                needsCameraRebind = true
-            )
-        }
+        galleryFeature.clearLastCapturedImage(
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     /**
@@ -546,33 +501,13 @@ class CameraViewModel @Inject constructor(
      * @return 削除が成功したかどうか
      */
     fun deletePhoto(uri: Uri, onResult: (Boolean) -> Unit) {
-        viewModelScope.launch {
-            try {
-                val success = mediaRepository.deletePhoto(uri)
-                if (success) {
-                    Log.d("CameraViewModel", "写真を削除しました: $uri")
-                    val currentState = _uiState.value
-                    val shouldClearLastCaptured = uri == currentState.lastCapturedImageUri
-                    val shouldClearLatest = uri == currentState.latestLibraryPhotoUri
-                    if (shouldClearLastCaptured || shouldClearLatest) {
-                        updateUiState {
-                            copy(
-                                lastCapturedImageUri = if (shouldClearLastCaptured) null else lastCapturedImageUri,
-                                latestLibraryPhotoUri = if (shouldClearLatest) null else latestLibraryPhotoUri,
-                                isPreviewMode = if (shouldClearLatest) false else isPreviewMode,
-                                needsCameraRebind = if (shouldClearLastCaptured) true else needsCameraRebind
-                            )
-                        }
-                    }
-                } else {
-                    Log.w("CameraViewModel", "写真の削除に失敗しました: $uri")
-                }
-                onResult(success)
-            } catch (e: Exception) {
-                Log.e("CameraViewModel", "写真の削除中にエラーが発生しました", e)
-                onResult(false)
-            }
-        }
+        galleryFeature.deletePhoto(
+            uri = uri,
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+            onResult = onResult
+        )
     }
 
     /**
@@ -581,33 +516,22 @@ class CameraViewModel @Inject constructor(
      * @return 削除に成功した写真の数
      */
     fun deleteMultiplePhotos(uris: List<Uri>, onResult: (Int) -> Unit) {
-        viewModelScope.launch {
-            try {
-                val successCount = mediaRepository.deleteMultiplePhotos(uris)
-                if (successCount > 0) {
-                    clearSelection()
-                }
-                onResult(successCount)
-            } catch (e: Exception) {
-                Log.e("CameraViewModel", "複数写真の削除中にエラーが発生しました", e)
-                onResult(0)
-            }
-        }
+        galleryFeature.deleteMultiplePhotos(
+            uris = uris,
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            onResult = onResult
+        )
     }
 
     /**
      * 端末内の全ての写真を取得
      */
     fun refreshPhotos() {
-        viewModelScope.launch {
-            updateUiState { copy(isLoadingPhotos = true) }
-            try {
-                mediaRepository.refreshPhotos()
-            } catch (_: Exception) {
-            } finally {
-                updateUiState { copy(isLoadingPhotos = false) }
-            }
-        }
+        galleryFeature.refreshPhotos(
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+        )
     }
 
     /**
@@ -618,182 +542,103 @@ class CameraViewModel @Inject constructor(
      * 写真の選択状態を切り替え
      */
     fun togglePhotoSelection(uri: Uri) {
-        val currentSelection = _uiState.value.selectedPhotos.toMutableSet()
-        if (currentSelection.contains(uri)) {
-            currentSelection.remove(uri)
-        } else {
-            currentSelection.add(uri)
-        }
-        
-        updateUiState { 
-            copy(
-                selectedPhotos = currentSelection,
-                isSelectionMode = if (currentSelection.isEmpty()) false else isSelectionMode
-            )
-        }
+        galleryFeature.togglePhotoSelection(
+            uri = uri,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     /**
      * 選択モードを開始
      */
     fun startSelectionMode() {
-        updateUiState { 
-            copy(
-                isSelectionMode = true,
-                selectedPhotos = emptySet()
-            )
-        }
+        galleryFeature.startSelectionMode(updateUiState = this::updateUiState)
     }
 
     /**
      * 選択モードを終了
      */
     fun exitSelectionMode() {
-        updateUiState { 
-            copy(
-                isSelectionMode = false,
-                selectedPhotos = emptySet(),
-                needsCameraRebind = true
-            )
-        }
+        galleryFeature.exitSelectionMode(updateUiState = this::updateUiState)
     }
 
     /**
      * 全選択/全選択解除
      */
     fun toggleSelectAll() {
-        val photosList = _uiState.value.allPhotos
-        val currentSelection = _uiState.value.selectedPhotos
-        val newSelection = if (currentSelection.size == photosList.size) {
-            // 全選択されている場合は全選択解除
-            emptySet()
-        } else {
-            // そうでなければ全選択
-            photosList.map { it.uri }.toSet()
-        }
-        updateUiState { copy(selectedPhotos = newSelection) }
+        galleryFeature.toggleSelectAll(
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     /**
      * 選択をクリア
      */
     fun clearSelection() {
-        updateUiState { 
-            copy(
-                selectedPhotos = emptySet(),
-                isSelectionMode = false
-            )
-        }
+        galleryFeature.clearSelection(updateUiState = this::updateUiState)
     }
 
     /**
      * 選択された写真を削除
      */
     fun deleteSelectedPhotos(onResult: (Int) -> Unit) {
-        val selectedUris = _uiState.value.selectedPhotos.toList()
-        deleteMultiplePhotos(selectedUris, onResult)
+        galleryFeature.deleteSelectedPhotos(
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+            onResult = onResult
+        )
     }
 
     /**
      * 特定の写真を拡大表示用に設定
      */
     fun setCurrentViewingPhoto(photo: PhotoItem?) {
-        updateUiState { 
-            copy(
-                currentViewingPhoto = photo,
-                needsCameraRebind = photo == null
-            )
-        }
+        galleryFeature.setCurrentViewingPhoto(
+            photo = photo,
+            updateUiState = this::updateUiState
+        )
     }
 
     /**
      * 次の写真に移動
      */
     fun goToNextPhoto() {
-        val currentPhoto = _uiState.value.currentViewingPhoto ?: return
-        val photosList = _uiState.value.allPhotos
-        val currentIndex = photosList.indexOfFirst { it.id == currentPhoto.id }
-        if (currentIndex >= 0 && currentIndex < photosList.size - 1) {
-            updateUiState { copy(currentViewingPhoto = photosList[currentIndex + 1]) }
-        }
+        galleryFeature.goToNextPhoto(
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     /**
      * 前の写真に移動
      */
     fun goToPreviousPhoto() {
-        val currentPhoto = _uiState.value.currentViewingPhoto ?: return
-        val photosList = _uiState.value.allPhotos
-        val currentIndex = photosList.indexOfFirst { it.id == currentPhoto.id }
-        if (currentIndex > 0) {
-            updateUiState { copy(currentViewingPhoto = photosList[currentIndex - 1]) }
-        }
+        galleryFeature.goToPreviousPhoto(
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     fun onCameraRebound() {
         // カメラが再バインドされたらフラグをリセット
-        updateUiState { copy(needsCameraRebind = false) }
+        updateUiState { copy(camera = camera.copy(needsCameraRebind = false)) }
     }
 
     fun initializePhotos() {
         refreshPhotos()
     }
 
-    private fun initializeCameraCapabilities() {
-        viewModelScope.launch {
-            try {
-                val success = cameraCapabilityManager.detectCameraCapabilities()
-                if (success) {
-                    val canSwitch = cameraCapabilityManager.canSwitchLens()
-                    updateUiState { copy(canSwitchLens = canSwitch) }
-                    updateLensDisplayInfo()
-                    Log.d("CameraViewModel", "Camera capabilities initialized. Can switch lens: $canSwitch")
-                }
-            } catch (e: Exception) {
-                Log.e("CameraViewModel", "Failed to initialize camera capabilities", e)
-            }
-        }
-    }
-
-    private fun updateLensDisplayInfo() {
-        val currentSelector = _uiState.value.cameraSelector
-        val lensType = cameraCapabilityManager.getLensType(currentSelector)
-        val lensName = cameraCapabilityManager.getLensDisplayName(currentSelector)
-        updateUiState { 
-            copy(
-                currentLensType = lensType,
-                lensDisplayName = lensName
-            )
-        }
-    }
-
     /**
      * Switch between normal and wide-angle lenses using pinch gesture with error handling
      */
     fun switchLens() {
-        try {
-            if (!_uiState.value.canSwitchLens) {
-                Log.w("CameraViewModel", "Lens switching not supported on this device")
-                return
-            }
-
-            val currentSelector = _uiState.value.cameraSelector
-            val alternateSelector = cameraCapabilityManager.getAlternateRearCamera(currentSelector)
-            
-            if (alternateSelector != null && alternateSelector != currentSelector) {
-                val previousLensName = _uiState.value.lensDisplayName
-                updateUiState { copy(cameraSelector = alternateSelector) }
-                updateLensDisplayInfo()
-                updateUiState { copy(needsCameraRebind = true) }
-                
-                val newLensName = _uiState.value.lensDisplayName
-                Log.d("CameraViewModel", "Switched from '$previousLensName' to '$newLensName'")
-            } else {
-                Log.w("CameraViewModel", "No alternate camera available or already using the alternate camera")
-            }
-        } catch (e: Exception) {
-            Log.e("CameraViewModel", "Failed to switch lens", e)
-        }
+        lensSwitchFeature.switchLens(
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value }
+        )
     }
 
     /**
@@ -805,8 +650,7 @@ class CameraViewModel @Inject constructor(
      * Get current lens information for debugging
      */
     fun getCurrentLensInfo(): String {
-        val state = _uiState.value
-        return "${state.lensDisplayName} (${state.currentLensType})"
+        return lensSwitchFeature.getCurrentLensInfo(uiStateProvider = { _uiState.value })
     }
 
     /**
@@ -847,83 +691,24 @@ class CameraViewModel @Inject constructor(
         context: android.content.Context,
         lifecycleOwner: androidx.lifecycle.LifecycleOwner
     ) {
-        if (uiState.value.isARMode) {
-            Log.d("CameraViewModel", "AR mode already enabled")
-            return
-        }
-
-        viewModelScope.launch {
-            try {
-                Log.d("CameraViewModel", "Enabling AR mode...")
-                updateUiState { 
-                    copy(
-                        isARMode = true,
-                        needsCameraRebind = true
-                    )
-                }
-
-                // Initialize AR session
-                arRepository.initializeSession(
-                    context = context,
-                    lifecycleOwner = lifecycleOwner,
-                    onSessionReady = {
-                        Log.d("CameraViewModel", "AR session ready")
-                        // Start observing AR state flows
-                        observeARStates()
-                    },
-                    onError = { error ->
-                        Log.e("CameraViewModel", "AR session initialization failed: $error")
-                        updateUiState { copy(arError = error) }
-                        // Fallback to normal camera mode
-                        disableARMode()
-                    }
-                )
-            } catch (e: Exception) {
-                Log.e("CameraViewModel", "Failed to enable AR mode", e)
-                updateUiState { copy(arError = ARError.SessionError("Failed to enable AR mode: ${e.message}")) }
-                disableARMode()
-            }
-        }
+        arFeature.enableARMode(
+            context = context,
+            lifecycleOwner = lifecycleOwner,
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     /**
      * Disable AR mode and return to normal camera
      */
     fun disableARMode() {
-        if (!uiState.value.isARMode) {
-            Log.d("CameraViewModel", "AR mode already disabled")
-            return
-        }
-
-        viewModelScope.launch {
-            try {
-                Log.d("CameraViewModel", "Disabling AR mode...")
-                
-                // Destroy AR session
-                arRepository.destroySession()
-                
-                // Reset AR states
-                val currentAvatarState = uiState.value.avatarState
-                updateUiState { 
-                    copy(
-                        isARMode = false,
-                        arSessionState = ARSessionState(),
-                        arCameraState = ARCameraState.default(),
-                        arError = null,
-                        avatarState = currentAvatarState.copy(
-                    transform = Transform.identity(),
-                    isVisible = false
-                        ),
-                        avatarTransform = Transform.identity(),
-                        needsCameraRebind = true
-                )
-                }
-                
-                Log.d("CameraViewModel", "AR mode disabled")
-            } catch (e: Exception) {
-                Log.e("CameraViewModel", "Error disabling AR mode", e)
-            }
-        }
+        arFeature.disableARMode(
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     /**
@@ -933,11 +718,13 @@ class CameraViewModel @Inject constructor(
         context: android.content.Context,
         lifecycleOwner: androidx.lifecycle.LifecycleOwner
     ) {
-        if (uiState.value.isARMode) {
-            disableARMode()
-        } else {
-            enableARMode(context, lifecycleOwner)
-        }
+        arFeature.toggleARMode(
+            context = context,
+            lifecycleOwner = lifecycleOwner,
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     // ========== Avatar Management Functions ==========
@@ -946,98 +733,19 @@ class CameraViewModel @Inject constructor(
      * Load VRM avatar from URI
      */
     fun loadAvatar(uri: Uri) {
-        viewModelScope.launch {
-            try {
-                Log.d("CameraViewModel", "Loading avatar from URI: $uri")
-                
-                // Set loading state
-                val currentState = uiState.value
-                updateUiState { 
-                    copy(
-                        avatarState = currentState.avatarState.copy(
-                    isLoading = true,
-                    loadingProgress = 0.0f
-                )
-                    )
-                }
-
-                // Load VRM model
-                val result = vrmRepository.loadVRMFromUri(uri)
-                
-                result.fold(
-                    onSuccess = { vrmModel ->
-                        Log.d("CameraViewModel", "Avatar loaded successfully: ${vrmModel.name}")
-
-                        // Update avatar state
-                        updateUiState { 
-                            copy(
-                                currentAvatar = vrmModel,
-                                avatarState = AvatarState(
-                                    model = vrmModel,
-                                    transform = currentState.avatarTransform,
-                                    currentExpression = currentState.currentExpression,
-                                    currentPose = currentState.currentPose,
-                                    isVisible = currentState.isARMode,
-                                    isLoading = false,
-                                    loadingProgress = 1.0f
-                                )
-                            )
-                        }
-
-                        // Load avatar into controllers
-                        avatarController.loadModel(vrmModel)
-
-                        // Auto-reset if enabled
-                        if (currentState.autoResetOnAvatarChange) {
-                            clearExpression()
-                            clearPose()
-                        } else {
-                            // Reset expression and pose to defaults if available
-                            if (vrmModel.expressions.isNotEmpty()) {
-                                selectExpression(vrmModel.expressions.first())
-                            }
-                            if (vrmModel.poses.isNotEmpty()) {
-                                selectPose(vrmModel.poses.first())
-                            }
-                        }
-                    },
-                    onFailure = { error ->
-                        Log.e("CameraViewModel", "Failed to load avatar", error)
-                        updateUiState { 
-                            copy(
-                                avatarState = currentState.avatarState.copy(
-                                    isLoading = false,
-                                    loadingProgress = 0.0f
-                                ),
-                                arError = ARError.AvatarError("Failed to load avatar: ${error.message}")
-                            )
-                        }
-                    }
-                )
-            } catch (e: Exception) {
-                Log.e("CameraViewModel", "Error loading avatar", e)
-                updateUiState { 
-                    copy(
-                        avatarState = avatarState.copy(
-                            isLoading = false,
-                            loadingProgress = 0.0f
-                        ),
-                        arError = ARError.AvatarError("Error loading avatar: ${e.message}")
-                    )
-                }
-            }
-        }
+        avatarFeature.loadAvatar(
+            uri = uri,
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     /**
      * Update avatar transform (position, rotation, scale)
      */
     fun updateAvatarTransform(transform: Transform) {
-        // Update AvatarController (single source of truth)
-        // Local state will be automatically synchronized via the observer
-        avatarController.setTransform(transform)
-
-        Log.d("CameraViewModel", "Avatar transform updated: $transform")
+        avatarFeature.updateAvatarTransform(transform)
     }
 
     /**
@@ -1058,26 +766,14 @@ class CameraViewModel @Inject constructor(
      * Toggle avatar visibility
      */
     fun toggleAvatarVisibility() {
-        val currentState = uiState.value
-        val newVisibility = !currentState.avatarState.isVisible
-
-        // Update AvatarController (single source of truth)
-        // Local state will be automatically synchronized via the observer
-        avatarController.setVisible(newVisibility)
-
-        Log.d("CameraViewModel", "Avatar visibility toggled: $newVisibility")
+        avatarFeature.toggleAvatarVisibility(uiStateProvider = { _uiState.value })
     }
 
     /**
      * Reset avatar transform to default
      */
     fun resetAvatarTransform() {
-        val defaultTransform = Transform.identity()
-
-        // Update AvatarController (single source of truth)
-        avatarController.setTransform(defaultTransform)
-
-        Log.d("CameraViewModel", "Avatar transform reset to default")
+        avatarFeature.resetAvatarTransform()
     }
 
     // ========== AR Photo Capture Functions ==========
@@ -1118,8 +814,11 @@ class CameraViewModel @Inject constructor(
                     arMetadata = arMetadata,
                     onPhotoSaved = { uri ->
                         val msg = "AR写真を保存しました: $uri"
-                        _uiState.value = _uiState.value.copy(
-                            lastCapturedImageUri = uri
+                        val currentState = _uiState.value
+                        _uiState.value = currentState.copy(
+                            camera = currentState.camera.copy(
+                                lastCapturedImageUri = uri
+                            )
                         )
                         onPhotoSaved(msg)
                         refreshPhotos()
@@ -1142,46 +841,11 @@ class CameraViewModel @Inject constructor(
     /**
      * Start observing AR repository state flows
      */
-    private fun observeARStates() {
-        viewModelScope.launch {
-            // Observe AR session state
-            arRepository.sessionState.collect { sessionState ->
-                updateUiState { copy(arSessionState = sessionState) }
-            }
-        }
-
-        viewModelScope.launch {
-            // Observe AR camera state
-            arRepository.cameraState.collect { cameraState ->
-                updateUiState { copy(arCameraState = cameraState) }
-            }
-        }
-
-        viewModelScope.launch {
-            // Observe tracking state changes
-            arRepository.trackingState.collect { trackingState ->
-                Log.d("CameraViewModel", "AR tracking state changed: $trackingState")
-                // Update avatar visibility based on tracking state
-                val currentState = _uiState.value
-                if (currentState.avatarState.model != null) {
-                    val shouldShow = trackingState == com.example.vtubercamera.data.vrm.TrackingState.TRACKING
-                    if (currentState.avatarState.isVisible != shouldShow) {
-                        updateUiState { 
-                            copy(
-                                avatarState = currentState.avatarState.copy(isVisible = shouldShow)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     /**
      * Clear AR error state
      */
     fun clearARError() {
-        updateUiState { copy(arError = null) }
+        updateUiState { copy(ar = ar.copy(arError = null)) }
     }
 
     /**
@@ -1223,213 +887,90 @@ class CameraViewModel @Inject constructor(
     /**
      * Initialize avatar library and load avatars
      */
-    private fun initializeAvatarLibrary() {
-        loadAvatarsFromLibrary()
-        loadAvatarLibraryStats()
-    }
-
-    /**
-     * Load avatars from the library
-     */
-    private fun loadAvatarsFromLibrary() {
-        viewModelScope.launch {
-            try {
-                updateUiState { 
-                    copy(
-                        isLoadingAvatarLibrary = true,
-                        avatarLibraryError = null
-                    )
-                }
-
-                avatarLibraryManager.getAvatarsSortedBy(_uiState.value.avatarSortBy)
-                    .catch { error: Throwable ->
-                        updateUiState { 
-                            copy(
-                                avatarLibraryError = error.message ?: "Failed to load avatars",
-                                isLoadingAvatarLibrary = false
-                            )
-                        }
-                    }
-                    .collect { avatars: List<AvatarInfo> ->
-                        updateUiState { 
-                            copy(
-                                avatarLibrary = avatars,
-                                isLoadingAvatarLibrary = false,
-                                avatarLibraryError = null
-                            )
-                        }
-                    }
-            } catch (e: Exception) {
-                Log.e("CameraViewModel", "Error in loadAvatarsFromLibrary", e)
-                updateUiState { 
-                    copy(
-                        avatarLibraryError = e.message ?: "Unknown error occurred",
-                        isLoadingAvatarLibrary = false
-                    )
-                }
-            }
-        }
-    }
-
-    /**
-     * Load library statistics
-     */
-    private fun loadAvatarLibraryStats() {
-        viewModelScope.launch {
-            try {
-                val stats = vrmRepository.getLibraryStatistics()
-                updateUiState { copy(avatarLibraryStats = stats) }
-            } catch (e: Exception) {
-                Log.w("CameraViewModel", "Failed to load avatar library statistics: ${e.message}")
-            }
-        }
-    }
-
     /**
      * Refresh the avatar library
      */
     fun refreshAvatarLibrary() {
-        loadAvatarsFromLibrary()
-        loadAvatarLibraryStats()
+        avatarFeature.refreshAvatarLibrary(
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     /**
      * Select an avatar from the library and load it
      */
     fun selectAvatarFromLibrary(avatarId: String) {
-        viewModelScope.launch {
-            try {
-                // Record usage
-                vrmRepository.recordAvatarUsage(avatarId)
-
-                // Update selected avatar
-                updateUiState { copy(selectedAvatarId = avatarId) }
-
-                // Find avatar info and load the model
-                val avatarInfo = _uiState.value.avatarLibrary.find { it.id == avatarId }
-                if (avatarInfo != null) {
-                    // Load the avatar from its file path
-                    loadAvatar(Uri.fromFile(java.io.File(avatarInfo.filePath)))
-                    Log.d("CameraViewModel", "Selected and loading avatar: ${avatarInfo.name}")
-                } else {
-                    updateUiState { copy(avatarLibraryError = "Avatar not found in library") }
-                }
-
-                // Refresh to show updated usage
-                refreshAvatarLibrary()
-            } catch (e: Exception) {
-                updateUiState { copy(avatarLibraryError = "Failed to select avatar: ${e.message}") }
-                Log.e("CameraViewModel", "Failed to select avatar", e)
-            }
-        }
+        avatarFeature.selectAvatarFromLibrary(
+            avatarId = avatarId,
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     /**
      * Toggle favorite status of an avatar
      */
     fun toggleAvatarFavorite(avatarId: String) {
-        viewModelScope.launch {
-            try {
-                val avatar = _uiState.value.avatarLibrary.find { it.id == avatarId }
-                if (avatar != null) {
-                    val result = vrmRepository.setAvatarFavorite(avatarId, !avatar.isFavorite)
-                    if (result.isFailure) {
-                        updateUiState { copy(avatarLibraryError = "Failed to update favorite: ${result.exceptionOrNull()?.message}") }
-                    } else {
-                        refreshAvatarLibrary()
-                        Log.d("CameraViewModel", "Toggled favorite for avatar: ${avatar.name}")
-                    }
-                }
-            } catch (e: Exception) {
-                updateUiState { copy(avatarLibraryError = "Failed to toggle favorite: ${e.message}") }
-                Log.e("CameraViewModel", "Failed to toggle favorite", e)
-            }
-        }
+        avatarFeature.toggleAvatarFavorite(
+            avatarId = avatarId,
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     /**
      * Delete an avatar from the library
      */
     fun deleteAvatarFromLibrary(avatarId: String) {
-        viewModelScope.launch {
-            try {
-                updateUiState { copy(isLoadingAvatarLibrary = true) }
-
-                val result = vrmRepository.deleteAvatar(avatarId)
-                if (result.isFailure) {
-                    updateUiState { 
-                        copy(
-                            avatarLibraryError = "Failed to delete avatar: ${result.exceptionOrNull()?.message}",
-                            isLoadingAvatarLibrary = false
-                        )
-                    }
-                } else {
-                    // If the deleted avatar was the current one, clear it
-                    if (_uiState.value.selectedAvatarId == avatarId) {
-                        updateUiState { 
-                            copy(
-                                selectedAvatarId = null,
-                                currentAvatar = null,
-                                avatarState = AvatarState()
-                            )
-                        }
-                    }
-                    refreshAvatarLibrary()
-                    Log.d("CameraViewModel", "Deleted avatar: $avatarId")
-                }
-            } catch (e: Exception) {
-                updateUiState { 
-                    copy(
-                        avatarLibraryError = "Failed to delete avatar: ${e.message}",
-                        isLoadingAvatarLibrary = false
-                    )
-                }
-                Log.e("CameraViewModel", "Failed to delete avatar", e)
-            }
-        }
+        avatarFeature.deleteAvatarFromLibrary(
+            avatarId = avatarId,
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     /**
      * Rename an avatar in the library
      */
     fun renameAvatarInLibrary(avatarId: String, newName: String) {
-        viewModelScope.launch {
-            try {
-                val result = vrmRepository.renameAvatar(avatarId, newName)
-                if (result.isFailure) {
-                    updateUiState { copy(avatarLibraryError = "Failed to rename avatar: ${result.exceptionOrNull()?.message}") }
-                } else {
-                    hideRenameDialog()
-                    refreshAvatarLibrary()
-                    Log.d("CameraViewModel", "Renamed avatar $avatarId to: $newName")
-                }
-            } catch (e: Exception) {
-                updateUiState { copy(avatarLibraryError = "Failed to rename avatar: ${e.message}") }
-                Log.e("CameraViewModel", "Failed to rename avatar", e)
-            }
-        }
+        avatarFeature.renameAvatarInLibrary(
+            avatarId = avatarId,
+            newName = newName,
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     /**
      * Change avatar library sort order
      */
     fun setAvatarSortBy(sortBy: AvatarSortBy) {
-        updateUiState { copy(avatarSortBy = sortBy) }
-        loadAvatarsFromLibrary()
+        updateUiState { copy(avatarLibraryState = avatarLibraryState.copy(avatarSortBy = sortBy)) }
+        avatarFeature.loadAvatarsFromLibrary(
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     /**
      * Show import dialog
      */
     fun showAvatarImportDialog() {
-        updateUiState { copy(showImportDialog = true) }
+        updateUiState { copy(avatarLibraryState = avatarLibraryState.copy(showImportDialog = true)) }
     }
 
     /**
      * Hide import dialog
      */
     fun hideAvatarImportDialog() {
-        updateUiState { copy(showImportDialog = false) }
+        updateUiState { copy(avatarLibraryState = avatarLibraryState.copy(showImportDialog = false)) }
     }
 
     /**
@@ -1440,9 +981,11 @@ class CameraViewModel @Inject constructor(
         if (avatar != null) {
             updateUiState { 
                 copy(
-                    showRenameDialog = true,
-                    renameAvatarId = avatarId,
-                    renameCurrentName = avatar.name
+                    avatarLibraryState = avatarLibraryState.copy(
+                        showRenameDialog = true,
+                        renameAvatarId = avatarId,
+                        renameCurrentName = avatar.name
+                    )
                 )
             }
         }
@@ -1454,9 +997,11 @@ class CameraViewModel @Inject constructor(
     fun hideRenameDialog() {
         updateUiState { 
             copy(
-                showRenameDialog = false,
-                renameAvatarId = null,
-                renameCurrentName = ""
+                avatarLibraryState = avatarLibraryState.copy(
+                    showRenameDialog = false,
+                    renameAvatarId = null,
+                    renameCurrentName = ""
+                )
             )
         }
     }
@@ -1465,43 +1010,18 @@ class CameraViewModel @Inject constructor(
      * Cleanup avatar library (remove orphaned files, etc.)
      */
     fun cleanupAvatarLibrary() {
-        viewModelScope.launch {
-            try {
-               _uiState.value = _uiState.value.copy(
-                   isLoadingAvatarLibrary = true
-               )
-
-
-                val result = vrmRepository.cleanupLibrary()
-                _uiState.value = _uiState.value.copy(
-                    isLoadingAvatarLibrary = false
-                )
-
-                if (result.success) {
-                    refreshAvatarLibrary()
-                    Log.d("CameraViewModel", "Avatar library cleanup completed")
-                } else {
-                    _uiState.value = _uiState.value.copy(
-                        avatarLibraryError = result.error
-                    )
-                }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    avatarLibraryError = "Failed to cleanup library: ${e.message}",
-                    isLoadingAvatarLibrary = false
-                )
-                Log.e("CameraViewModel", "Failed to cleanup avatar library", e)
-            }
-        }
+        avatarFeature.cleanupAvatarLibrary(
+            scope = viewModelScope,
+            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
+        )
     }
 
     /**
      * Clear avatar library error
      */
     fun clearAvatarLibraryError() {
-        _uiState.value = _uiState.value.copy(
-            avatarLibraryError = null
-        )
+        avatarFeature.clearAvatarLibraryError(updateUiState = this::updateUiState)
     }
 
     // ========== Avatar Control Functions ==========
@@ -1509,121 +1029,44 @@ class CameraViewModel @Inject constructor(
     /**
      * Initialize avatar control observers
      */
-    private fun initializeAvatarControlObservers() {
-        // Observe avatar controller state (single source of truth for avatar state)
-        viewModelScope.launch {
-            avatarController.avatarState.collect { avatarControllerState ->
-                // Sync local avatar state with controller state
-                updateUiState { 
-                    copy(
-                        avatarState = avatarControllerState,
-                        avatarTransform = avatarControllerState.transform,
-                        currentAvatar = avatarControllerState.model,
-                        currentExpression = avatarControllerState.currentExpression,
-                        currentPose = avatarControllerState.currentPose
-                    )
-                }
-            }
-        }
-
-        // Observe expression controller state
-        viewModelScope.launch {
-            expressionController.currentExpression.collect { expression ->
-                updateUiState { copy(currentExpression = expression) }
-            }
-        }
-
-        viewModelScope.launch {
-            expressionController.activeBlendShapes.collect { blendShapes ->
-                updateUiState { copy(activeBlendShapes = blendShapes) }
-            }
-        }
-
-        viewModelScope.launch {
-            expressionController.isTransitioning.collect { isTransitioning ->
-                updateUiState { copy(isExpressionTransitioning = isTransitioning) }
-            }
-        }
-
-        viewModelScope.launch {
-            expressionController.transitionProgress.collect { progress ->
-                updateUiState { copy(expressionTransitionProgress = progress) }
-            }
-        }
-
-        // Observe pose controller state
-        viewModelScope.launch {
-            poseController.currentPose.collect { pose ->
-                updateUiState { copy(currentPose = pose) }
-            }
-        }
-
-        viewModelScope.launch {
-            poseController.activeBoneTransforms.collect { transforms ->
-                updateUiState { copy(activeBoneTransforms = transforms) }
-            }
-        }
-
-        viewModelScope.launch {
-            poseController.boneLocks.collect { locks ->
-                updateUiState { copy(boneLocks = locks) }
-            }
-        }
-
-        viewModelScope.launch {
-            poseController.isTransitioning.collect { isTransitioning ->
-                updateUiState { copy(isPoseTransitioning = isTransitioning) }
-            }
-        }
-
-        viewModelScope.launch {
-            poseController.transitionProgress.collect { progress ->
-                updateUiState { copy(poseTransitionProgress = progress) }
-            }
-        }
-    }
-
     // Expression Control Methods
 
     /**
      * Select expression for current avatar
      */
     fun selectExpression(expression: Expression?) {
-        if (_uiState.value.smoothTransitions && expression != null) {
-            expressionController.transitionToExpression(expression)
-        } else {
-            expressionController.applyExpression(expression)
-        }
-        Log.d("CameraViewModel", "Selected expression: ${expression?.name ?: "none"}")
+        avatarFeature.selectExpression(
+            expression = expression,
+            smoothTransitions = _uiState.value.smoothTransitions,
+        )
     }
 
     /**
      * Set blend shape weight
      */
     fun setBlendShapeWeight(shapeName: String, weight: Float) {
-        expressionController.setBlendShapeWeight(shapeName, weight)
+        avatarFeature.setBlendShapeWeight(shapeName, weight)
     }
 
     /**
      * Clear current expression
      */
     fun clearExpression() {
-        expressionController.clearExpression()
-        Log.d("CameraViewModel", "Cleared expression")
+        avatarFeature.clearExpression()
     }
 
     /**
      * Set expression transition duration
      */
     fun setExpressionTransitionDuration(duration: Float) {
-        expressionController.setTransitionDuration(duration)
+        avatarFeature.setExpressionTransitionDuration(duration)
     }
 
     /**
      * Blend multiple expressions
      */
     fun blendExpressions(expressionWeights: Map<Expression, Float>) {
-        expressionController.blendExpressions(expressionWeights)
+        avatarFeature.blendExpressions(expressionWeights)
     }
 
     // Pose Control Methods
@@ -1632,61 +1075,52 @@ class CameraViewModel @Inject constructor(
      * Select pose for current avatar
      */
     fun selectPose(pose: Pose?) {
-        if (_uiState.value.smoothTransitions && pose != null) {
-            poseController.transitionToPose(pose)
-        } else {
-            poseController.applyPose(pose)
-        }
-        Log.d("CameraViewModel", "Selected pose: ${pose?.name ?: "none"}")
+        avatarFeature.selectPose(
+            pose = pose,
+            smoothTransitions = _uiState.value.smoothTransitions,
+        )
     }
 
     /**
      * Set bone transform
      */
     fun setBoneTransform(boneName: String, transform: Transform) {
-        poseController.setBoneTransform(boneName, transform)
+        avatarFeature.setBoneTransform(boneName, transform)
     }
 
     /**
      * Toggle bone lock
      */
     fun toggleBoneLock(boneName: String) {
-        if (poseController.isBoneLocked(boneName)) {
-            poseController.unlockBone(boneName)
-        } else {
-            poseController.lockBone(boneName)
-        }
-        Log.d("CameraViewModel", "Toggled bone lock for: $boneName")
+        avatarFeature.toggleBoneLock(boneName)
     }
 
     /**
      * Clear current pose
      */
     fun clearPose() {
-        poseController.clearPose()
-        Log.d("CameraViewModel", "Cleared pose")
+        avatarFeature.clearPose()
     }
 
     /**
      * Reset to default pose
      */
     fun resetToDefaultPose() {
-        poseController.resetToDefaultPose()
-        Log.d("CameraViewModel", "Reset to default pose")
+        avatarFeature.resetToDefaultPose()
     }
 
     /**
      * Set pose transition duration
      */
     fun setPoseTransitionDuration(duration: Float) {
-        poseController.setTransitionDuration(duration)
+        avatarFeature.setPoseTransitionDuration(duration)
     }
 
     /**
      * Blend multiple poses
      */
     fun blendPoses(poseWeights: Map<Pose, Float>) {
-        poseController.blendPoses(poseWeights)
+        avatarFeature.blendPoses(poseWeights)
     }
 
     // Avatar Control Settings
@@ -1695,7 +1129,7 @@ class CameraViewModel @Inject constructor(
      * Enable/disable smooth transitions
      */
     fun setSmoothTransitions(enabled: Boolean) {
-        updateUiState { copy(smoothTransitions = enabled) }
+        updateUiState { copy(avatarControl = avatarControl.copy(smoothTransitions = enabled)) }
         Log.d("CameraViewModel", "Smooth transitions: $enabled")
     }
 
@@ -1703,7 +1137,7 @@ class CameraViewModel @Inject constructor(
      * Enable/disable auto reset on avatar change
      */
     fun setAutoResetOnAvatarChange(enabled: Boolean) {
-        updateUiState { copy(autoResetOnAvatarChange = enabled) }
+        updateUiState { copy(avatarControl = avatarControl.copy(autoResetOnAvatarChange = enabled)) }
         Log.d("CameraViewModel", "Auto reset on avatar change: $enabled")
     }
 
@@ -1711,8 +1145,7 @@ class CameraViewModel @Inject constructor(
      * Update expression and pose transitions (called from render loop)
      */
     fun updateAvatarTransitions(deltaTime: Float) {
-        expressionController.updateTransition(deltaTime)
-        poseController.updateTransition(deltaTime)
+        avatarFeature.updateAvatarTransitions(deltaTime)
     }
 
     // ========== Lighting Control Functions ==========
@@ -1721,34 +1154,28 @@ class CameraViewModel @Inject constructor(
      * Update lighting settings
      */
     fun updateLightingSettings(settings: LightingSettings) {
-        viewModelScope.launch {
-            lightingSystem.updateLightingSettings(settings)
-        }
+        lightingFeature.updateLightingSettings(viewModelScope, settings)
     }
 
     /**
      * Select a lighting preset
      */
     fun selectLightingPreset(preset: LightingPreset) {
-        viewModelScope.launch {
-            lightingSystem.updateLightingSettings(preset.settings)
-        }
+        lightingFeature.selectLightingPreset(viewModelScope, preset)
     }
 
     /**
      * Reset lighting settings to defaults
      */
     fun resetLightingToDefaults() {
-        viewModelScope.launch {
-            lightingSystem.resetToDefaults()
-        }
+        lightingFeature.resetLightingToDefaults(viewModelScope)
     }
 
     /**
      * Get available lighting presets
      */
     fun getLightingPresets(): List<LightingPreset> {
-        return lightingSystem.getLightingPresets()
+        return lightingFeature.getLightingPresets()
     }
 
     /**
@@ -1756,9 +1183,7 @@ class CameraViewModel @Inject constructor(
      */
     private fun getCurrentLightingPresetName(): String? {
         val currentSettings = lightingSettings.value
-        return lightingSystem.getLightingPresets().find { preset ->
-            preset.settings == currentSettings
-        }?.name
+        return lightingFeature.getCurrentLightingPresetName(currentSettings)
     }
 
     // ========== Photo Management and Filtering Functions ==========
@@ -1767,8 +1192,11 @@ class CameraViewModel @Inject constructor(
      * Set photo filter mode
      */
     fun setPhotoFilterMode(mode: PhotoFilterMode) {
-        _uiState.value = _uiState.value.copy(
-            photoFilterMode = mode
+        val currentState = _uiState.value
+        _uiState.value = currentState.copy(
+            gallery = currentState.gallery.copy(
+                photoFilterMode = mode
+            )
         )
     }
 
