@@ -1,17 +1,19 @@
 package com.example.vtubercamera.data.vrm
 
-import android.graphics.Bitmap
 import android.view.Surface
 import com.google.ar.core.Frame
 import com.google.ar.core.LightEstimate
 import com.google.ar.core.Session
 import com.example.vtubercamera.data.vrm.math.Transform
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
+import java.nio.ByteBuffer
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Before
 import org.junit.Test
 import org.junit.Assert.*
+import org.mockito.kotlin.any
+import org.mockito.kotlin.doNothing
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 
 /**
  * Unit tests for FilamentARRenderer
@@ -19,18 +21,56 @@ import org.junit.Assert.*
 class FilamentARRendererTest {
     
     private lateinit var renderer: FilamentARRenderer
+    private lateinit var vrmConverter: VRMFilamentConverter
+    private lateinit var materialManager: FilamentMaterialManager
+    private lateinit var textureManager: FilamentTextureManager
+    private lateinit var lightingSystem: LightingSystem
+    private lateinit var shadowSystem: ShadowSystem
     private lateinit var mockSurface: Surface
     private lateinit var mockSession: Session
     private lateinit var mockFrame: Frame
     private lateinit var mockLightEstimate: LightEstimate
-    
+
     @Before
     fun setup() {
-        renderer = FilamentARRenderer()
-        mockSurface = mockk(relaxed = true)
-        mockSession = mockk(relaxed = true)
-        mockFrame = mockk(relaxed = true)
-        mockLightEstimate = mockk(relaxed = true)
+        vrmConverter = mock()
+        materialManager = mock()
+        textureManager = mock()
+        lightingSystem = mock()
+        shadowSystem = mock()
+
+        whenever(lightingSystem.finalLightingParameters)
+            .thenReturn(MutableStateFlow(LightingParameters()))
+        doNothing().whenever(lightingSystem).resetToDefaults()
+        doNothing().whenever(lightingSystem).updateEnvironmentLighting(any())
+        doNothing().whenever(lightingSystem).updateLightingSettings(any())
+
+        doNothing().whenever(shadowSystem).initialize()
+        doNothing().whenever(shadowSystem).updateShadows(any(), any(), any())
+        doNothing().whenever(shadowSystem).addShadowCaster(any())
+        doNothing().whenever(shadowSystem).addShadowReceiver(any())
+        doNothing().whenever(shadowSystem).removeShadowCaster(any())
+        doNothing().whenever(shadowSystem).removeShadowReceiver(any())
+        doNothing().whenever(shadowSystem).cleanup()
+
+        whenever(vrmConverter.convertVRMToFilamentMesh(any()))
+            .thenReturn(createTestFilamentMeshData())
+        whenever(textureManager.loadTexture(any())).thenReturn(createTestTextureInstance())
+        whenever(materialManager.createMaterial(any(), any())).thenReturn(createTestMaterialInstance())
+        doNothing().whenever(materialManager).updateLighting(any(), any())
+
+        renderer = FilamentARRenderer(
+            vrmConverter,
+            materialManager,
+            textureManager,
+            lightingSystem,
+            shadowSystem
+        )
+
+        mockSurface = mock()
+        mockSession = mock()
+        mockFrame = mock()
+        mockLightEstimate = mock()
     }
     
     @Test
@@ -76,7 +116,7 @@ class FilamentARRendererTest {
     @Test
     fun `setLighting should handle light estimate`() {
         // Given
-        every { mockLightEstimate.pixelIntensity } returns 0.8f
+        whenever(mockLightEstimate.pixelIntensity).thenReturn(0.8f)
         renderer.initialize(mockSurface, mockSession)
         
         // When - should not throw exception
@@ -154,11 +194,97 @@ class FilamentARRendererTest {
     fun `cleanup should not crash when not initialized`() {
         // When - should not throw exception
         renderer.cleanup()
-        
+
         // Then - no exception thrown
         assertFalse("Renderer should remain uninitialized", renderer.isInitialized())
     }
-    
+
+    private fun createTestFilamentMeshData(): FilamentMeshData {
+        val mesh = FilamentMesh(
+            name = "testMesh",
+            vertexBuffer = ByteBuffer.allocate(12),
+            indexBuffer = ByteBuffer.allocate(6),
+            vertexCount = 3,
+            indexCount = 3,
+            attributes = VertexAttributes(
+                hasPositions = true,
+                hasNormals = true,
+                hasUVs = true,
+                hasColors = false,
+                hasBoneWeights = false,
+                hasBoneIndices = false
+            ),
+            materials = listOf("testMaterial"),
+            boundingBox = null
+        )
+
+        val texture = FilamentTexture(
+            name = "testTexture",
+            data = ByteArray(4),
+            format = TextureFormat.UNKNOWN,
+            width = 1,
+            height = 1,
+            mipLevels = 1,
+            sRGB = false
+        )
+
+        val material = FilamentMaterial(
+            name = "testMaterial",
+            baseColorFactor = floatArrayOf(1f, 1f, 1f, 1f),
+            metallicFactor = 0f,
+            roughnessFactor = 1f,
+            emissiveFactor = floatArrayOf(0f, 0f, 0f),
+            alphaMode = AlphaMode.OPAQUE,
+            alphaCutoff = 0.5f,
+            doubleSided = false,
+            textureSlots = mapOf("baseColor" to texture.name)
+        )
+
+        return FilamentMeshData(
+            meshes = listOf(mesh),
+            materials = listOf(material),
+            textures = listOf(texture),
+            boundingBox = null,
+            totalVertices = 3,
+            totalTriangles = 1
+        )
+    }
+
+    private fun createTestTextureInstance(): FilamentTextureInstance {
+        val texture = FilamentTexture(
+            name = "testTexture",
+            data = ByteArray(4),
+            format = TextureFormat.UNKNOWN,
+            width = 1,
+            height = 1,
+            mipLevels = 1,
+            sRGB = false
+        )
+
+        return mock<FilamentTextureInstance>().apply {
+            whenever(name).thenReturn(texture.name)
+            whenever(width).thenReturn(texture.width)
+            whenever(height).thenReturn(texture.height)
+            whenever(mipLevels).thenReturn(texture.mipLevels)
+            whenever(sRGB).thenReturn(texture.sRGB)
+            whenever(originalTexture).thenReturn(texture)
+        }
+    }
+
+    private fun createTestMaterialInstance(): FilamentMaterialInstance {
+        val shader = FilamentShader(
+            name = "testShader",
+            vertexShader = "void main(){}",
+            fragmentShader = "void main(){}",
+            defines = emptyMap()
+        )
+        return FilamentMaterialInstance(
+            name = "testMaterial",
+            shader = shader,
+            parameters = MaterialParameters()
+        )
+    }
+
     private fun createTestVRMModel(): VRMModel {
         return VRMModel(
             id = "test-avatar",
