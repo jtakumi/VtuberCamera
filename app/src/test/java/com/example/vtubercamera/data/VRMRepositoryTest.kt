@@ -1,10 +1,8 @@
 package com.example.vtubercamera.data
 
-import android.content.Context
 import android.net.Uri
 import com.example.vtubercamera.data.vrm.ValidationError
 import com.example.vtubercamera.data.vrm.ValidationResult
-import com.example.vtubercamera.data.vrm.VRMValidator
 import com.example.vtubercamera.data.vrm.VRMModel
 import com.example.vtubercamera.data.vrm.VRMMetadata
 import com.example.vtubercamera.data.vrm.AvatarLibraryStats
@@ -15,15 +13,11 @@ import org.junit.Test
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.*
-import java.io.File
 
 /**
  * Unit tests for VRM validation, data models, and AR photo functionality
  */
 class VRMRepositoryTest {
-
-    @Mock
-    private lateinit var mockContext: Context
 
     @Mock
     private lateinit var mockVRMRepository: VRMRepository
@@ -147,10 +141,14 @@ class VRMRepositoryTest {
         val expectedStats = AvatarLibraryStats(
             totalAvatars = 5,
             totalFileSize = 1024000L,
-            averageFileSize = 204800L,
-            lastImportDate = System.currentTimeMillis(),
-            storageUsed = 1024000L,
-            storageAvailable = 5120000L
+            totalThumbnailSize = 256000L,
+            favoriteCount = 2,
+            recentlyUsedCount = 3,
+            newlyAddedCount = 1,
+            withExpressionsCount = 4,
+            withPosesCount = 2,
+            availableTags = listOf("cute", "anime"),
+            usageFrequencies = emptyMap()
         )
 
         whenever(mockVRMRepository.getLibraryStatistics())
@@ -162,7 +160,7 @@ class VRMRepositoryTest {
         // Then
         assertEquals("Total avatars should match", 5, stats.totalAvatars)
         assertEquals("Total file size should match", 1024000L, stats.totalFileSize)
-        assertEquals("Average file size should match", 204800L, stats.averageFileSize)
+        assertEquals("Average file size should match", 204800L, stats.getAverageFileSize())
         verify(mockVRMRepository).getLibraryStatistics()
     }
 
@@ -222,13 +220,12 @@ class VRMRepositoryTest {
         val avatarId = "test-avatar-123"
 
         whenever(mockVRMRepository.recordAvatarUsage(avatarId))
-            .thenReturn(Result.success(Unit))
+            .thenReturn(Unit)
 
         // When
-        val result = mockVRMRepository.recordAvatarUsage(avatarId)
+        mockVRMRepository.recordAvatarUsage(avatarId)
 
         // Then
-        assertTrue("Record usage should be successful", result.isSuccess)
         verify(mockVRMRepository).recordAvatarUsage(avatarId)
     }
 
@@ -338,7 +335,7 @@ class VRMRepositoryTest {
                 sexualUsage = VRMMetadata.Usage.DISALLOW,
                 commercialUsage = VRMMetadata.Usage.ALLOW,
                 otherPermissionUrl = "",
-                licenseName = VRMMetadata.License.OTHER,
+                licenseName = VRMMetadata.LicenseType.OTHER,
                 otherLicenseUrl = "https://example.com/license"
             )
         )
