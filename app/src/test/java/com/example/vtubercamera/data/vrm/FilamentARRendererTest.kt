@@ -230,14 +230,19 @@ class FilamentARRendererTest {
 
         val material = FilamentMaterial(
             name = "testMaterial",
+            index = 0,
             baseColorFactor = floatArrayOf(1f, 1f, 1f, 1f),
             metallicFactor = 0f,
             roughnessFactor = 1f,
             emissiveFactor = floatArrayOf(0f, 0f, 0f),
-            alphaMode = AlphaMode.OPAQUE,
-            alphaCutoff = 0.5f,
+            baseColorTexture = texture.name,
+            normalTexture = null,
+            metallicRoughnessTexture = null,
+            emissiveTexture = null,
+            occlusionTexture = null,
             doubleSided = false,
-            textureSlots = mapOf("baseColor" to texture.name)
+            alphaMode = AlphaMode.OPAQUE,
+            alphaCutoff = 0.5f
         )
 
         return FilamentMeshData(
@@ -304,7 +309,7 @@ class FilamentARRendererTest {
                 sexualUsage = VRMMetadata.Usage.DISALLOW,
                 commercialUsage = VRMMetadata.Usage.ALLOW,
                 otherPermissionUrl = "",
-                licenseName = VRMMetadata.License.OTHER,
+                licenseName = VRMMetadata.LicenseType.OTHER,
                 otherLicenseUrl = ""
             )
         )
