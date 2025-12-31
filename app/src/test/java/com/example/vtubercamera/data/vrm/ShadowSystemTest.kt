@@ -3,6 +3,7 @@ package com.example.vtubercamera.data.vrm
 import com.example.vtubercamera.data.vrm.math.Transform
 import org.junit.Before
 import org.junit.Test
+import java.nio.ByteBuffer
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -22,11 +23,20 @@ class ShadowSystemTest {
         // Create mock renderable
         val mockMesh = FilamentMesh(
             name = "test_mesh",
-            vertexBuffer = ByteArray(0),
-            indexBuffer = ByteArray(0),
+            vertexBuffer = ByteBuffer.allocate(0),
+            indexBuffer = ByteBuffer.allocate(0),
             vertexCount = 0,
             indexCount = 0,
-            materials = listOf("test_material")
+            attributes = VertexAttributes(
+                hasPositions = false,
+                hasNormals = false,
+                hasUVs = false,
+                hasColors = false,
+                hasBoneWeights = false,
+                hasBoneIndices = false
+            ),
+            materials = listOf("test_material"),
+            boundingBox = null
         )
         
         mockRenderable = FilamentRenderable(
