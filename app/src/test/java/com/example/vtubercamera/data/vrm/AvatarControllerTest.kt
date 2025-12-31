@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.first
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
-import org.mockito.kotlin.*
 
 /**
  * Unit tests for AvatarController
@@ -55,7 +54,7 @@ class AvatarControllerTest {
         avatarController.loadModel(mockVRMModel)
         val newTransform = Transform(
             position = Vector3(1.0f, 2.0f, 3.0f),
-            rotation = Quaternion.identity(),
+            rotation = Quaternion.IDENTITY,
             scale = Vector3(1.5f, 1.5f, 1.5f)
         )
 
@@ -94,13 +93,12 @@ class AvatarControllerTest {
         avatarController.setVisible(true)
 
         // When
-        avatarController.clearModel()
+        avatarController.resetToDefault()
 
         // Then
         val state = avatarController.avatarState.first()
-        assertNull("Model should be null after clear", state.model)
-        assertFalse("Visibility should be false after clear", state.isVisible)
-        assertEquals("Transform should be identity after clear", Transform.identity(), state.transform)
+        assertEquals("Transform should be identity after reset", Transform.identity(), state.transform)
+        assertTrue("Visibility should remain true after reset", state.isVisible)
     }
 
     @Test
@@ -147,7 +145,7 @@ class AvatarControllerTest {
         val progress = 0.5f
 
         // When
-        avatarController.setLoading(true, progress)
+        avatarController.updateLoadingState(true, progress)
 
         // Then
         val state = avatarController.avatarState.first()
@@ -155,7 +153,7 @@ class AvatarControllerTest {
         assertEquals("Loading progress should match", progress, state.loadingProgress, 0.001f)
 
         // When
-        avatarController.setLoading(false, 1.0f)
+        avatarController.updateLoadingState(false, 1.0f)
 
         // Then
         val updatedState = avatarController.avatarState.first()
@@ -169,13 +167,13 @@ class AvatarControllerTest {
         avatarController.loadModel(mockVRMModel)
         val customTransform = Transform(
             position = Vector3(5.0f, 5.0f, 5.0f),
-            rotation = Quaternion.identity(),
+            rotation = Quaternion.IDENTITY,
             scale = Vector3(2.0f, 2.0f, 2.0f)
         )
         avatarController.setTransform(customTransform)
 
         // When
-        avatarController.resetTransform()
+        avatarController.resetToDefault()
 
         // Then
         val state = avatarController.avatarState.first()
@@ -189,7 +187,7 @@ class AvatarControllerTest {
         val expression = Expression("happy", "Happy", mapOf("mouth_smile" to 1.0f))
 
         // When
-        avatarController.updateExpression(expression)
+        avatarController.setExpression(expression)
 
         // Then
         val state = avatarController.avatarState.first()
@@ -203,7 +201,7 @@ class AvatarControllerTest {
         val pose = Pose("wave", "Wave Pose", mapOf("rightArm" to Transform.identity()))
 
         // When
-        avatarController.updatePose(pose)
+        avatarController.setPose(pose)
 
         // Then
         val state = avatarController.avatarState.first()
@@ -215,14 +213,14 @@ class AvatarControllerTest {
         // Given
         val customTransform = Transform(
             position = Vector3(1.0f, 2.0f, 3.0f),
-            rotation = Quaternion.identity(),
+            rotation = Quaternion.IDENTITY,
             scale = Vector3(1.0f, 1.0f, 1.0f)
         )
         avatarController.loadModel(mockVRMModel)
         avatarController.setTransform(customTransform)
 
         // When
-        val transform = avatarController.getTransform()
+        val transform = avatarController.getCurrentTransform()
 
         // Then
         assertEquals("Transform should match", customTransform, transform)
@@ -233,38 +231,38 @@ class AvatarControllerTest {
         // Given
         avatarController.loadModel(mockVRMModel)
 
-        // Initially false
-        assertFalse("Should initially be invisible", avatarController.isVisible())
+        // Initially true after loadModel
+        assertTrue("Should initially be visible", avatarController.avatarState.first().isVisible)
 
         // When
-        avatarController.setVisible(true)
+        avatarController.setVisible(false)
 
         // Then
-        assertTrue("Should be visible after setting", avatarController.isVisible())
+        assertFalse("Should be invisible after setting", avatarController.avatarState.first().isVisible)
     }
 
     @Test
     fun `isLoaded should return true when model is loaded`() = runTest {
         // Initially false
-        assertFalse("Should initially not be loaded", avatarController.isLoaded())
+        assertFalse("Should initially not be ready", avatarController.isReady())
 
         // When
         avatarController.loadModel(mockVRMModel)
 
         // Then
-        assertTrue("Should be loaded after loading model", avatarController.isLoaded())
+        assertTrue("Should be ready after loading model", avatarController.isReady())
     }
 
     @Test
     fun `getCurrentModel should return current model`() = runTest {
         // Initially null
-        assertNull("Should initially have no model", avatarController.getCurrentModel())
+        assertNull("Should initially have no model", avatarController.avatarState.first().model)
 
         // When
         avatarController.loadModel(mockVRMModel)
 
         // Then
-        assertEquals("Should return loaded model", mockVRMModel, avatarController.getCurrentModel())
+        assertEquals("Should return loaded model", mockVRMModel, avatarController.avatarState.first().model)
     }
 
     // ========== Helper Methods ==========
@@ -294,7 +292,7 @@ class AvatarControllerTest {
                 sexualUsage = VRMMetadata.Usage.DISALLOW,
                 commercialUsage = VRMMetadata.Usage.ALLOW,
                 otherPermissionUrl = "",
-                licenseName = VRMMetadata.License.OTHER,
+                licenseName = VRMMetadata.LicenseType.OTHER,
                 otherLicenseUrl = ""
             )
         )

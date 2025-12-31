@@ -134,8 +134,10 @@ class FilamentARRendererTest {
             fail("Should throw ARError when not initialized")
         } catch (e: ARError.RenderingError) {
             // Expected
-            assertTrue("Error message should mention initialization", 
-                e.message?.contains("not initialized") == true)
+            assertTrue(
+                "Error message should mention initialization",
+                e.message.contains("not initialized")
+            )
         }
     }
     

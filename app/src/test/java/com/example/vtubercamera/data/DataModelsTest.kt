@@ -1,6 +1,5 @@
 package com.example.vtubercamera.data
 
-import android.net.Uri
 import com.example.vtubercamera.data.vrm.math.Vector3
 import com.example.vtubercamera.data.vrm.math.Quaternion
 import com.example.vtubercamera.data.vrm.math.Transform
@@ -12,6 +11,7 @@ import com.example.vtubercamera.data.vrm.ARSessionState
 import com.example.vtubercamera.data.vrm.ARCameraState
 import com.example.vtubercamera.data.vrm.LightingSettings
 import com.example.vtubercamera.data.vrm.LightingPreset
+import com.example.vtubercamera.data.vrm.TrackingState
 import com.example.vtubercamera.ui.viewmodels.ARPhotoStats
 import org.junit.Assert.*
 import org.junit.Test
@@ -37,7 +37,7 @@ class DataModelsTest {
     @Test
     fun `Vector3 zero should return zero vector`() {
         // When
-        val vector = Vector3.zero()
+        val vector = Vector3.ZERO
 
         // Then
         assertEquals("X should be zero", 0.0f, vector.x, 0.001f)
@@ -48,7 +48,7 @@ class DataModelsTest {
     @Test
     fun `Vector3 one should return unit vector`() {
         // When
-        val vector = Vector3.one()
+        val vector = Vector3.ONE
 
         // Then
         assertEquals("X should be one", 1.0f, vector.x, 0.001f)
@@ -63,7 +63,7 @@ class DataModelsTest {
         val vector2 = Vector3(4.0f, 5.0f, 6.0f)
 
         // When
-        val result = vector1.add(vector2)
+        val result = vector1 + vector2
 
         // Then
         assertEquals("X should be sum", 5.0f, result.x, 0.001f)
@@ -78,7 +78,7 @@ class DataModelsTest {
         val vector2 = Vector3(1.0f, 2.0f, 3.0f)
 
         // When
-        val result = vector1.subtract(vector2)
+        val result = vector1 - vector2
 
         // Then
         assertEquals("X should be difference", 4.0f, result.x, 0.001f)
@@ -93,7 +93,7 @@ class DataModelsTest {
         val scalar = 2.0f
 
         // When
-        val result = vector.multiply(scalar)
+        val result = vector * scalar
 
         // Then
         assertEquals("X should be multiplied", 4.0f, result.x, 0.001f)
@@ -131,7 +131,7 @@ class DataModelsTest {
     @Test
     fun `Quaternion identity should return identity quaternion`() {
         // When
-        val identity = Quaternion.identity()
+        val identity = Quaternion.IDENTITY
 
         // Then
         assertEquals("X should be zero", 0.0f, identity.x, 0.001f)
@@ -146,9 +146,9 @@ class DataModelsTest {
         val identity = Transform.identity()
 
         // Then
-        assertEquals("Position should be zero", Vector3.zero(), identity.position)
-        assertEquals("Rotation should be identity", Quaternion.identity(), identity.rotation)
-        assertEquals("Scale should be one", Vector3.one(), identity.scale)
+        assertEquals("Position should be zero", Vector3.ZERO, identity.position)
+        assertEquals("Rotation should be identity", Quaternion.IDENTITY, identity.rotation)
+        assertEquals("Scale should be one", Vector3.ONE, identity.scale)
     }
 
     // ========== VRM Metadata Tests ==========
@@ -167,7 +167,7 @@ class DataModelsTest {
             sexualUsage = VRMMetadata.Usage.DISALLOW,
             commercialUsage = VRMMetadata.Usage.ALLOW,
             otherPermissionUrl = "",
-            licenseName = VRMMetadata.License.OTHER,
+            licenseName = VRMMetadata.LicenseType.OTHER,
             otherLicenseUrl = "https://example.com/license"
         )
 
@@ -181,7 +181,7 @@ class DataModelsTest {
         assertEquals("Violent usage should match", VRMMetadata.Usage.DISALLOW, metadata.violentUsage)
         assertEquals("Sexual usage should match", VRMMetadata.Usage.DISALLOW, metadata.sexualUsage)
         assertEquals("Commercial usage should match", VRMMetadata.Usage.ALLOW, metadata.commercialUsage)
-        assertEquals("License name should match", VRMMetadata.License.OTHER, metadata.licenseName)
+        assertEquals("License name should match", VRMMetadata.LicenseType.OTHER, metadata.licenseName)
         assertEquals("License URL should match", "https://example.com/license", metadata.otherLicenseUrl)
     }
 
@@ -195,20 +195,20 @@ class DataModelsTest {
             "eye_blink_left" to 0.5f,
             "eye_blink_right" to 0.5f
         )
-        val expression = Expression("happy", "Happy Expression", blendShapes)
+        val expression = Expression(name = "happy", displayName = "Happy Expression", blendShapeKeys = blendShapes)
 
         // Then
-        assertEquals("ID should match", "happy", expression.id)
-        assertEquals("Name should match", "Happy Expression", expression.name)
-        assertEquals("Blend shapes should match", blendShapes, expression.blendShapes)
-        assertEquals("Should have 3 blend shapes", 3, expression.blendShapes.size)
+        assertEquals("Name should match", "happy", expression.name)
+        assertEquals("Display name should match", "Happy Expression", expression.displayName)
+        assertEquals("Blend shapes should match", blendShapes, expression.blendShapeKeys)
+        assertEquals("Should have 3 blend shapes", 3, expression.blendShapeKeys.size)
     }
 
     @Test
     fun `Expression getBlendShapeWeight should return correct weight`() {
         // Given
         val blendShapes = mapOf("mouth_smile" to 0.8f)
-        val expression = Expression("happy", "Happy", blendShapes)
+        val expression = Expression(name = "happy", displayName = "Happy", blendShapeKeys = blendShapes)
 
         // When
         val weight = expression.getBlendShapeWeight("mouth_smile")
@@ -220,7 +220,7 @@ class DataModelsTest {
     @Test
     fun `Expression getBlendShapeWeight should return zero for missing shape`() {
         // Given
-        val expression = Expression("happy", "Happy", emptyMap())
+        val expression = Expression(name = "happy", displayName = "Happy", blendShapeKeys = emptyMap())
 
         // When
         val weight = expression.getBlendShapeWeight("nonexistent_shape")
@@ -238,15 +238,15 @@ class DataModelsTest {
             "rightArm" to Transform.identity(),
             "leftArm" to Transform(
                 position = Vector3(1.0f, 0.0f, 0.0f),
-                rotation = Quaternion.identity(),
-                scale = Vector3.one()
+                rotation = Quaternion.IDENTITY,
+                scale = Vector3.ONE
             )
         )
-        val pose = Pose("wave", "Wave Pose", boneTransforms)
+        val pose = Pose(name = "wave", displayName = "Wave Pose", boneTransforms = boneTransforms)
 
         // Then
-        assertEquals("ID should match", "wave", pose.id)
-        assertEquals("Name should match", "Wave Pose", pose.name)
+        assertEquals("Name should match", "wave", pose.name)
+        assertEquals("Display name should match", "Wave Pose", pose.displayName)
         assertEquals("Bone transforms should match", boneTransforms, pose.boneTransforms)
         assertEquals("Should have 2 bone transforms", 2, pose.boneTransforms.size)
     }
@@ -256,10 +256,10 @@ class DataModelsTest {
         // Given
         val transform = Transform(
             position = Vector3(1.0f, 2.0f, 3.0f),
-            rotation = Quaternion.identity(),
-            scale = Vector3.one()
+            rotation = Quaternion.IDENTITY,
+            scale = Vector3.ONE
         )
-        val pose = Pose("test", "Test", mapOf("testBone" to transform))
+        val pose = Pose(name = "test", displayName = "Test", boneTransforms = mapOf("testBone" to transform))
 
         // When
         val result = pose.getBoneTransform("testBone")
@@ -269,15 +269,15 @@ class DataModelsTest {
     }
 
     @Test
-    fun `Pose getBoneTransform should return identity for missing bone`() {
+    fun `Pose getBoneTransform should return null for missing bone`() {
         // Given
-        val pose = Pose("test", "Test", emptyMap())
+        val pose = Pose(name = "test", displayName = "Test", boneTransforms = emptyMap())
 
         // When
         val result = pose.getBoneTransform("nonexistent_bone")
 
         // Then
-        assertEquals("Transform should be identity", Transform.identity(), result)
+        assertNull("Transform should be null for missing bone", result)
     }
 
     // ========== AvatarState Tests ==========
@@ -344,8 +344,8 @@ class DataModelsTest {
 
         // Then
         assertFalse("Should not be initialized", state.isInitialized)
-        assertFalse("Should not be tracking", state.isTracking)
-        assertNull("Error should be null", state.error)
+        assertEquals("Tracking state should be STOPPED", TrackingState.STOPPED, state.trackingState)
+        assertNull("Light estimate should be null", state.lightEstimate)
     }
 
     @Test
@@ -364,33 +364,35 @@ class DataModelsTest {
     fun `LightingSettings should be created with correct values`() {
         // Given
         val settings = LightingSettings(
-            intensity = 0.8f,
+            brightness = 0.8f,
             colorTemperature = 5500f,
             shadowStrength = 0.6f,
-            ambientIntensity = 0.3f
+            ambientIntensity = 0.3f,
+            autoAdjustment = false
         )
 
         // Then
-        assertEquals("Intensity should match", 0.8f, settings.intensity, 0.001f)
+        assertEquals("Brightness should match", 0.8f, settings.brightness, 0.001f)
         assertEquals("Color temperature should match", 5500f, settings.colorTemperature, 0.1f)
         assertEquals("Shadow strength should match", 0.6f, settings.shadowStrength, 0.001f)
         assertEquals("Ambient intensity should match", 0.3f, settings.ambientIntensity, 0.001f)
+        assertFalse("Auto adjustment should be false", settings.autoAdjustment)
     }
 
     @Test
     fun `LightingPreset should be created with settings`() {
         // Given
         val settings = LightingSettings(
-            intensity = 1.0f,
+            brightness = 1.0f,
             colorTemperature = 6500f,
             shadowStrength = 0.8f,
-            ambientIntensity = 0.4f
+            ambientIntensity = 0.4f,
+            autoAdjustment = true
         )
-        val preset = LightingPreset("Studio", "Studio Lighting", settings)
+        val preset = LightingPreset("Studio", settings)
 
         // Then
         assertEquals("Name should match", "Studio", preset.name)
-        assertEquals("Description should match", "Studio Lighting", preset.description)
         assertEquals("Settings should match", settings, preset.settings)
     }
 
@@ -444,7 +446,7 @@ class DataModelsTest {
                 sexualUsage = VRMMetadata.Usage.DISALLOW,
                 commercialUsage = VRMMetadata.Usage.ALLOW,
                 otherPermissionUrl = "",
-                licenseName = VRMMetadata.License.OTHER,
+                licenseName = VRMMetadata.LicenseType.OTHER,
                 otherLicenseUrl = ""
             )
         )
