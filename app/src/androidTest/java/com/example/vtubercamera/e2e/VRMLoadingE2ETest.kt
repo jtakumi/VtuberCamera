@@ -20,6 +20,7 @@ import com.example.vtubercamera.data.vrm.Expression
 import com.example.vtubercamera.data.vrm.Pose
 import com.example.vtubercamera.data.vrm.math.Transform
 import com.example.vtubercamera.utils.PermissionUtils
+import junit.framework.TestCase.assertNotNull
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.delay
 import org.junit.Before
