@@ -119,10 +119,17 @@ class FilamentARRenderer @Inject constructor(
             lightingSystem.resetToDefaults()
             shadowSystem.initialize()
 
-            initializeOrUpdateFilament(surface, previousSurface)
+            val filamentReady = initializeOrUpdateFilament(surface, previousSurface)
+            isInitialized = filamentReady
 
-            isInitialized = true
-            Log.d(TAG, "FilamentARRenderer initialized successfully")
+            if (filamentReady) {
+                Log.d(TAG, "FilamentARRenderer initialized successfully")
+            } else {
+                Log.w(
+                    TAG,
+                    "Filament not initialized (invalid Surface or Filament unavailable); renderer will remain uninitialized"
+                )
+            }
 
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize FilamentARRenderer", e)
@@ -243,6 +250,11 @@ class FilamentARRenderer @Inject constructor(
         if (!isInitialized) {
             throw ARError.RenderingError("Renderer not initialized")
         }
+        if (viewportWidth <= 0 || viewportHeight <= 0) {
+            throw ARError.RenderingError(
+                "Viewport not set (width=$viewportWidth, height=$viewportHeight)"
+            )
+        }
 
         try {
             // TODO: Capture frame from Filament renderer
@@ -310,39 +322,51 @@ class FilamentARRenderer @Inject constructor(
         }
     }
 
-    private fun initializeOrUpdateFilament(surface: Surface, previousSurface: Surface?) {
+    private fun initializeOrUpdateFilament(surface: Surface, previousSurface: Surface?): Boolean {
+        // In JVM unit tests (and other headless scenarios), `Surface` is commonly mocked and
+        // `surface.isValid` may be false. Also, Filament may not be available (native libs).
+        // We treat these cases as "not initialized" so callers won't assume render backend exists.
         if (!surface.isValid) {
-            throw ARError.RenderingError("Invalid Surface")
+            Log.w(TAG, "Surface is invalid; skipping Filament initialization")
+            return false
         }
 
-        val engine = engine ?: Engine.create().also { created ->
-            this.engine = created
-            this.renderer = created.createRenderer()
-            this.scene = created.createScene()
-            this.view = created.createView()
-            this.cameraEntity = EntityManager.get().create()
-            this.camera = created.createCamera(cameraEntity)
+        return try {
+            val engine = engine ?: Engine.create().also { created ->
+                this.engine = created
+                this.renderer = created.createRenderer()
+                this.scene = created.createScene()
+                this.view = created.createView()
+                this.cameraEntity = EntityManager.get().create()
+                this.camera = created.createCamera(cameraEntity)
 
-            // Wire up the view
-            this.view?.scene = this.scene
-            this.view?.camera = this.camera
-        }
-
-        // SwapChain is tied to Surface; recreate if surface changes (rotation / resume)
-        if (swapChain == null || previousSurface !== surface) {
-            swapChain?.let {
-                try {
-                    engine.destroySwapChain(it)
-                } catch (e: Exception) {
-                    Log.w(TAG, "Failed to destroy old SwapChain", e)
-                }
+                // Wire up the view
+                this.view?.scene = this.scene
+                this.view?.camera = this.camera
             }
-            swapChain = engine.createSwapChain(surface)
-        }
 
-        // Apply current viewport if already known
-        if (viewportWidth > 0 && viewportHeight > 0) {
-            updateFilamentViewport(viewportWidth, viewportHeight)
+            // SwapChain is tied to Surface; recreate if surface changes (rotation / resume)
+            if (swapChain == null || previousSurface !== surface) {
+                swapChain?.let {
+                    try {
+                        engine.destroySwapChain(it)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to destroy old SwapChain", e)
+                    }
+                }
+                swapChain = engine.createSwapChain(surface)
+            }
+
+            // Apply current viewport if already known
+            if (viewportWidth > 0 && viewportHeight > 0) {
+                updateFilamentViewport(viewportWidth, viewportHeight)
+            }
+
+            // Consider backend ready only if core components exist
+            this.engine != null && this.renderer != null && this.view != null && this.swapChain != null
+        } catch (t: Throwable) {
+            Log.w(TAG, "Filament not available; running in headless mode", t)
+            false
         }
     }
 

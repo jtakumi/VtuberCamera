@@ -66,7 +66,7 @@ class CameraViewModel @Inject constructor(
     // 個別のStateFlow（後方互換性のため）
     val cameraSelector: StateFlow<CameraSelector> = _uiState.map { it.cameraSelector }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = CameraSelector.DEFAULT_BACK_CAMERA
     )
     val lastCapturedImageUri: StateFlow<Uri?> = _uiState.map { it.lastCapturedImageUri }.stateIn(
@@ -76,12 +76,12 @@ class CameraViewModel @Inject constructor(
     )
     val isPreviewMode: StateFlow<Boolean> = _uiState.map { it.isPreviewMode }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = false
     )
     val flashMode: StateFlow<Int> = _uiState.map { it.flashMode }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = ImageCapture.FLASH_MODE_OFF
     )
     val zoomRatio: StateFlow<Float> = _uiState.map { it.zoomRatio }.stateIn(
@@ -101,7 +101,7 @@ class CameraViewModel @Inject constructor(
     )
     val needsCameraRebind: StateFlow<Boolean> = _uiState.map { it.needsCameraRebind }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = false
     )
     val focusPoint: StateFlow<Pair<Float, Float>?> = _uiState.map { it.focusPoint }.stateIn(
@@ -126,7 +126,7 @@ class CameraViewModel @Inject constructor(
     )
     val photoFilterMode: StateFlow<PhotoFilterMode> = _uiState.map { it.photoFilterMode }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = PhotoFilterMode.ALL
     )
 
@@ -298,12 +298,12 @@ class CameraViewModel @Inject constructor(
     )
     val smoothTransitions: StateFlow<Boolean> = _uiState.map { it.smoothTransitions }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = true
     )
     val autoResetOnAvatarChange: StateFlow<Boolean> = _uiState.map { it.autoResetOnAvatarChange }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = true
     )
     val lightingSettings: StateFlow<LightingSettings> = lightingFeature.lightingSettings

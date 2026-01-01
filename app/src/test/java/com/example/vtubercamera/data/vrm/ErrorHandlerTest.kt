@@ -28,9 +28,10 @@ class ErrorHandlerTest {
         every { context.packageManager } returns packageManager
         every { context.packageName } returns "com.example.vtubercamera"
         
-        val packageInfo = mockk<PackageInfo>()
-        every { packageInfo.versionName } returns "1.0.0"
-        every { packageInfo.longVersionCode } returns 1L
+        val packageInfo = PackageInfo().apply {
+            versionName = "1.0.0"
+            versionCode = 1
+        }
         every { packageManager.getPackageInfo("com.example.vtubercamera", 0) } returns packageInfo
         
         errorHandler = ErrorHandler(context)

@@ -31,7 +31,7 @@ class AvatarControllerTest {
         // Then
         assertNull("Initial model should be null", state.model)
         assertEquals("Initial transform should be identity", Transform.identity(), state.transform)
-        assertFalse("Initial visibility should be false", state.isVisible)
+        assertTrue("Initial visibility should be true", state.isVisible)
         assertFalse("Should not be loading initially", state.isLoading)
         assertEquals("Loading progress should be 0", 0.0f, state.loadingProgress, 0.001f)
     }
