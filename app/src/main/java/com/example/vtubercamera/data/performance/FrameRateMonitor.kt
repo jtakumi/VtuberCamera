@@ -28,6 +28,8 @@ class FrameRateMonitor @Inject constructor() : Choreographer.FrameCallback {
     
     private var targetFrameRate = 30f
     private var qualityLevel = QualityLevel.HIGH
+
+    private var choreographer: Choreographer? = null
     
     /**
      * フレームレート監視を開始
@@ -41,8 +43,9 @@ class FrameRateMonitor @Inject constructor() : Choreographer.FrameCallback {
         startTime = System.nanoTime()
         lastFrameTime = startTime
         frameTimes.clear()
-        
-        Choreographer.getInstance().postFrameCallback(this)
+
+        choreographer = Choreographer.getInstance()
+        choreographer?.postFrameCallback(this)
     }
     
     /**
@@ -52,7 +55,8 @@ class FrameRateMonitor @Inject constructor() : Choreographer.FrameCallback {
         if (!isMonitoring) return
         
         isMonitoring = false
-        Choreographer.getInstance().removeFrameCallback(this)
+        choreographer?.removeFrameCallback(this)
+        choreographer = null
     }
     
     override fun doFrame(frameTimeNanos: Long) {
@@ -84,7 +88,7 @@ class FrameRateMonitor @Inject constructor() : Choreographer.FrameCallback {
         }
         
         // 次のフレームコールバックを登録
-        Choreographer.getInstance().postFrameCallback(this)
+        choreographer?.postFrameCallback(this)
     }
     
     /**
