@@ -47,13 +47,13 @@ class UIOperationsAndGestureTest {
         // Given - App is launched and camera screen is visible
         composeTestRule.waitUntil(timeoutMillis = 5000) {
             composeTestRule
-                .onAllNodesWithContentDescription(context.getString(R.string.camera_capture))
+                .onAllNodesWithContentDescription(context.getString(R.string.take_photo))
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
         // When & Then - Test capture button
         val captureButton = composeTestRule.onNodeWithContentDescription(
-            context.getString(R.string.camera_capture)
+            context.getString(R.string.take_photo)
         )
         captureButton.assertIsDisplayed()
         captureButton.assertIsEnabled()
@@ -68,7 +68,7 @@ class UIOperationsAndGestureTest {
             switchButton.assertIsDisplayed()
             switchButton.performClick()
             composeTestRule.waitForIdle()
-        } catch (e: AssertionError) {
+        } catch (_: AssertionError) {
             // Switch camera button might not be available
         }
 
@@ -80,7 +80,7 @@ class UIOperationsAndGestureTest {
             flashButton.assertIsDisplayed()
             flashButton.performClick()
             composeTestRule.waitForIdle()
-        } catch (e: AssertionError) {
+        } catch (_: AssertionError) {
             // Flash button might not be available
         }
     }
@@ -97,7 +97,7 @@ class UIOperationsAndGestureTest {
 
             // When - Perform pinch to zoom gesture
             cameraPreview.performTouchInput {
-                val center = Offset(centerX, centerY)
+                // (center was unused)
                 val start1 = Offset(centerX - 100f, centerY)
                 val start2 = Offset(centerX + 100f, centerY)
                 val end1 = Offset(centerX - 200f, centerY)
@@ -116,7 +116,7 @@ class UIOperationsAndGestureTest {
 
             // Perform pinch in (zoom out)
             cameraPreview.performTouchInput {
-                val center = Offset(centerX, centerY)
+                // (center was unused)
                 val start1 = Offset(centerX - 200f, centerY)
                 val start2 = Offset(centerX + 200f, centerY)
                 val end1 = Offset(centerX - 100f, centerY)
@@ -131,9 +131,7 @@ class UIOperationsAndGestureTest {
                 up(2)
             }
 
-            composeTestRule.waitForIdle()
-
-        } catch (e: AssertionError) {
+        } catch (_: AssertionError) {
             // Camera preview might have different content description or not be available
         }
 
@@ -169,7 +167,7 @@ class UIOperationsAndGestureTest {
             }
             composeTestRule.waitForIdle()
 
-        } catch (e: AssertionError) {
+        } catch (_: AssertionError) {
             // Camera preview might not be available or have different implementation
         }
 
@@ -206,7 +204,7 @@ class UIOperationsAndGestureTest {
 
             arView.performTouchInput {
                 // Test scale gesture
-                val center = Offset(centerX, centerY)
+                // (center was unused)
                 val start1 = Offset(centerX - 50f, centerY)
                 val start2 = Offset(centerX + 50f, centerY)
                 val end1 = Offset(centerX - 100f, centerY)
@@ -221,7 +219,7 @@ class UIOperationsAndGestureTest {
             }
             composeTestRule.waitForIdle()
 
-        } catch (e: AssertionError) {
+        } catch (_: AssertionError) {
             // AR mode or avatar manipulation might not be available
         }
 
@@ -230,7 +228,7 @@ class UIOperationsAndGestureTest {
     }
 
     @Test
-    fun drawerNavigation_shouldWork() {
+    fun navigationDrawer_shouldOpenAndNavigate() {
         // Given - App is launched
         composeTestRule.waitForIdle()
 
@@ -248,12 +246,12 @@ class UIOperationsAndGestureTest {
             composeTestRule.onNodeWithContentDescription("Back").performClick()
             composeTestRule.waitForIdle()
 
-        } catch (e: AssertionError) {
+        } catch (_: AssertionError) {
             // Navigation drawer might not be implemented or have different structure
         }
 
         // Then - Should return to main screen
-        composeTestRule.onNodeWithContentDescription(context.getString(R.string.camera_capture))
+        composeTestRule.onNodeWithContentDescription(context.getString(R.string.take_photo))
             .assertIsDisplayed()
     }
 
@@ -270,16 +268,16 @@ class UIOperationsAndGestureTest {
 
             // Test drag gesture to expand/collapse bottom sheet
             composeTestRule.onRoot().performTouchInput {
-                swipeUp(startY = size.height * 0.8f, endY = size.height * 0.4f)
+                swipeUp(startY = height * 0.8f, endY = height * 0.4f)
             }
             composeTestRule.waitForIdle()
 
             composeTestRule.onRoot().performTouchInput {
-                swipeDown(startY = size.height * 0.4f, endY = size.height * 0.8f)
+                swipeDown(startY = height * 0.4f, endY = height * 0.8f)
             }
             composeTestRule.waitForIdle()
 
-        } catch (e: AssertionError) {
+        } catch (_: AssertionError) {
             // Bottom sheet controls might not be available
         }
 
@@ -310,7 +308,7 @@ class UIOperationsAndGestureTest {
             }
             composeTestRule.waitForIdle()
 
-        } catch (e: AssertionError) {
+        } catch (_: AssertionError) {
             // Expression controls might not be visible without avatar
         }
 
@@ -341,7 +339,7 @@ class UIOperationsAndGestureTest {
             }
             composeTestRule.waitForIdle()
 
-        } catch (e: AssertionError) {
+        } catch (_: AssertionError) {
             // Pose controls might not be visible without avatar
         }
 
@@ -373,7 +371,7 @@ class UIOperationsAndGestureTest {
             }
             composeTestRule.waitForIdle()
 
-        } catch (e: AssertionError) {
+        } catch (_: AssertionError) {
             // Lighting controls might not be available or have different implementation
         }
 
@@ -415,7 +413,7 @@ class UIOperationsAndGestureTest {
                 val photoViewer = composeTestRule.onNodeWithContentDescription("Photo Viewer")
                 photoViewer.performTouchInput {
                     // Pinch to zoom
-                    val center = Offset(centerX, centerY)
+                    // (center was unused)
                     val start1 = Offset(centerX - 100f, centerY)
                     val start2 = Offset(centerX + 100f, centerY)
                     val end1 = Offset(centerX - 200f, centerY)
@@ -436,11 +434,11 @@ class UIOperationsAndGestureTest {
                 }
                 composeTestRule.waitForIdle()
 
-            } catch (e: AssertionError) {
+            } catch (_: AssertionError) {
                 // No photos available for testing
             }
 
-        } catch (e: AssertionError) {
+        } catch (_: AssertionError) {
             // Gallery might not be available
         }
 
@@ -470,7 +468,7 @@ class UIOperationsAndGestureTest {
 
             // Two-finger rotation gesture
             mainView.performTouchInput {
-                val center = Offset(centerX, centerY)
+                // (center was unused)
                 val radius = 100f
                 val start1 = Offset(centerX + radius, centerY)
                 val start2 = Offset(centerX - radius, centerY)
@@ -486,7 +484,7 @@ class UIOperationsAndGestureTest {
             }
             composeTestRule.waitForIdle()
 
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // Complex gestures might not be supported
         }
 
@@ -504,17 +502,17 @@ class UIOperationsAndGestureTest {
             // Navigate through focusable elements
             composeTestRule.onRoot().performTouchInput {
                 // Simulate accessibility swipe right
-                swipeRight(startX = 0f, endX = size.width * 0.1f)
+                swipeRight(startX = 0f, endX = width * 0.1f)
             }
             composeTestRule.waitForIdle()
 
             composeTestRule.onRoot().performTouchInput {
                 // Simulate accessibility swipe left
-                swipeLeft(startX = size.width, endX = size.width * 0.9f)
+                swipeLeft(startX = width.toFloat(), endX = width * 0.9f)
             }
             composeTestRule.waitForIdle()
 
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // Accessibility gestures might work differently
         }
 
@@ -530,7 +528,7 @@ class UIOperationsAndGestureTest {
         try {
             // When - Long press on various UI elements
             val captureButton = composeTestRule.onNodeWithContentDescription(
-                context.getString(R.string.camera_capture)
+                context.getString(R.string.take_photo)
             )
 
             captureButton.performTouchInput {
@@ -545,7 +543,7 @@ class UIOperationsAndGestureTest {
             }
             composeTestRule.waitForIdle()
 
-        } catch (e: AssertionError) {
+        } catch (_: AssertionError) {
             // Long press actions might not be implemented
         }
 
