@@ -103,7 +103,7 @@ class VRMRepositoryTest {
     @Test
     fun `VRMRepository loadVRMFromUri should return success result with valid model`() = runTest {
         // Given
-        val testUri = Uri.parse("content://test/avatar.vrm")
+        val testUri: Uri = mock()
         val testModel = createTestVRMModel()
 
         whenever(mockVRMRepository.loadVRMFromUri(testUri))
@@ -121,7 +121,7 @@ class VRMRepositoryTest {
     @Test
     fun `VRMRepository loadVRMFromUri should return failure result with invalid file`() = runTest {
         // Given
-        val testUri = Uri.parse("content://test/invalid.txt")
+        val testUri: Uri = mock()
         val exception = RuntimeException("Invalid VRM file")
 
         whenever(mockVRMRepository.loadVRMFromUri(testUri))
@@ -270,7 +270,7 @@ class VRMRepositoryTest {
     @Test
     fun `PhotoItem should be created with AR metadata`() {
         // Given
-        val testUri = Uri.parse("content://media/external/images/media/123")
+        val testUri: Uri = mock()
         val photoItem = PhotoItem(
             id = 123L,
             uri = testUri,
@@ -296,7 +296,7 @@ class VRMRepositoryTest {
     @Test
     fun `PhotoItem should be created as normal photo`() {
         // Given
-        val testUri = Uri.parse("content://media/external/images/media/456")
+        val testUri: Uri = mock()
         val photoItem = PhotoItem(
             id = 456L,
             uri = testUri,

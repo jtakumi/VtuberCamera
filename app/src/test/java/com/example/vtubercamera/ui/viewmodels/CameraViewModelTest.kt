@@ -23,6 +23,7 @@ import com.example.vtubercamera.data.vrm.VRMModel
 import com.example.vtubercamera.data.vrm.Expression
 import com.example.vtubercamera.data.vrm.Pose
 import com.example.vtubercamera.data.vrm.TrackingState
+import com.example.vtubercamera.data.vrm.LightingSettings
 import com.example.vtubercamera.domain.ar.ARFeature
 import com.example.vtubercamera.domain.avatar.AvatarFeature
 import com.example.vtubercamera.domain.camera.CameraControlsFeature
@@ -101,7 +102,8 @@ class CameraViewModelTest {
         whenever(mockMediaRepository.getAllPhotos()).thenReturn(flowOf(emptyList()))
         whenever(mockMediaRepository.getARPhotos()).thenReturn(flowOf(emptyList()))
         whenever(mockMediaRepository.getNormalPhotos()).thenReturn(flowOf(emptyList()))
-        whenever(mockMediaRepository.getLatestPhotoUri()).thenReturn(flowOf(Uri.parse("content://test/latest")))
+        val latestPhotoUri: Uri = org.mockito.kotlin.mock()
+        whenever(mockMediaRepository.getLatestPhotoUri()).thenReturn(flowOf(latestPhotoUri))
 
         // Setup avatar library manager mock returns
         whenever(mockAvatarLibraryManager.getAvatarsSortedBy(org.mockito.kotlin.any())).thenReturn(flowOf(emptyList()))
@@ -126,7 +128,8 @@ class CameraViewModelTest {
         whenever(mockAvatarController.avatarState).thenReturn(MutableStateFlow(AvatarState()))
 
         // Setup lighting system mock returns
-        whenever(mockLightingSystem.lightingSettings).thenReturn(MutableStateFlow(org.mockito.kotlin.mock()))
+        val lightingSettings: LightingSettings = org.mockito.kotlin.mock()
+        whenever(mockLightingSystem.lightingSettings).thenReturn(MutableStateFlow(lightingSettings))
         whenever(mockLightingSystem.environmentLighting).thenReturn(MutableStateFlow(null))
         whenever(mockLightingSystem.getLightingPresets()).thenReturn(emptyList())
 
@@ -190,14 +193,17 @@ class CameraViewModelTest {
 
         // 1回目のトグル: OFF -> ON
         viewModel.toggleFlash()
+        testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(ImageCapture.FLASH_MODE_ON, viewModel.flashMode.value)
 
         // 2回目のトグル: ON -> AUTO
         viewModel.toggleFlash()
+        testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(ImageCapture.FLASH_MODE_AUTO, viewModel.flashMode.value)
 
         // 3回目のトグル: AUTO -> OFF
         viewModel.toggleFlash()
+        testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(ImageCapture.FLASH_MODE_OFF, viewModel.flashMode.value)
     }
 
@@ -208,10 +214,12 @@ class CameraViewModelTest {
 
         // 1回目の切り替え: BACK -> FRONT
         viewModel.switchCamera()
+        testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(CameraSelector.DEFAULT_FRONT_CAMERA, viewModel.cameraSelector.value)
 
         // 2回目の切り替え: FRONT -> BACK
         viewModel.switchCamera()
+        testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(CameraSelector.DEFAULT_BACK_CAMERA, viewModel.cameraSelector.value)
     }
 
@@ -222,6 +230,7 @@ class CameraViewModelTest {
 
         // プレビューモード開始
         viewModel.enterPreviewMode()
+        testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(true, viewModel.isPreviewMode.value)
     }
 
@@ -229,10 +238,12 @@ class CameraViewModelTest {
     fun `exitPreviewMode should set preview mode to false and trigger camera rebind`() {
         // プレビューモード開始
         viewModel.enterPreviewMode()
+        testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(true, viewModel.isPreviewMode.value)
 
         // プレビューモード終了
         viewModel.exitPreviewMode()
+        testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(false, viewModel.isPreviewMode.value)
         assertEquals(true, viewModel.needsCameraRebind.value)
     }
@@ -241,10 +252,12 @@ class CameraViewModelTest {
     fun `onCameraRebound should reset camera rebind flag`() {
         // カメラ再バインドが必要な状態にする
         viewModel.exitPreviewMode()
+        testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(true, viewModel.needsCameraRebind.value)
 
         // カメラ再バインド完了
         viewModel.onCameraRebound()
+        testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(false, viewModel.needsCameraRebind.value)
     }
 
@@ -294,12 +307,14 @@ class CameraViewModelTest {
     fun `setPhotoFilterMode should update filter mode`() {
         // When
         viewModel.setPhotoFilterMode(PhotoFilterMode.AR_ONLY)
+        testDispatcher.scheduler.advanceUntilIdle()
 
         // Then
         assertEquals(PhotoFilterMode.AR_ONLY, viewModel.photoFilterMode.value)
 
         // When
         viewModel.setPhotoFilterMode(PhotoFilterMode.NORMAL_ONLY)
+        testDispatcher.scheduler.advanceUntilIdle()
 
         // Then
         assertEquals(PhotoFilterMode.NORMAL_ONLY, viewModel.photoFilterMode.value)
@@ -315,6 +330,7 @@ class CameraViewModelTest {
 
         // When
         viewModel.setPhotoFilterMode(PhotoFilterMode.ALL)
+        testDispatcher.scheduler.advanceUntilIdle()
 
         // Then
         // Note: This test would need the actual photos to be set, but we're testing the logic
@@ -429,9 +445,11 @@ class CameraViewModelTest {
 
         // When
         viewModel.selectExpression(expression)
+        testDispatcher.scheduler.advanceUntilIdle()
 
         // Then
-        verify(mockExpressionController).applyExpression(expression)
+        // Default is smooth transitions enabled; implementation uses transition APIs.
+        verify(mockExpressionController).transitionToExpression(expression)
     }
 
     @Test
@@ -450,9 +468,11 @@ class CameraViewModelTest {
 
         // When
         viewModel.selectPose(pose)
+        testDispatcher.scheduler.advanceUntilIdle()
 
         // Then
-        verify(mockPoseController).applyPose(pose)
+        // Default is smooth transitions enabled; implementation uses transition APIs.
+        verify(mockPoseController).transitionToPose(pose)
     }
 
     @Test
@@ -477,12 +497,14 @@ class CameraViewModelTest {
     fun `setSmoothTransitions should update smooth transitions state`() {
         // When
         viewModel.setSmoothTransitions(true)
+        testDispatcher.scheduler.advanceUntilIdle()
 
         // Then
         assertTrue("Smooth transitions should be true", viewModel.smoothTransitions.value)
 
         // When
         viewModel.setSmoothTransitions(false)
+        testDispatcher.scheduler.advanceUntilIdle()
 
         // Then
         assertFalse("Smooth transitions should be false", viewModel.smoothTransitions.value)
@@ -492,12 +514,14 @@ class CameraViewModelTest {
     fun `setAutoResetOnAvatarChange should update auto reset state`() {
         // When
         viewModel.setAutoResetOnAvatarChange(true)
+        testDispatcher.scheduler.advanceUntilIdle()
 
         // Then
         assertTrue("Auto reset should be true", viewModel.autoResetOnAvatarChange.value)
 
         // When
         viewModel.setAutoResetOnAvatarChange(false)
+        testDispatcher.scheduler.advanceUntilIdle()
 
         // Then
         assertFalse("Auto reset should be false", viewModel.autoResetOnAvatarChange.value)
@@ -508,7 +532,7 @@ class CameraViewModelTest {
     private fun createTestPhotoItem(id: Long, isARPhoto: Boolean): PhotoItem {
         return PhotoItem(
             id = id,
-            uri = Uri.parse("content://media/external/images/media/$id"),
+            uri = org.mockito.kotlin.mock(),
             displayName = if (isARPhoto) "AR_test_$id.jpg" else "test_$id.jpg",
             dateAdded = System.currentTimeMillis(),
             size = 1024000L,

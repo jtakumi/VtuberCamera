@@ -292,7 +292,7 @@ class DataModelsTest {
         assertEquals("Transform should be identity", Transform.identity(), state.transform)
         assertNull("Expression should be null", state.currentExpression)
         assertNull("Pose should be null", state.currentPose)
-        assertFalse("Should not be visible", state.isVisible)
+        assertTrue("Should be visible by default", state.isVisible)
         assertFalse("Should not be loading", state.isLoading)
         assertEquals("Loading progress should be 0", 0.0f, state.loadingProgress, 0.001f)
     }

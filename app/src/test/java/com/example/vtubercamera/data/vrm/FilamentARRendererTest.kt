@@ -55,7 +55,8 @@ class FilamentARRendererTest {
 
         whenever(vrmConverter.convertVRMToFilamentMesh(any()))
             .thenReturn(createTestFilamentMeshData())
-        whenever(textureManager.loadTexture(any())).thenReturn(createTestTextureInstance())
+        val testTextureInstance = createTestTextureInstance()
+        whenever(textureManager.loadTexture(any())).thenReturn(testTextureInstance)
         whenever(materialManager.createMaterial(any(), any())).thenReturn(createTestMaterialInstance())
         doNothing().whenever(materialManager).updateLighting(any(), any())
 
