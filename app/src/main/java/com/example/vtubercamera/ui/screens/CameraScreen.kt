@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material.icons.filled.ViewInAr
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -93,7 +94,8 @@ import com.example.vtubercamera.utils.PermissionUtils
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CameraScreen(
-    viewModel: CameraViewModel = hiltViewModel()
+    viewModel: CameraViewModel = hiltViewModel(),
+    onNavigateToAR: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val resource = context.resources
@@ -244,6 +246,7 @@ fun CameraScreen(
                 onStartSelectionMode = { viewModel.startSelectionMode() },
                 showGalleryAction = allPhotos.isNotEmpty(),
                 onOpenGallery = { showGalleryView = true },
+                onNavigateToAR = onNavigateToAR,
                 flashMode = flashMode,
                 onToggleFlash = { viewModel.toggleFlash() },
                 onSwitchCamera = { viewModel.switchCamera() }
@@ -387,6 +390,7 @@ private fun CameraTopBar(
     onStartSelectionMode: () -> Unit,
     showGalleryAction: Boolean,
     onOpenGallery: () -> Unit,
+    onNavigateToAR: () -> Unit,
     flashMode: Int,
     onToggleFlash: () -> Unit,
     onSwitchCamera: () -> Unit
@@ -435,6 +439,12 @@ private fun CameraTopBar(
                     }
                 }
             } else {
+                IconButton(onClick = onNavigateToAR) {
+                    Icon(
+                        imageVector = Icons.Default.ViewInAr,
+                        contentDescription = "AR"
+                    )
+                }
                 if (showGalleryAction) {
                     IconButton(onClick = onOpenGallery) {
                         Icon(
