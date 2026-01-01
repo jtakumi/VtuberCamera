@@ -119,10 +119,17 @@ class FilamentARRenderer @Inject constructor(
             lightingSystem.resetToDefaults()
             shadowSystem.initialize()
 
-            initializeOrUpdateFilament(surface, previousSurface)
+            val filamentReady = initializeOrUpdateFilament(surface, previousSurface)
+            isInitialized = filamentReady
 
-            isInitialized = true
-            Log.d(TAG, "FilamentARRenderer initialized successfully")
+            if (filamentReady) {
+                Log.d(TAG, "FilamentARRenderer initialized successfully")
+            } else {
+                Log.w(
+                    TAG,
+                    "Filament not initialized (invalid Surface or Filament unavailable); renderer will remain uninitialized"
+                )
+            }
 
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize FilamentARRenderer", e)
@@ -243,6 +250,11 @@ class FilamentARRenderer @Inject constructor(
         if (!isInitialized) {
             throw ARError.RenderingError("Renderer not initialized")
         }
+        if (viewportWidth <= 0 || viewportHeight <= 0) {
+            throw ARError.RenderingError(
+                "Viewport not set (width=$viewportWidth, height=$viewportHeight)"
+            )
+        }
 
         try {
             // TODO: Capture frame from Filament renderer
@@ -310,17 +322,16 @@ class FilamentARRenderer @Inject constructor(
         }
     }
 
-    private fun initializeOrUpdateFilament(surface: Surface, previousSurface: Surface?) {
+    private fun initializeOrUpdateFilament(surface: Surface, previousSurface: Surface?): Boolean {
         // In JVM unit tests (and other headless scenarios), `Surface` is commonly mocked and
         // `surface.isValid` may be false. Also, Filament may not be available (native libs).
-        // Since this renderer currently provides placeholder behavior for capture/render, we
-        // degrade gracefully instead of hard-failing.
+        // We treat these cases as "not initialized" so callers won't assume render backend exists.
         if (!surface.isValid) {
             Log.w(TAG, "Surface is invalid; skipping Filament initialization")
-            return
+            return false
         }
 
-        try {
+        return try {
             val engine = engine ?: Engine.create().also { created ->
                 this.engine = created
                 this.renderer = created.createRenderer()
@@ -350,9 +361,12 @@ class FilamentARRenderer @Inject constructor(
             if (viewportWidth > 0 && viewportHeight > 0) {
                 updateFilamentViewport(viewportWidth, viewportHeight)
             }
+
+            // Consider backend ready only if core components exist
+            this.engine != null && this.renderer != null && this.view != null && this.swapChain != null
         } catch (t: Throwable) {
             Log.w(TAG, "Filament not available; running in headless mode", t)
-            // Keep renderer usable for placeholder paths.
+            false
         }
     }
 
