@@ -43,3 +43,6 @@ render.experimental.xml
 
 # Android Profiling
 *.hprof
+
+# Agent workflows
+.agent/
