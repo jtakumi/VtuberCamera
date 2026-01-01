@@ -3,6 +3,14 @@ package com.example.vtubercamera.data.vrm
 import android.graphics.Bitmap
 import android.util.Log
 import android.view.Surface
+import com.google.android.filament.Camera
+import com.google.android.filament.Engine
+import com.google.android.filament.EntityManager
+import com.google.android.filament.Renderer
+import com.google.android.filament.Scene
+import com.google.android.filament.SwapChain
+import com.google.android.filament.View
+import com.google.android.filament.Viewport
 import com.example.vtubercamera.data.vrm.math.Transform
 import com.google.ar.core.Frame
 import com.google.ar.core.LightEstimate
@@ -57,13 +65,14 @@ class FilamentARRenderer @Inject constructor(
         private const val TAG = "FilamentARRenderer"
     }
 
-    // Filament engine components (will be initialized when Filament is available)
-    // private lateinit var engine: Engine
-    // private lateinit var scene: Scene
-    // private lateinit var camera: Camera
-    // private lateinit var renderer: Renderer
-    // private lateinit var view: View
-    // private lateinit var swapChain: SwapChain
+    // Filament engine components
+    private var engine: Engine? = null
+    private var scene: Scene? = null
+    private var camera: Camera? = null
+    private var cameraEntity: Int = 0
+    private var renderer: Renderer? = null
+    private var view: View? = null
+    private var swapChain: SwapChain? = null
 
     // AR and rendering state
     private var isInitialized = false
@@ -102,6 +111,7 @@ class FilamentARRenderer @Inject constructor(
         Log.d(TAG, "Initializing FilamentARRenderer")
 
         try {
+            val previousSurface = this.surface
             this.surface = surface
             this.arSession = arSession
 
@@ -109,10 +119,7 @@ class FilamentARRenderer @Inject constructor(
             lightingSystem.resetToDefaults()
             shadowSystem.initialize()
 
-            // TODO: Initialize Filament engine when dependencies are available
-            // initializeFilamentEngine()
-            // setupBasicScene()
-            // configureCameraForAR()
+            initializeOrUpdateFilament(surface, previousSurface)
 
             isInitialized = true
             Log.d(TAG, "FilamentARRenderer initialized successfully")
@@ -169,8 +176,8 @@ class FilamentARRenderer @Inject constructor(
             // Update material lighting
             updateMaterialLighting()
 
-            // TODO: Render the scene
-            // renderScene()
+            // Minimal render path (black screen OK)
+            renderScene(frame.timestamp)
 
         } catch (e: Exception) {
             Log.e(TAG, "Error updating frame", e)
@@ -267,8 +274,7 @@ class FilamentARRenderer @Inject constructor(
             // Clear material cache
             materialManager.clearCache()
 
-            // TODO: Cleanup Filament resources
-            // cleanupFilamentEngine()
+            cleanupFilamentEngine()
 
             surface = null
             arSession = null
@@ -295,14 +301,142 @@ class FilamentARRenderer @Inject constructor(
         if (!isInitialized) return
 
         try {
-            // TODO: Update Filament viewport
-            // updateFilamentViewport(width, height)
+            updateFilamentViewport(width, height)
 
             Log.d(TAG, "Viewport updated: ${width}x${height}")
 
         } catch (e: Exception) {
             Log.e(TAG, "Error setting viewport", e)
         }
+    }
+
+    private fun initializeOrUpdateFilament(surface: Surface, previousSurface: Surface?) {
+        if (!surface.isValid) {
+            throw ARError.RenderingError("Invalid Surface")
+        }
+
+        val engine = engine ?: Engine.create().also { created ->
+            this.engine = created
+            this.renderer = created.createRenderer()
+            this.scene = created.createScene()
+            this.view = created.createView()
+            this.cameraEntity = EntityManager.get().create()
+            this.camera = created.createCamera(cameraEntity)
+
+            // Wire up the view
+            this.view?.scene = this.scene
+            this.view?.camera = this.camera
+        }
+
+        // SwapChain is tied to Surface; recreate if surface changes (rotation / resume)
+        if (swapChain == null || previousSurface !== surface) {
+            swapChain?.let {
+                try {
+                    engine.destroySwapChain(it)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to destroy old SwapChain", e)
+                }
+            }
+            swapChain = engine.createSwapChain(surface)
+        }
+
+        // Apply current viewport if already known
+        if (viewportWidth > 0 && viewportHeight > 0) {
+            updateFilamentViewport(viewportWidth, viewportHeight)
+        }
+    }
+
+    private fun updateFilamentViewport(width: Int, height: Int) {
+        if (width <= 0 || height <= 0) return
+        view?.viewport = Viewport(0, 0, width, height)
+    }
+
+    private fun renderScene(frameTimeNanos: Long) {
+        val renderer = renderer ?: return
+        val swapChain = swapChain ?: return
+        val view = view ?: return
+
+        try {
+            val timeNanos = if (frameTimeNanos > 0L) frameTimeNanos else System.nanoTime()
+            if (renderer.beginFrame(swapChain, timeNanos)) {
+                renderer.render(view)
+                renderer.endFrame()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Render failed", e)
+        }
+    }
+
+    private fun cleanupFilamentEngine() {
+        val engine = engine
+        if (engine == null) {
+            swapChain = null
+            view = null
+            scene = null
+            camera = null
+            renderer = null
+            cameraEntity = 0
+            return
+        }
+
+        // Destroy order: SwapChain -> View/Scene/Camera -> Renderer -> Engine
+        swapChain?.let {
+            try {
+                engine.destroySwapChain(it)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to destroy SwapChain", e)
+            }
+        }
+        swapChain = null
+
+        view?.let {
+            try {
+                engine.destroyView(it)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to destroy View", e)
+            }
+        }
+        view = null
+
+        scene?.let {
+            try {
+                engine.destroyScene(it)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to destroy Scene", e)
+            }
+        }
+        scene = null
+
+        if (cameraEntity != 0) {
+            try {
+                engine.destroyCameraComponent(cameraEntity)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to destroy Camera component", e)
+            }
+            try {
+                EntityManager.get().destroy(cameraEntity)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to destroy Camera entity", e)
+            }
+        }
+        cameraEntity = 0
+        camera = null
+
+        renderer?.let {
+            try {
+                engine.destroyRenderer(it)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to destroy Renderer", e)
+            }
+        }
+        renderer = null
+
+        try {
+            engine.destroy()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to destroy Engine", e)
+        }
+        this.engine = null
     }
 
     override fun setAvatarRenderingEnabled(enabled: Boolean) {
@@ -566,68 +700,6 @@ class FilamentARRenderer @Inject constructor(
         shadowSystem.setShadowQuality(quality)
     }
 
-    // TODO: Filament engine methods (when dependencies are available)
-    /*
-    private fun initializeFilamentEngine() {
-        engine = Engine.create()
-        renderer = engine.createRenderer()
-        scene = engine.createScene()
-        camera = engine.createCamera(engine.entityManager.create())
-        view = engine.createView()
-        
-        // Configure view
-        view.scene = scene
-        view.camera = camera
-    }
-    
-    private fun setupBasicScene() {
-        // Setup basic lighting
-        val sunlight = EntityManager.get().create()
-        LightManager.Builder(LightManager.Type.SUN)
-            .color(1.0f, 1.0f, 1.0f)
-            .intensity(100000.0f)
-            .direction(0.0f, -1.0f, 0.0f)
-            .build(engine, sunlight)
-        scene.addEntity(sunlight)
-        
-        // Setup environment
-        val ibl = engine.createIbl(IBLBuilder().build(engine))
-        scene.indirectLight = ibl
-    }
-    
-    private fun configureCameraForAR() {
-        // Configure camera for AR rendering
-        camera.setProjection(
-            Camera.Projection.PERSPECTIVE,
-            45.0, // fov
-            viewportWidth.toDouble() / viewportHeight.toDouble(), // aspect
-            0.1, // near
-            1000.0 // far
-        )
-    }
-    
-    private fun renderScene() {
-        // Render the scene with current state
-        if (renderer.beginFrame(swapChain)) {
-            renderer.render(view)
-            renderer.endFrame()
-        }
-    }
-    
-    private fun captureFilamentFrame(): Bitmap {
-        // Capture current frame as bitmap
-        // This would involve reading pixels from the render target
-        return Bitmap.createBitmap(viewportWidth, viewportHeight, Bitmap.Config.ARGB_8888)
-    }
-    
-    private fun cleanupFilamentEngine() {
-        engine.destroyRenderer(renderer)
-        engine.destroyScene(scene)
-        engine.destroyView(view)
-        engine.destroyCamera(camera)
-        engine.destroy()
-    }
-    */
 }
 
 /**
