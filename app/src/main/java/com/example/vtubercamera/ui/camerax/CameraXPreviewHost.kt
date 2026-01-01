@@ -10,14 +10,18 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 
 /**
@@ -81,6 +85,47 @@ internal fun CameraXPreviewHost(
                 onCameraCreated(camera)
             }
         )
+    }
+
+    val unbindAllSafelyState = rememberUpdatedState {
+        val provider = cameraProvider
+        if (provider == null) return@rememberUpdatedState
+
+        try {
+            provider.unbindAll()
+        } catch (e: Exception) {
+            Log.w("CameraXPreviewHost", "Failed to unbindAll()", e)
+        } finally {
+            boundCamera = null
+            preview = null
+            onPreviewChanged(null)
+        }
+    }
+
+    val rebindIfReadyState = rememberUpdatedState {
+        val providerReady = cameraProvider != null
+        val viewReady = previewView != null
+        if (!providerReady || !viewReady) return@rememberUpdatedState
+
+        // Recreate Preview after stopping to ensure a valid surface provider.
+        bindIfReady(forceNewPreview = true)
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> unbindAllSafelyState.value.invoke()
+                Lifecycle.Event.ON_START -> rebindIfReadyState.value.invoke()
+                else -> Unit
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            unbindAllSafelyState.value.invoke()
+        }
     }
 
     AndroidView(

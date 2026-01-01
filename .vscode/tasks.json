@@ -1,0 +1,205 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Debug APK",
+            "type": "shell",
+            "command": "./gradlew",
+            "args": [
+                "assembleDebug"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Build Release APK",
+            "type": "shell",
+            "command": "./gradlew",
+            "args": [
+                "assembleRelease"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Install Debug APK",
+            "type": "shell",
+            "command": "./gradlew",
+            "args": [
+                "installDebug"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Clean Project",
+            "type": "shell",
+            "command": "./gradlew",
+            "args": [
+                "clean"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Clean & Build Debug",
+            "type": "shell",
+            "command": "./gradlew",
+            "args": [
+                "clean",
+                "assembleDebug"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Run Unit Tests",
+            "type": "shell",
+            "command": "./gradlew",
+            "args": [
+                "testDebugUnitTest",
+                "--info",
+                "--stacktrace"
+            ],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Run Unit Tests (All Variants)",
+            "type": "shell",
+            "command": "./gradlew",
+            "args": [
+                "test",
+                "--info",
+                "--stacktrace"
+            ],
+            "group": "test",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Run Android Instrumented Tests",
+            "type": "shell",
+            "command": "./gradlew",
+            "args": [
+                "connectedAndroidTest",
+                "--info",
+                "--stacktrace"
+            ],
+            "group": "test",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Run All Tests (Unit + Instrumented)",
+            "type": "shell",
+            "command": "./gradlew",
+            "args": [
+                "test",
+                "connectedAndroidTest",
+                "--info"
+            ],
+            "group": "test",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Run Unit Tests with Coverage",
+            "type": "shell",
+            "command": "./gradlew",
+            "args": [
+                "testDebugUnitTest",
+                "jacocoTestReport",
+                "--info"
+            ],
+            "group": "test",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Clean and Run Unit Tests",
+            "type": "shell",
+            "command": "./gradlew",
+            "args": [
+                "clean",
+                "testDebugUnitTest",
+                "--info",
+                "--stacktrace"
+            ],
+            "group": "test",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Sync Gradle",
+            "type": "shell",
+            "command": "./gradlew",
+            "args": [
+                "--refresh-dependencies"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Open Test Report",
+            "type": "shell",
+            "command": "open",
+            "args": [
+                "app/build/reports/tests/testDebugUnitTest/index.html"
+            ],
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "never"
+            }
+        }
+    ]
+}
