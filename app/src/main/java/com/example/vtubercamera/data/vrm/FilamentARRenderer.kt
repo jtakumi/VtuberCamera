@@ -1,9 +1,11 @@
 package com.example.vtubercamera.data.vrm
 
 import android.graphics.Bitmap
+import android.opengl.Matrix
 import android.util.Log
 import android.view.Surface
-import android.opengl.Matrix
+import androidx.core.graphics.createBitmap
+import com.example.vtubercamera.data.vrm.math.Transform
 import com.google.android.filament.Camera
 import com.google.android.filament.Engine
 import com.google.android.filament.EntityManager
@@ -11,25 +13,22 @@ import com.google.android.filament.IndexBuffer
 import com.google.android.filament.Renderer
 import com.google.android.filament.Scene
 import com.google.android.filament.SwapChain
+import com.google.android.filament.VertexBuffer
 import com.google.android.filament.View
 import com.google.android.filament.Viewport
-import com.google.android.filament.VertexBuffer
-import com.example.vtubercamera.data.vrm.math.Transform
 import com.google.android.filament.gltfio.AssetLoader
 import com.google.android.filament.gltfio.FilamentAsset
 import com.google.android.filament.gltfio.MaterialProvider
 import com.google.android.filament.gltfio.ResourceLoader
-import com.google.android.filament.gltfio.UbershaderLoader
-import com.google.android.filament.RenderableManager
+import com.google.android.filament.gltfio.UbershaderProvider
 import com.google.android.filament.utils.Utils
 import com.google.ar.core.Frame
 import com.google.ar.core.LightEstimate
 import com.google.ar.core.Session
-import javax.inject.Inject
-import javax.inject.Singleton
-import androidx.core.graphics.createBitmap
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Filament-based AR renderer implementation for VRM avatar rendering.
@@ -397,7 +396,7 @@ class FilamentARRenderer @Inject constructor(
 
     private fun ensureGltfioLoaders(engine: Engine) {
         if (materialProvider == null) {
-            materialProvider = UbershaderLoader(engine)
+            materialProvider = UbershaderProvider(engine)
         }
         if (assetLoader == null) {
             assetLoader = AssetLoader(engine, materialProvider!!, EntityManager.get())
@@ -560,12 +559,11 @@ class FilamentARRenderer @Inject constructor(
             buffer.put(vrmModel.meshData)
             buffer.flip()
 
-            val asset = assetLoader?.createAssetFromBinary(buffer)
-                ?: return false
+            val asset = assetLoader?.createAsset(buffer) ?: return false
 
             resourceLoader?.loadResources(asset)
             engine.flushAndWait()
-            resourceLoader?.destroyResourceData()
+            resourceLoader?.evictResourceData()
 
             scene.addEntities(asset.entities)
             filamentAsset = asset
@@ -834,7 +832,7 @@ class FilamentARRenderer @Inject constructor(
         filamentAsset?.let { asset ->
             scene?.removeEntities(asset.entities)
             assetLoader?.destroyAsset(asset)
-            resourceLoader?.destroyResourceData()
+            resourceLoader?.evictResourceData()
         }
         filamentAsset = null
 
