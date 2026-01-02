@@ -416,15 +416,16 @@ class ARCoreCameraXIntegrationTest {
         }
 
         override fun enablePlaneDetection(enabled: Boolean) {
-            _sessionState.value = _sessionState.value.copy(isPlaneDetectionEnabled = enabled)
+            _sessionState.value = _sessionState.value.copy(planeDetection = enabled)
         }
 
         override fun enableEnvironmentalHDR(enabled: Boolean) {
-            _sessionState.value = _sessionState.value.copy(isEnvironmentalHDREnabled = enabled)
+            _sessionState.value = _sessionState.value.copy(environmentalHDR = enabled)
         }
 
         override fun enableLightEstimation(enabled: Boolean) {
-            _sessionState.value = _sessionState.value.copy(isLightEstimationEnabled = enabled)
+            // Session state does not track a dedicated flag; simulate via lightEstimate if needed.
+            // No-op for test wiring.
         }
 
         override fun isSessionInitialized(): Boolean = _sessionState.value.isInitialized

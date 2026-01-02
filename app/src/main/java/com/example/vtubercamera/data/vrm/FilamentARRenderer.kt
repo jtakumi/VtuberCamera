@@ -822,17 +822,23 @@ class FilamentARRenderer @Inject constructor(
     private fun clearCurrentModel() {
         Log.d(TAG, "Clearing current model resources")
 
-        // Remove from shadow system
-        renderableEntities.forEach { renderable ->
-            shadowSystem.removeShadowCaster(renderable)
-            shadowSystem.removeShadowReceiver(renderable)
-            destroyRenderable(renderable)
-        }
-
-        filamentAsset?.let { asset ->
+        val asset = filamentAsset
+        if (asset != null) {
+            // gltfio-managed: do not destroy entities individually; let gltfio handle it.
+            renderableEntities.forEach { renderable ->
+                shadowSystem.removeShadowCaster(renderable)
+                shadowSystem.removeShadowReceiver(renderable)
+            }
             scene?.removeEntities(asset.entities)
             assetLoader?.destroyAsset(asset)
             resourceLoader?.evictResourceData()
+        } else {
+            // Fallback-managed entities: safe to destroy individually.
+            renderableEntities.forEach { renderable ->
+                shadowSystem.removeShadowCaster(renderable)
+                shadowSystem.removeShadowReceiver(renderable)
+                destroyRenderable(renderable)
+            }
         }
         filamentAsset = null
 
