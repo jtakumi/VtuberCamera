@@ -7,16 +7,15 @@
 1. **AR カメラ画面を開く**
    - アプリを起動すると、AR カメラ画面が表示されます
    
-2. **アバターライブラリにアクセス**
+2. **VRMファイルを選択（最短ルート）**
    - アバターが読み込まれていない場合、画面中央に「No Avatar Loaded」というメッセージが表示されます
-   - 「Open Avatar Library」ボタンをタップします
-   - または、画面上部の人アイコン（👤）をタップします
+   - 「Select VRM File」ボタンをタップします
+   - デバイスのファイル選択画面が開くので、VRMファイルを選択します
 
-3. **VRMファイルを選択**
-   - アバターライブラリ画面で、画面右下の「+」ボタンをタップします
-   - または、画面上部の「+」アイコンをタップします
-   - デバイスのファイル選択画面が開きます
-   - 端末に保存されているVRMファイルを選択します
+3. **（任意）アバターライブラリにインポートする**
+   - 画面上部の人アイコン（👤）をタップしてアバターライブラリに移動します
+   - アバターライブラリ画面で、画面右下の「+」ボタン または 画面上部の「+」アイコンをタップします
+   - デバイスのファイル選択画面が開くので、VRMファイルを選択します
 
 4. **インポート完了**
    - 選択したVRMファイルが自動的にインポートされます
@@ -50,16 +49,15 @@
 1. **Open AR Camera Screen**
    - Launch the app to see the AR Camera screen
    
-2. **Access Avatar Library**
+2. **Select VRM File (Quick Load)**
    - If no avatar is loaded, you'll see a "No Avatar Loaded" message in the center
-   - Tap the "Open Avatar Library" button
-   - Alternatively, tap the person icon (👤) in the top app bar
+   - Tap the "Select VRM File" button
+   - The device file picker will open; choose a VRM file stored on your device
 
-3. **Select VRM File**
-   - In the Avatar Library screen, tap the "+" FAB button in the bottom right
-   - Or tap the "+" icon in the top app bar
-   - The device file picker will open
-   - Select a VRM file stored on your device
+3. **(Optional) Import into Avatar Library**
+   - Tap the person icon (👤) in the top app bar to open Avatar Library
+   - Tap the "+" FAB button (bottom right) or the "+" icon in the top app bar
+   - The device file picker will open; select a VRM file
 
 4. **Import Complete**
    - The selected VRM file will be imported automatically
@@ -97,8 +95,8 @@
 │    │ No Avatar     │        │
 │    │ Loaded        │        │
 │    │               │        │
-│    │ [Open Avatar  │        │
-│    │  Library]     │        │
+│    │ [Select VRM   │        │
+│    │  File]        │        │
 │    └───────────────┘        │
 │                             │
 └─────────────────────────────┘

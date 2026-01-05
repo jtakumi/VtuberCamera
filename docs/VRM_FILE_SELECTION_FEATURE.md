@@ -4,28 +4,35 @@
 This document describes the VRM file selection feature that allows users to import VRM avatar files from their device into the VTuber Camera app.
 
 ## Feature Description
-The feature allows users to select and import VRM files stored on their device when the "Open Avatar Library" button is pressed in the AR Camera screen.
+The feature allows users to select VRM files stored on their device via the system file picker.
+
+- **Quick load (A route):** From the AR Camera screen, users can open the picker and load a VRM directly.
+- **Library import (existing route):** Users can still navigate to the Avatar Library and import VRM files into the library.
 
 ## Implementation Details
 
 ### User Flow
 1. User launches the AR Camera screen
-2. User sees a message "No Avatar Loaded" with a button "Open Avatar Library" (if no avatar is loaded)
-3. User can also click the person icon in the top app bar to access the avatar library
-4. Upon navigating to the Avatar Library screen, user can:
-   - Click the FAB (Floating Action Button) with a "+" icon
-   - Click the "Add" icon in the top app bar
-5. This launches the system file picker
-6. User selects a VRM file from their device
-7. The app imports the VRM file and adds it to the avatar library
-8. User can now select and use the imported avatar
+2. If no avatar is loaded, user sees a message "No Avatar Loaded" with a button "Select VRM File"
+3. User taps "Select VRM File"
+4. The system file picker launches (OpenDocument)
+5. User selects a VRM file from their device
+6. The app loads the selected VRM and displays it in the AR Camera screen
+
+**Alternative (existing) flow: import into library**
+1. User taps the person icon in the top app bar to open the Avatar Library screen
+2. User taps the "+" FAB or the "+" icon in the top app bar
+3. The system file picker launches
+4. User selects a VRM file
+5. The app imports the VRM and adds it to the avatar library
 
 ### Technical Components
 
 #### 1. **ARCameraScreen.kt** (`app/src/main/java/com/example/vtubercamera/ui/screens/ARCameraScreen.kt`)
-- Lines 533-534: "Open Avatar Library" button
-- Line 232: Avatar library access button in the top app bar
-- Function: `onNavigateToAvatarLibrary: () -> Unit` callback for navigation
+- "No Avatar Loaded" card provides a "Select VRM File" button
+- Uses `ActivityResultContracts.OpenDocument()` via `rememberLauncherForActivityResult`
+- Passes the selected `Uri` to `CameraViewModel.loadAvatar(uri)`
+- The person icon in the top app bar still navigates to the avatar library via `onNavigateToAvatarLibrary`
 
 #### 2. **AvatarLibraryScreen.kt** (`app/src/main/java/com/example/vtubercamera/ui/screens/AvatarLibraryScreen.kt`)
 - Lines 71-79: File picker implementation using `ActivityResultContracts.OpenDocument()`
@@ -71,9 +78,7 @@ The implementation includes comprehensive VRM file validation:
 - Error recovery
 
 ### Permissions
-The app requires appropriate storage permissions to access files:
-- `READ_EXTERNAL_STORAGE` (for Android 12 and below)
-- Media permissions (for Android 13+)
+This feature uses the system file picker (Storage Access Framework). In most cases, it does not require broad storage permissions because access is granted per selected file.
 
 ### Error Handling
 The implementation provides robust error handling:
@@ -86,10 +91,15 @@ The implementation provides robust error handling:
 The feature can be tested through:
 1. **Manual Testing**:
    - Navigate to AR Camera screen
-   - Click "Open Avatar Library"
-   - Click the "+" button
-   - Select a valid VRM file
-   - Verify the avatar is imported successfully
+  - Click "Select VRM File"
+  - Select a valid VRM file
+  - Verify the avatar loads and is displayed
+
+  (Optional) Library import flow:
+  - Tap the person icon to open Avatar Library
+  - Click the "+" button
+  - Select a valid VRM file
+  - Verify the avatar is imported successfully
 
 2. **E2E Tests**:
    - `VRMLoadingE2ETest.kt` contains end-to-end tests for the VRM loading workflow
