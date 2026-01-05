@@ -66,6 +66,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -82,6 +83,7 @@ import com.example.vtubercamera.ui.viewmodels.CameraViewModel
 import com.example.vtubercamera.utils.PermissionUtils
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.vtubercamera.R
 
 /**
  * AR Camera Screen for VTuber avatar recording and interaction
@@ -134,6 +136,14 @@ fun ARCameraScreen(
         if (!isGranted) {
             Toast.makeText(context, "Camera permission required for AR mode", Toast.LENGTH_LONG)
                 .show()
+        }
+    }
+
+    val avatarImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.loadAvatar(uri)
         }
     }
 
@@ -525,13 +535,24 @@ fun ARCameraScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Tap the person icon to select an avatar",
+                            text = "Tap the button below or the person icon to select an avatar",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = onNavigateToAvatarLibrary) {
-                            Text("Open Avatar Library")
+                        Button(
+                            onClick = {
+                                avatarImportLauncher.launch(
+                                    arrayOf(
+                                        "model/gltf-binary",
+                                        "application/octet-stream",
+                                        "application/vrm",
+                                        "application/*"
+                                    )
+                                )
+                            }
+                        ) {
+                            Text(stringResource(R.string.ar_select_vrm_file))
                         }
                     }
                 }

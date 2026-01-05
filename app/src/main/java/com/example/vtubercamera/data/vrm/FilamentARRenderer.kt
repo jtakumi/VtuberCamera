@@ -1,23 +1,34 @@
 package com.example.vtubercamera.data.vrm
 
 import android.graphics.Bitmap
+import android.opengl.Matrix
 import android.util.Log
 import android.view.Surface
+import androidx.core.graphics.createBitmap
+import com.example.vtubercamera.data.vrm.math.Transform
 import com.google.android.filament.Camera
 import com.google.android.filament.Engine
 import com.google.android.filament.EntityManager
+import com.google.android.filament.IndexBuffer
 import com.google.android.filament.Renderer
 import com.google.android.filament.Scene
 import com.google.android.filament.SwapChain
+import com.google.android.filament.VertexBuffer
 import com.google.android.filament.View
 import com.google.android.filament.Viewport
-import com.example.vtubercamera.data.vrm.math.Transform
+import com.google.android.filament.gltfio.AssetLoader
+import com.google.android.filament.gltfio.FilamentAsset
+import com.google.android.filament.gltfio.MaterialProvider
+import com.google.android.filament.gltfio.ResourceLoader
+import com.google.android.filament.gltfio.UbershaderProvider
+import com.google.android.filament.utils.Utils
 import com.google.ar.core.Frame
 import com.google.ar.core.LightEstimate
 import com.google.ar.core.Session
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import javax.inject.Inject
 import javax.inject.Singleton
-import androidx.core.graphics.createBitmap
 
 /**
  * Filament-based AR renderer implementation for VRM avatar rendering.
@@ -73,6 +84,10 @@ class FilamentARRenderer @Inject constructor(
     private var renderer: Renderer? = null
     private var view: View? = null
     private var swapChain: SwapChain? = null
+    private var assetLoader: AssetLoader? = null
+    private var resourceLoader: ResourceLoader? = null
+    private var filamentAsset: FilamentAsset? = null
+    private var materialProvider: MaterialProvider? = null
 
     // AR and rendering state
     private var isInitialized = false
@@ -287,6 +302,9 @@ class FilamentARRenderer @Inject constructor(
             materialManager.clearCache()
 
             cleanupFilamentEngine()
+            assetLoader = null
+            resourceLoader = null
+            materialProvider = null
 
             surface = null
             arSession = null
@@ -333,12 +351,16 @@ class FilamentARRenderer @Inject constructor(
 
         return try {
             val engine = engine ?: Engine.create().also { created ->
+                Utils.init()
                 this.engine = created
                 this.renderer = created.createRenderer()
                 this.scene = created.createScene()
                 this.view = created.createView()
                 this.cameraEntity = EntityManager.get().create()
                 this.camera = created.createCamera(cameraEntity)
+
+                // Initialize glTF I/O helpers
+                ensureGltfioLoaders(created)
 
                 // Wire up the view
                 this.view?.scene = this.scene
@@ -363,10 +385,24 @@ class FilamentARRenderer @Inject constructor(
             }
 
             // Consider backend ready only if core components exist
+            engine.let { ensureGltfioLoaders(it) }
+
             this.engine != null && this.renderer != null && this.view != null && this.swapChain != null
         } catch (t: Throwable) {
             Log.w(TAG, "Filament not available; running in headless mode", t)
             false
+        }
+    }
+
+    private fun ensureGltfioLoaders(engine: Engine) {
+        if (materialProvider == null) {
+            materialProvider = UbershaderProvider(engine)
+        }
+        if (assetLoader == null) {
+            assetLoader = AssetLoader(engine, materialProvider!!, EntityManager.get())
+        }
+        if (resourceLoader == null) {
+            resourceLoader = ResourceLoader(engine)
         }
     }
 
@@ -480,23 +516,100 @@ class FilamentARRenderer @Inject constructor(
             // Clear previous model
             clearCurrentModel()
 
-            // Convert VRM to Filament format
-            filamentMeshData = vrmConverter.convertVRMToFilamentMesh(vrmModel)
+            val gltfLoaded = loadAssetWithGltfio(vrmModel)
 
-            // Load textures
-            loadTextures(filamentMeshData!!.textures)
+            if (!gltfLoaded) {
+                // Convert VRM to Filament format
+                filamentMeshData = vrmConverter.convertVRMToFilamentMesh(vrmModel)
 
-            // Create materials
-            createMaterials(filamentMeshData!!.materials)
+                // Load textures
+                loadTextures(filamentMeshData!!.textures)
 
-            // Create renderables
-            createRenderables(filamentMeshData!!.meshes)
+                // Create materials
+                createMaterials(filamentMeshData!!.materials)
+
+                // Create renderables
+                createRenderables(filamentMeshData!!.meshes)
+            }
+
+            loadedVRMModel = vrmModel
 
             Log.d(TAG, "Successfully loaded VRM model: ${vrmModel.name}")
 
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load VRM model to scene", e)
             throw ARError.RenderingError("Failed to load VRM model: ${e.message}")
+        }
+    }
+
+    private fun loadAssetWithGltfio(vrmModel: VRMModel): Boolean {
+        val engine = engine ?: return false
+        val scene = scene ?: return false
+
+        if (vrmModel.meshData.isEmpty()) {
+            Log.w(TAG, "VRM mesh data is empty; skipping glTF loading")
+            return false
+        }
+
+        return try {
+            ensureGltfioLoaders(engine)
+
+            val buffer = ByteBuffer.allocateDirect(vrmModel.meshData.size)
+                .order(ByteOrder.nativeOrder())
+            buffer.put(vrmModel.meshData)
+            buffer.flip()
+
+            val asset = assetLoader?.createAsset(buffer) ?: return false
+
+            resourceLoader?.loadResources(asset)
+            engine.flushAndWait()
+            resourceLoader?.evictResourceData()
+
+            scene.addEntities(asset.entities)
+            filamentAsset = asset
+
+            val transform = currentAvatarState?.transform ?: Transform.identity()
+            applyAvatarTransform(transform)
+
+            renderableEntities.clear()
+            asset.entities.forEachIndexed { index, entity ->
+                renderableEntities.add(
+                    FilamentRenderable(
+                        name = "${vrmModel.name}_$index",
+                        mesh = FilamentMesh(
+                            name = "${vrmModel.name}_mesh_$index",
+                            vertexBuffer = ByteBuffer.allocateDirect(0),
+                            indexBuffer = ByteBuffer.allocateDirect(0),
+                            vertexCount = 0,
+                            indexCount = 0,
+                            attributes = VertexAttributes(
+                                hasPositions = true,
+                                hasNormals = false,
+                                hasUVs = false,
+                                hasColors = false,
+                                hasBoneWeights = false,
+                                hasBoneIndices = false
+                            ),
+                            materials = emptyList(),
+                            boundingBox = vrmModel.boundingBox
+                        ),
+                        materials = emptyList(),
+                        transform = transform,
+                        visible = true,
+                        entity = entity
+                    )
+                )
+            }
+
+            renderableEntities.forEach { renderable ->
+                shadowSystem.addShadowCaster(renderable)
+                shadowSystem.addShadowReceiver(renderable)
+            }
+
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to load VRM with gltfio, falling back", t)
+            false
         }
     }
 
@@ -595,15 +708,85 @@ class FilamentARRenderer @Inject constructor(
      * Apply transform to avatar
      */
     private fun applyAvatarTransform(transform: Transform) {
+        filamentAsset?.let { asset ->
+            applyTransformToEntity(asset.root, transform)
+        }
+
         if (renderableEntities.isEmpty()) return
 
         Log.d(TAG, "Applying transform to ${renderableEntities.size} renderables")
 
         renderableEntities.forEach { renderable ->
             renderable.transform = transform
-            // TODO: Update actual Filament entity transform
-            // updateEntityTransform(renderable.entity, transform)
+            renderable.entity?.let { entity ->
+                applyTransformToEntity(entity, transform)
+            }
         }
+    }
+
+    private fun applyTransformToEntity(entity: Int, transform: Transform) {
+        val engine = engine ?: return
+        val transformManager = engine.transformManager
+        val instance = transformManager.getInstance(entity)
+        if (instance == 0) return
+
+        val matrix = createTransformMatrix(transform)
+        transformManager.setTransform(instance, matrix)
+    }
+
+    private fun createTransformMatrix(transform: Transform): FloatArray {
+        val matrix = FloatArray(16)
+        Matrix.setIdentityM(matrix, 0)
+
+        val rotationMatrix = quaternionToMatrix(transform.rotation)
+        Matrix.multiplyMM(matrix, 0, matrix, 0, rotationMatrix, 0)
+        Matrix.scaleM(matrix, 0, transform.scale.x, transform.scale.y, transform.scale.z)
+
+        matrix[12] = transform.position.x
+        matrix[13] = transform.position.y
+        matrix[14] = transform.position.z
+
+        return matrix
+    }
+
+    private fun quaternionToMatrix(rotation: com.example.vtubercamera.data.vrm.math.Quaternion): FloatArray {
+        val matrix = FloatArray(16)
+        val x = rotation.x
+        val y = rotation.y
+        val z = rotation.z
+        val w = rotation.w
+
+        val xx = x * x
+        val yy = y * y
+        val zz = z * z
+        val xy = x * y
+        val xz = x * z
+        val yz = y * z
+        val wx = w * x
+        val wy = w * y
+        val wz = w * z
+
+        matrix[0] = 1f - 2f * (yy + zz)
+        matrix[1] = 2f * (xy + wz)
+        matrix[2] = 2f * (xz - wy)
+        matrix[3] = 0f
+
+        matrix[4] = 2f * (xy - wz)
+        matrix[5] = 1f - 2f * (xx + zz)
+        matrix[6] = 2f * (yz + wx)
+        matrix[7] = 0f
+
+        matrix[8] = 2f * (xz + wy)
+        matrix[9] = 2f * (yz - wx)
+        matrix[10] = 1f - 2f * (xx + yy)
+        matrix[11] = 0f
+
+        matrix[12] = 0f
+        matrix[13] = 0f
+        matrix[14] = 0f
+        matrix[15] = 1f
+
+        return matrix
     }
 
     /**
@@ -639,17 +822,58 @@ class FilamentARRenderer @Inject constructor(
     private fun clearCurrentModel() {
         Log.d(TAG, "Clearing current model resources")
 
-        // Remove from shadow system
-        renderableEntities.forEach { renderable ->
-            shadowSystem.removeShadowCaster(renderable)
-            shadowSystem.removeShadowReceiver(renderable)
+        val asset = filamentAsset
+        if (asset != null) {
+            // gltfio-managed: do not destroy entities individually; let gltfio handle it.
+            renderableEntities.forEach { renderable ->
+                shadowSystem.removeShadowCaster(renderable)
+                shadowSystem.removeShadowReceiver(renderable)
+            }
+            scene?.removeEntities(asset.entities)
+            assetLoader?.destroyAsset(asset)
+            resourceLoader?.evictResourceData()
+        } else {
+            // Fallback-managed entities: safe to destroy individually.
+            renderableEntities.forEach { renderable ->
+                shadowSystem.removeShadowCaster(renderable)
+                shadowSystem.removeShadowReceiver(renderable)
+                destroyRenderable(renderable)
+            }
         }
+        filamentAsset = null
 
         renderableEntities.clear()
         materialInstances.clear()
-        // Note: Keep texture instances for potential reuse
+        textureInstances.clear()
+        textureManager.clearCache()
 
         filamentMeshData = null
+    }
+
+    private fun destroyRenderable(renderable: FilamentRenderable) {
+        val engine = engine ?: return
+        renderable.entity?.let { entity ->
+            scene?.removeEntity(entity)
+            try {
+                EntityManager.get().destroy(entity)
+            } catch (t: Throwable) {
+                Log.w(TAG, "Failed to destroy entity ${renderable.name}", t)
+            }
+        }
+        renderable.vertexBuffer?.let { buffer ->
+            try {
+                engine.destroyVertexBuffer(buffer)
+            } catch (t: Throwable) {
+                Log.w(TAG, "Failed to destroy vertex buffer for ${renderable.name}", t)
+            }
+        }
+        renderable.indexBuffer?.let { buffer ->
+            try {
+                engine.destroyIndexBuffer(buffer)
+            } catch (t: Throwable) {
+                Log.w(TAG, "Failed to destroy index buffer for ${renderable.name}", t)
+            }
+        }
     }
 
     /**
@@ -735,7 +959,10 @@ data class FilamentRenderable(
     val mesh: FilamentMesh,
     val materials: List<FilamentMaterialInstance>,
     var transform: Transform,
-    var visible: Boolean
+    var visible: Boolean,
+    val entity: Int? = null,
+    val vertexBuffer: VertexBuffer? = null,
+    val indexBuffer: IndexBuffer? = null
 ) {
     fun isValid(): Boolean = materials.isNotEmpty()
 }
