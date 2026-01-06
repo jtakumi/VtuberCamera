@@ -3,13 +3,23 @@
 This document summarizes anti-patterns identified in the current codebase with respect to common Android architecture guidance (e.g., avoiding fat ViewModels, keeping domain logic platform-agnostic).
 
 ## Fat ViewModel responsibilities
-- `CameraViewModel` orchestrates camera controls, gallery management, AR mode toggling, avatar loading/cleanup, and lighting state within a single class. The ViewModel subscribes directly to multiple repository flows, initializes capabilities, and delegates numerous feature operations (photo capture/deletion, AR enable/disable, avatar management, etc.) from one place, resulting in a class exceeding 1,000 lines of mixed responsibilities.
-  - Initialization pulls photo streams, tracks latest media, sets up camera capabilities, and bootstraps avatar/AR observers in the constructor scope.【F:app/src/main/java/com/example/vtubercamera/ui/viewmodels/CameraViewModel.kt†L322-L328】
-  - The same class handles gallery mutations such as deleting single/multiple photos and clearing captured images, alongside AR lifecycle and avatar controls.【F:app/src/main/java/com/example/vtubercamera/ui/viewmodels/CameraViewModel.kt†L448-L520】【F:app/src/main/java/com/example/vtubercamera/ui/viewmodels/CameraViewModel.kt†L685-L760】【F:app/src/main/java/com/example/vtubercamera/ui/viewmodels/CameraViewModel.kt†L1009-L1080】
-  - Concentrating disparate concerns here risks the "fat ViewModel" anti-pattern noted in the design guidance.
+- `CameraViewModel` is still a large class (>1,000 lines) and remains the central coordinator for camera UI, gallery UI, AR toggling, avatar controls, and lighting-related UI state. While several responsibilities have been extracted into “Feature” classes, the ViewModel still wires many inputs/outputs together and maintains a large UI state surface.
+  - **Improved (but not eliminated):** repository subscriptions / bootstrapping were extracted into `CameraViewModelBootstrapper`.
+    - Photo streams (`MediaRepository.getAllPhotos()` / `getARPhotos()` / `getNormalPhotos()` / `getLatestPhotoUri()`) are collected in `CameraViewModelBootstrapper`, not directly inside the ViewModel.
+    - Lens capability initialization and avatar library bootstrap/observers are also started from `CameraViewModelBootstrapper`.
+    - References: [app/src/main/java/com/example/vtubercamera/ui/viewmodels/CameraViewModel.kt](../app/src/main/java/com/example/vtubercamera/ui/viewmodels/CameraViewModel.kt), [app/src/main/java/com/example/vtubercamera/ui/viewmodels/CameraViewModelBootstrapper.kt](../app/src/main/java/com/example/vtubercamera/ui/viewmodels/CameraViewModelBootstrapper.kt)
+  - **Still “fat” due to UI surface area:** the ViewModel exposes many derived `StateFlow`s “for backward compatibility” on top of a single `CameraUiState`, which materially contributes to file size and mixed concerns.
+  - **Direct repository calls remain:** some operations are still implemented directly in the ViewModel (e.g., normal photo capture via `CameraRepository.capturePhoto`, camera switching callback wiring, and AR photo capture/compositing logic), which keeps camera/media concerns anchored in the ViewModel.
+  - Net: responsibility extraction is underway, but `CameraViewModel` is still at risk of becoming an “all-purpose coordinator” due to API surface and cross-feature wiring.
 
 ## Context-dependent domain logic (addressed)
-- `ARFeature` no longer requires `Context` or `LifecycleOwner`; session start is injected as a callback, keeping domain logic platform-agnostic while preserving repository-driven AR observations.【F:app/src/main/java/com/example/vtubercamera/domain/ar/ARFeature.kt†L1-L188】【F:app/src/main/java/com/example/vtubercamera/ui/viewmodels/CameraViewModel.kt†L625-L678】
+- `ARFeature` no longer requires `Context` or `LifecycleOwner`. Instead, session start is injected as a callback (`startSession`), keeping the feature logic decoupled from Android component lifecycles.
+  - The platform-bound session initialization is encapsulated in `ARSessionStarter`, which delegates to `ARRepository.initializeSession(context, lifecycleOwner, ...)`.
+  - References: [app/src/main/java/com/example/vtubercamera/domain/ar/ARFeature.kt](../app/src/main/java/com/example/vtubercamera/domain/ar/ARFeature.kt), [app/src/main/java/com/example/vtubercamera/ui/viewmodels/ARSessionStarter.kt](../app/src/main/java/com/example/vtubercamera/ui/viewmodels/ARSessionStarter.kt)
 
 ## Repository scope creep (potential)
-- Because `ARFeature` invokes session initialization and error handling directly through `ARRepository` while also updating UI-related flags, the boundary between data acquisition and UI state orchestration is blurred. Further separating platform/session management from domain orchestration would reduce the risk of the repository or feature layer becoming an all-purpose coordinator.
+- `ARRepository` remains strongly platform-oriented (it requires `Context`/`LifecycleOwner` and owns session lifecycle methods like `initializeSession()` / `pauseSession()` / `resumeSession()` / `destroySession()`), which is expected for an ARCore-backed implementation.
+- However, the boundary between “domain feature” and “UI orchestration” is still somewhat blurred:
+  - `ARFeature` updates UI-related state (e.g., toggling avatar visibility based on tracking state) and triggers session teardown (`destroySession()`), so it functions as both a coordinator and a state-to-UI mapper.
+  - If the architecture continues to grow, consider further splitting responsibilities so that the AR layer provides state/events, and the UI layer decides how to project that into UI state (e.g., avatar visibility/transform resets).
+  - Reference: [app/src/main/java/com/example/vtubercamera/data/ARRepository.kt](../app/src/main/java/com/example/vtubercamera/data/ARRepository.kt)
