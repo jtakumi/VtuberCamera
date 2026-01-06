@@ -1,6 +1,8 @@
 package com.example.vtubercamera.data.vrm
 
 import android.graphics.Bitmap
+import android.opengl.GLES11Ext
+import android.opengl.GLES20
 import android.opengl.Matrix
 import android.util.Log
 import android.view.Surface
@@ -12,6 +14,8 @@ import com.google.android.filament.EntityManager
 import com.google.android.filament.IndexBuffer
 import com.google.android.filament.Renderer
 import com.google.android.filament.Scene
+import com.google.android.filament.Stream
+import com.google.android.filament.Texture
 import com.google.android.filament.SwapChain
 import com.google.android.filament.VertexBuffer
 import com.google.android.filament.View
@@ -74,6 +78,10 @@ class FilamentARRenderer @Inject constructor(
 
     companion object {
         private const val TAG = "FilamentARRenderer"
+        private const val DEFAULT_NEAR_PLANE = 0.1f
+        private const val DEFAULT_FAR_PLANE = 100f
+        private const val DEFAULT_VERTICAL_FOV_DEGREES = 45.0
+        private const val MIN_ASPECT_RATIO = 1f
     }
 
     // Filament engine components
@@ -97,6 +105,13 @@ class FilamentARRenderer @Inject constructor(
     private var viewportHeight = 0
     private var avatarRenderingEnabled = true
     private var currentLightEstimate: LightEstimate? = null
+    private var nearPlane = DEFAULT_NEAR_PLANE
+    private var farPlane = DEFAULT_FAR_PLANE
+
+    // Camera background streaming
+    private var cameraTextureId: Int = 0
+    private var cameraStream: Stream? = null
+    private var cameraTexture: Texture? = null
 
     // Avatar rendering state
     private var currentAvatarState: AvatarState? = null
@@ -178,8 +193,10 @@ class FilamentARRenderer @Inject constructor(
         try {
             currentAvatarState = avatarState
 
-            // TODO: Update AR camera with frame data
-            // updateARCamera(frame)
+            updateARCamera(frame)
+
+            // Update or create camera background stream
+            ensureCameraBackground()
 
             // Update avatar rendering if state changed
             if (avatarState.shouldRender && avatarState.model != loadedVRMModel) {
@@ -301,6 +318,7 @@ class FilamentARRenderer @Inject constructor(
             // Clear material cache
             materialManager.clearCache()
 
+            cleanupCameraBackground()
             cleanupFilamentEngine()
             assetLoader = null
             resourceLoader = null
@@ -384,6 +402,8 @@ class FilamentARRenderer @Inject constructor(
                 updateFilamentViewport(viewportWidth, viewportHeight)
             }
 
+            recalculateClipPlanes()
+
             // Consider backend ready only if core components exist
             engine.let { ensureGltfioLoaders(it) }
 
@@ -409,6 +429,7 @@ class FilamentARRenderer @Inject constructor(
     private fun updateFilamentViewport(width: Int, height: Int) {
         if (width <= 0 || height <= 0) return
         view?.viewport = Viewport(0, 0, width, height)
+        recalculateClipPlanes()
     }
 
     private fun renderScene(frameTimeNanos: Long) {
@@ -502,6 +523,131 @@ class FilamentARRenderer @Inject constructor(
     override fun setAvatarRenderingEnabled(enabled: Boolean) {
         avatarRenderingEnabled = enabled
         Log.d(TAG, "Avatar rendering enabled: $enabled")
+    }
+
+    /**
+     * Update Filament camera matrices with ARCore frame data.
+     */
+    private fun updateARCamera(frame: Frame) {
+        val camera = camera ?: return
+
+        try {
+            val arCamera = frame.camera
+            val viewMatrix = FloatArray(16)
+            val projectionMatrix = FloatArray(16)
+
+            arCamera.getViewMatrix(viewMatrix, 0)
+            arCamera.getProjectionMatrix(projectionMatrix, 0, nearPlane, farPlane)
+
+            camera.setCustomProjection(
+                projectionMatrix,
+                nearPlane.toDouble(),
+                farPlane.toDouble()
+            )
+
+            val modelMatrix = FloatArray(16)
+            val inverted = Matrix.invertM(modelMatrix, 0, viewMatrix, 0)
+            if (inverted) {
+                camera.setModelMatrix(modelMatrix)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update AR camera", e)
+        }
+    }
+
+    /**
+     * Ensures the ARCore camera texture is connected to a Filament Stream for background rendering.
+     */
+    private fun ensureCameraBackground() {
+        val engine = engine ?: return
+        val session = arSession ?: return
+
+        if (cameraStream != null && cameraTexture != null) return
+
+        try {
+            if (cameraTextureId == 0) {
+                val ids = IntArray(1)
+                GLES20.glGenTextures(1, ids, 0)
+                cameraTextureId = ids[0]
+                GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, cameraTextureId)
+                GLES20.glTexParameteri(
+                    GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+                    GLES20.GL_TEXTURE_MIN_FILTER,
+                    GLES20.GL_LINEAR
+                )
+                GLES20.glTexParameteri(
+                    GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+                    GLES20.GL_TEXTURE_MAG_FILTER,
+                    GLES20.GL_LINEAR
+                )
+                session.setCameraTextureName(cameraTextureId)
+            }
+
+            cameraStream = Stream.Builder()
+                .stream(cameraTextureId.toLong())
+                .build(engine)
+
+            cameraTexture = Texture.Builder()
+                .sampler(Texture.Sampler.SAMPLER_EXTERNAL)
+                .build(engine)
+
+            cameraTexture?.setExternalStream(engine, cameraStream!!)
+
+            view?.blendMode = View.BlendMode.TRANSLUCENT
+
+            Log.d(TAG, "Connected ARCore camera stream to Filament")
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to create camera background stream", e)
+        }
+    }
+
+    private fun recalculateClipPlanes() {
+        if (viewportWidth <= 0 || viewportHeight <= 0) return
+
+        val aspect = viewportWidth.toFloat() / viewportHeight.toFloat()
+        nearPlane = DEFAULT_NEAR_PLANE
+        farPlane = (DEFAULT_FAR_PLANE * aspect.coerceAtLeast(MIN_ASPECT_RATIO))
+
+        camera?.setProjection(
+            Camera.Projection.PERSPECTIVE,
+            DEFAULT_VERTICAL_FOV_DEGREES,
+            aspect.toDouble(),
+            nearPlane.toDouble(),
+            farPlane.toDouble()
+        )
+    }
+
+    private fun cleanupCameraBackground() {
+        val engine = engine
+
+        try {
+            cameraTexture?.let { texture ->
+                engine?.destroyTexture(texture)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to destroy camera texture", e)
+        }
+
+        try {
+            cameraStream?.let { stream ->
+                engine?.destroyStream(stream)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to destroy camera stream", e)
+        }
+
+        if (cameraTextureId != 0) {
+            try {
+                val ids = intArrayOf(cameraTextureId)
+                GLES20.glDeleteTextures(1, ids, 0)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to delete camera texture id", e)
+            }
+        }
+
+        cameraTexture = null
+        cameraStream = null
+        cameraTextureId = 0
     }
 
     // Private helper methods for VRM Filament integration
