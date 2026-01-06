@@ -4,7 +4,7 @@ This document summarizes anti-patterns identified in the current codebase with r
 
 ## Fat ViewModel responsibilities
 - `CameraViewModel` orchestrates camera controls, gallery management, AR mode toggling, avatar loading/cleanup, and lighting state within a single class. The ViewModel subscribes directly to multiple repository flows, initializes capabilities, and delegates numerous feature operations (photo capture/deletion, AR enable/disable, avatar management, etc.) from one place, resulting in a class exceeding 1,000 lines of mixed responsibilities.
-  - Initialization pulls photo streams, tracks latest media, sets up camera capabilities, and bootstraps avatar/AR observers in the constructor scope.【F:app/src/main/java/com/example/vtubercamera/ui/viewmodels/CameraViewModel.kt†L322-L382】
+  - Initialization pulls photo streams, tracks latest media, sets up camera capabilities, and bootstraps avatar/AR observers in the constructor scope.【F:app/src/main/java/com/example/vtubercamera/ui/viewmodels/CameraViewModel.kt†L322-L328】
   - The same class handles gallery mutations such as deleting single/multiple photos and clearing captured images, alongside AR lifecycle and avatar controls.【F:app/src/main/java/com/example/vtubercamera/ui/viewmodels/CameraViewModel.kt†L448-L520】【F:app/src/main/java/com/example/vtubercamera/ui/viewmodels/CameraViewModel.kt†L685-L760】【F:app/src/main/java/com/example/vtubercamera/ui/viewmodels/CameraViewModel.kt†L1009-L1080】
   - Concentrating disparate concerns here risks the "fat ViewModel" anti-pattern noted in the design guidance.
 
