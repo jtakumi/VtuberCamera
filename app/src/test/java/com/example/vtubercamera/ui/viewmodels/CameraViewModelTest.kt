@@ -146,6 +146,13 @@ class CameraViewModelTest {
         )
         val lightingFeature = LightingFeature(lightingSystem = mockLightingSystem)
 
+        val bootstrapper = CameraViewModelBootstrapper(
+            mediaRepository = mockMediaRepository,
+            lensSwitchFeature = lensSwitchFeature,
+            avatarFeature = avatarFeature,
+        )
+        val arSessionStarter = ARSessionStarter(arRepository = mockARRepository)
+
         viewModel = CameraViewModel(
             cameraRepository = mockCameraRepository,
             mediaRepository = mockMediaRepository,
@@ -155,6 +162,8 @@ class CameraViewModelTest {
             arFeature = arFeature,
             avatarFeature = avatarFeature,
             lightingFeature = lightingFeature,
+            bootstrapper = bootstrapper,
+            arSessionStarter = arSessionStarter,
         )
 
         // Run ViewModel init coroutines
