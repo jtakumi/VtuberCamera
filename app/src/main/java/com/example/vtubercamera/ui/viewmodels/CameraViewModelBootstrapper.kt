@@ -15,6 +15,10 @@ class CameraViewModelBootstrapper @Inject constructor(
     private val lensSwitchFeature: LensSwitchFeature,
     private val avatarFeature: AvatarFeature,
 ) {
+    companion object{
+       private const val TAG = "CameraViewModelBootstrapper"
+    }
+
 
     fun start(
         scope: CoroutineScope,
@@ -59,7 +63,7 @@ class CameraViewModelBootstrapper @Inject constructor(
                     uiStateProvider = uiStateProvider,
                 )
             } catch (e: Exception) {
-                Log.e("CameraViewModel", "Failed to initialize avatar library", e)
+                Log.e(TAG, "Failed to initialize avatar library", e)
                 updateUiState {
                     copy(
                         avatarLibraryState = avatarLibraryState.copy(
