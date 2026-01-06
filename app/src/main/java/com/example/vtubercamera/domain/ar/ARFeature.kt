@@ -46,7 +46,7 @@ class ARFeature @Inject constructor(
                 }
 
                 startSession(
-                    onSessionReady = {
+                    {
                         Log.d("CameraViewModel", "AR session ready")
                         observeARStates(
                             scope = scope,
@@ -54,7 +54,7 @@ class ARFeature @Inject constructor(
                             uiStateProvider = uiStateProvider,
                         )
                     },
-                    onError = { error ->
+                    { error ->
                         Log.e("CameraViewModel", "AR session initialization failed: $error")
                         updateUiState { copy(ar = ar.copy(arError = error)) }
                         disableARMode(
