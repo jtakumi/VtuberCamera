@@ -692,11 +692,17 @@ class CameraViewModel @Inject constructor(
         lifecycleOwner: androidx.lifecycle.LifecycleOwner
     ) {
         arFeature.enableARMode(
-            context = context,
-            lifecycleOwner = lifecycleOwner,
             scope = viewModelScope,
             updateUiState = this::updateUiState,
             uiStateProvider = { _uiState.value },
+            startSession = { onSessionReady, onError ->
+                arRepository.initializeSession(
+                    context = context,
+                    lifecycleOwner = lifecycleOwner,
+                    onSessionReady = onSessionReady,
+                    onError = onError,
+                )
+            },
         )
     }
 
@@ -719,11 +725,17 @@ class CameraViewModel @Inject constructor(
         lifecycleOwner: androidx.lifecycle.LifecycleOwner
     ) {
         arFeature.toggleARMode(
-            context = context,
-            lifecycleOwner = lifecycleOwner,
             scope = viewModelScope,
             updateUiState = this::updateUiState,
             uiStateProvider = { _uiState.value },
+            startSession = { onSessionReady, onError ->
+                arRepository.initializeSession(
+                    context = context,
+                    lifecycleOwner = lifecycleOwner,
+                    onSessionReady = onSessionReady,
+                    onError = onError,
+                )
+            },
         )
     }
 

@@ -1,8 +1,6 @@
 package com.example.vtubercamera.domain.ar
 
-import android.content.Context
 import android.util.Log
-import androidx.lifecycle.LifecycleOwner
 import com.example.vtubercamera.data.ARRepository
 import com.example.vtubercamera.data.vrm.ARCameraState
 import com.example.vtubercamera.data.vrm.ARError
@@ -20,11 +18,13 @@ class ARFeature @Inject constructor(
 ) {
 
     fun enableARMode(
-        context: Context,
-        lifecycleOwner: LifecycleOwner,
         scope: CoroutineScope,
         updateUiState: UiStateUpdater,
         uiStateProvider: UiStateProvider,
+        startSession: suspend (
+            onSessionReady: () -> Unit,
+            onError: (ARError) -> Unit,
+        ) -> Unit,
     ) {
         if (uiStateProvider().isARMode) {
             Log.d("CameraViewModel", "AR mode already enabled")
@@ -45,9 +45,7 @@ class ARFeature @Inject constructor(
                     )
                 }
 
-                arRepository.initializeSession(
-                    context = context,
-                    lifecycleOwner = lifecycleOwner,
+                startSession(
                     onSessionReady = {
                         Log.d("CameraViewModel", "AR session ready")
                         observeARStates(
@@ -126,11 +124,13 @@ class ARFeature @Inject constructor(
     }
 
     fun toggleARMode(
-        context: Context,
-        lifecycleOwner: LifecycleOwner,
         scope: CoroutineScope,
         updateUiState: UiStateUpdater,
         uiStateProvider: UiStateProvider,
+        startSession: suspend (
+            onSessionReady: () -> Unit,
+            onError: (ARError) -> Unit,
+        ) -> Unit,
     ) {
         if (uiStateProvider().isARMode) {
             disableARMode(
@@ -140,11 +140,10 @@ class ARFeature @Inject constructor(
             )
         } else {
             enableARMode(
-                context = context,
-                lifecycleOwner = lifecycleOwner,
                 scope = scope,
                 updateUiState = updateUiState,
                 uiStateProvider = uiStateProvider,
+                startSession = startSession,
             )
         }
     }
