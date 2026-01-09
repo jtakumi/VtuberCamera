@@ -81,6 +81,9 @@ class FilamentARRenderer @Inject constructor(
         private const val DEFAULT_NEAR_PLANE = 0.1f
         private const val DEFAULT_FAR_PLANE = 100f
         private const val DEFAULT_VERTICAL_FOV_DEGREES = 45.0
+        // Minimum aspect ratio to avoid extremely tall/narrow projections.
+        // ARCore and Filament expect reasonable aspect ranges; clamping to >= 1.0
+        // keeps projections closer to square or landscape while adapting to viewport.
         private const val MIN_ASPECT_RATIO = 1f
     }
 
@@ -557,12 +560,16 @@ class FilamentARRenderer @Inject constructor(
 
     /**
      * Ensures the ARCore camera texture is connected to a Filament Stream for background rendering.
+     *
+     * Note: This sets up the camera texture and stream infrastructure, but does not yet
+     * create a background plane or material to actually render the camera feed. Additional
+     * rendering logic is required to display the AR camera background.
      */
     private fun ensureCameraBackground() {
         val engine = engine ?: return
         val session = arSession ?: return
 
-        if (cameraStream != null && cameraTexture != null) return
+        if (cameraTextureId != 0 && cameraStream != null && cameraTexture != null) return
 
         try {
             if (cameraTextureId == 0) {
@@ -606,15 +613,11 @@ class FilamentARRenderer @Inject constructor(
 
         val aspect = viewportWidth.toFloat() / viewportHeight.toFloat()
         nearPlane = DEFAULT_NEAR_PLANE
-        farPlane = (DEFAULT_FAR_PLANE * aspect.coerceAtLeast(MIN_ASPECT_RATIO))
+        farPlane = DEFAULT_FAR_PLANE
 
-        camera?.setProjection(
-            Camera.Projection.PERSPECTIVE,
-            DEFAULT_VERTICAL_FOV_DEGREES,
-            aspect.toDouble(),
-            nearPlane.toDouble(),
-            farPlane.toDouble()
-        )
+        // Do not call camera.setProjection here: in AR mode the projection matrix is
+        // provided by ARCore via Camera.setCustomProjection (see updateARCamera).
+        // Only update the nearPlane and farPlane values for use by updateARCamera.
     }
 
     private fun cleanupCameraBackground() {
