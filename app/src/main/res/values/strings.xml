@@ -66,4 +66,7 @@
     <string name="color_temperature">Color Temperature</string>
     <string name="shadow_strength">Shadow Strength</string>
     <string name="ambient_light">Ambient Light</string>
+
+    <!-- AR Avatar Import -->
+    <string name="ar_select_vrm_file">Select VRM File</string>
 </resources>

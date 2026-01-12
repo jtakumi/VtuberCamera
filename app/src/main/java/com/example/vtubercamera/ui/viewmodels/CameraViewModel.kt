@@ -32,11 +32,9 @@ import com.example.vtubercamera.domain.camera.LensSwitchFeature
 import com.example.vtubercamera.domain.lighting.LightingFeature
 import com.example.vtubercamera.utils.CameraCapabilityManager
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
@@ -57,6 +55,8 @@ class CameraViewModel @Inject constructor(
     private val arFeature: ARFeature,
     private val avatarFeature: AvatarFeature,
     private val lightingFeature: LightingFeature,
+    private val bootstrapper: CameraViewModelBootstrapper,
+    private val arSessionStarter: ARSessionStarter,
 ) : ViewModel() {
 
     // UI状態の管理
@@ -320,64 +320,10 @@ class CameraViewModel @Inject constructor(
     }
 
     init {
-        viewModelScope.launch {
-            mediaRepository.getAllPhotos().collect { photos ->
-                updateUiState { copy(gallery = gallery.copy(allPhotos = photos)) }
-            }
-        }
-
-        viewModelScope.launch {
-            mediaRepository.getARPhotos().collect { photos ->
-                updateUiState { copy(gallery = gallery.copy(arPhotos = photos)) }
-            }
-        }
-
-        viewModelScope.launch {
-            mediaRepository.getNormalPhotos().collect { photos ->
-                updateUiState { copy(gallery = gallery.copy(normalPhotos = photos)) }
-            }
-        }
-
-        viewModelScope.launch {
-            mediaRepository.getLatestPhotoUri().collect { latestUri ->
-                updateUiState { copy(camera = camera.copy(latestLibraryPhotoUri = latestUri)) }
-            }
-        }
-
-        // Initialize camera capabilities
-        lensSwitchFeature.initializeCameraCapabilities(
+        bootstrapper.start(
             scope = viewModelScope,
             updateUiState = this::updateUiState,
-            uiStateProvider = { _uiState.value }
-        )
-
-        // Initialize AR state observation
-        initializeARStateObservation()
-
-        // Initialize avatar library (deferred to avoid initialization race conditions)
-        viewModelScope.launch {
-            try {
-                avatarFeature.initializeAvatarLibrary(
-                    scope = viewModelScope,
-                    updateUiState = this@CameraViewModel::updateUiState,
-                    uiStateProvider = { _uiState.value },
-                )
-            } catch (e: Exception) {
-                Log.e("CameraViewModel", "Failed to initialize avatar library", e)
-                updateUiState {
-                    copy(
-                        avatarLibraryState = avatarLibraryState.copy(
-                            avatarLibraryError = "Failed to initialize avatar library: ${e.message}"
-                        )
-                    )
-                }
-            }
-        }
-
-        // Initialize avatar control observers
-        avatarFeature.startAvatarControlObservers(
-            scope = viewModelScope,
-            updateUiState = this::updateUiState,
+            uiStateProvider = { _uiState.value },
         )
     }
 
@@ -674,14 +620,6 @@ class CameraViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Initialize AR state observation
-     */
-    private fun initializeARStateObservation() {
-        // This will be called when AR mode is enabled
-        // The actual observation starts in observeARStates()
-    }
-
     // ========== AR Mode Functions ==========
 
     /**
@@ -692,11 +630,17 @@ class CameraViewModel @Inject constructor(
         lifecycleOwner: androidx.lifecycle.LifecycleOwner
     ) {
         arFeature.enableARMode(
-            context = context,
-            lifecycleOwner = lifecycleOwner,
             scope = viewModelScope,
             updateUiState = this::updateUiState,
             uiStateProvider = { _uiState.value },
+            startSession = { onSessionReady, onError ->
+                arSessionStarter.start(
+                    context = context,
+                    lifecycleOwner = lifecycleOwner,
+                    onSessionReady = onSessionReady,
+                    onError = onError,
+                )
+            },
         )
     }
 
@@ -719,11 +663,17 @@ class CameraViewModel @Inject constructor(
         lifecycleOwner: androidx.lifecycle.LifecycleOwner
     ) {
         arFeature.toggleARMode(
-            context = context,
-            lifecycleOwner = lifecycleOwner,
             scope = viewModelScope,
             updateUiState = this::updateUiState,
             uiStateProvider = { _uiState.value },
+            startSession = { onSessionReady, onError ->
+                arSessionStarter.start(
+                    context = context,
+                    lifecycleOwner = lifecycleOwner,
+                    onSessionReady = onSessionReady,
+                    onError = onError,
+                )
+            },
         )
     }
 

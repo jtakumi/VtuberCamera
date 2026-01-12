@@ -1,8 +1,6 @@
 package com.example.vtubercamera.domain.ar
 
-import android.content.Context
 import android.util.Log
-import androidx.lifecycle.LifecycleOwner
 import com.example.vtubercamera.data.ARRepository
 import com.example.vtubercamera.data.vrm.ARCameraState
 import com.example.vtubercamera.data.vrm.ARError
@@ -18,22 +16,28 @@ import javax.inject.Inject
 class ARFeature @Inject constructor(
     private val arRepository: ARRepository,
 ) {
+    
+    companion object{
+        private const val TAG = "ARFeature"
+    }
 
     fun enableARMode(
-        context: Context,
-        lifecycleOwner: LifecycleOwner,
         scope: CoroutineScope,
         updateUiState: UiStateUpdater,
         uiStateProvider: UiStateProvider,
+        startSession: suspend (
+            onSessionReady: () -> Unit,
+            onError: (ARError) -> Unit,
+        ) -> Unit,
     ) {
         if (uiStateProvider().isARMode) {
-            Log.d("CameraViewModel", "AR mode already enabled")
+            Log.d(TAG, "AR mode already enabled")
             return
         }
 
         scope.launch {
             try {
-                Log.d("CameraViewModel", "Enabling AR mode...")
+                Log.d(TAG, "Enabling AR mode...")
                 updateUiState {
                     copy(
                         ar = ar.copy(
@@ -45,19 +49,17 @@ class ARFeature @Inject constructor(
                     )
                 }
 
-                arRepository.initializeSession(
-                    context = context,
-                    lifecycleOwner = lifecycleOwner,
-                    onSessionReady = {
-                        Log.d("CameraViewModel", "AR session ready")
+                startSession(
+                    {
+                        Log.d(TAG, "AR session ready")
                         observeARStates(
                             scope = scope,
                             updateUiState = updateUiState,
                             uiStateProvider = uiStateProvider,
                         )
                     },
-                    onError = { error ->
-                        Log.e("CameraViewModel", "AR session initialization failed: $error")
+                    { error ->
+                        Log.e(TAG, "AR session initialization failed: $error")
                         updateUiState { copy(ar = ar.copy(arError = error)) }
                         disableARMode(
                             scope = scope,
@@ -67,7 +69,7 @@ class ARFeature @Inject constructor(
                     }
                 )
             } catch (e: Exception) {
-                Log.e("CameraViewModel", "Failed to enable AR mode", e)
+                Log.e(TAG, "Failed to enable AR mode", e)
                 updateUiState {
                     copy(ar = ar.copy(arError = ARError.SessionError("Failed to enable AR mode: ${e.message}")))
                 }
@@ -86,13 +88,13 @@ class ARFeature @Inject constructor(
         uiStateProvider: UiStateProvider,
     ) {
         if (!uiStateProvider().isARMode) {
-            Log.d("CameraViewModel", "AR mode already disabled")
+            Log.d(TAG, "AR mode already disabled")
             return
         }
 
         scope.launch {
             try {
-                Log.d("CameraViewModel", "Disabling AR mode...")
+                Log.d(TAG, "Disabling AR mode...")
 
                 arRepository.destroySession()
 
@@ -118,19 +120,21 @@ class ARFeature @Inject constructor(
                     )
                 }
 
-                Log.d("CameraViewModel", "AR mode disabled")
+                Log.d(TAG, "AR mode disabled")
             } catch (e: Exception) {
-                Log.e("CameraViewModel", "Error disabling AR mode", e)
+                Log.e(TAG, "Error disabling AR mode", e)
             }
         }
     }
 
     fun toggleARMode(
-        context: Context,
-        lifecycleOwner: LifecycleOwner,
         scope: CoroutineScope,
         updateUiState: UiStateUpdater,
         uiStateProvider: UiStateProvider,
+        startSession: suspend (
+            onSessionReady: () -> Unit,
+            onError: (ARError) -> Unit,
+        ) -> Unit,
     ) {
         if (uiStateProvider().isARMode) {
             disableARMode(
@@ -140,11 +144,10 @@ class ARFeature @Inject constructor(
             )
         } else {
             enableARMode(
-                context = context,
-                lifecycleOwner = lifecycleOwner,
                 scope = scope,
                 updateUiState = updateUiState,
                 uiStateProvider = uiStateProvider,
+                startSession = startSession,
             )
         }
     }
@@ -168,7 +171,7 @@ class ARFeature @Inject constructor(
 
         scope.launch {
             arRepository.trackingState.collect { trackingState ->
-                Log.d("CameraViewModel", "AR tracking state changed: $trackingState")
+                Log.d(TAG, "AR tracking state changed: $trackingState")
                 val currentState = uiStateProvider()
                 if (currentState.avatarState.model != null) {
                     val shouldShow = trackingState == TrackingState.TRACKING
