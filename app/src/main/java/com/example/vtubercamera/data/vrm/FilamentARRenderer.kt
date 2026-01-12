@@ -538,12 +538,14 @@ class FilamentARRenderer @Inject constructor(
             val arCamera = frame.camera
             val viewMatrix = FloatArray(16)
             val projectionMatrix = FloatArray(16)
+            val customProjectionMatrix = DoubleArray(16)
+
 
             arCamera.getViewMatrix(viewMatrix, 0)
             arCamera.getProjectionMatrix(projectionMatrix, 0, nearPlane, farPlane)
 
             camera.setCustomProjection(
-                projectionMatrix,
+ customProjectionMatrix,
                 nearPlane.toDouble(),
                 farPlane.toDouble()
             )
