@@ -145,7 +145,7 @@ dependencies {
     implementation 'com.google.ar:core:1.52.0'
 
     // Filament 3D Rendering Engine
-    def filament_version = "1.68.2"
+    def filament_version = "1.68.3"
     implementation "com.google.android.filament:filament-android:${filament_version}"
     implementation "com.google.android.filament:filament-utils-android:${filament_version}"
     implementation "com.google.android.filament:gltfio-android:${filament_version}"
