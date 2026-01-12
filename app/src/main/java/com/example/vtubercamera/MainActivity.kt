@@ -6,17 +6,25 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.example.vtubercamera.ui.screens.ARCameraScreen
+import com.example.vtubercamera.ui.screens.AvatarLibraryScreen
 import com.example.vtubercamera.ui.screens.CameraScreen
 import com.example.vtubercamera.ui.theme.VTuberCameraTheme
 import com.example.vtubercamera.utils.initializeAndroid15
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.vtubercamera.ui.viewmodels.CameraViewModel
+
+private enum class MainScreen {
+    CAMERA,
+    AR,
+    AVATAR_LIBRARY
+}
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -30,16 +38,34 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    var isARScreenVisible by rememberSaveable { mutableStateOf(false) }
+                    val cameraViewModel: CameraViewModel = hiltViewModel()
+                    var currentScreen by rememberSaveable { mutableStateOf(MainScreen.CAMERA) }
 
-                    if (isARScreenVisible) {
-                        ARCameraScreen(
-                            onNavigateBack = { isARScreenVisible = false }
-                        )
-                    } else {
-                        CameraScreen(
-                            onNavigateToAR = { isARScreenVisible = true }
-                        )
+                    when (currentScreen) {
+                        MainScreen.CAMERA -> {
+                            CameraScreen(
+                                onNavigateToAR = { currentScreen = MainScreen.AR },
+                                viewModel = cameraViewModel
+                            )
+                        }
+
+                        MainScreen.AR -> {
+                            ARCameraScreen(
+                                onNavigateBack = { currentScreen = MainScreen.CAMERA },
+                                onNavigateToAvatarLibrary = { currentScreen = MainScreen.AVATAR_LIBRARY },
+                                viewModel = cameraViewModel
+                            )
+                        }
+
+                        MainScreen.AVATAR_LIBRARY -> {
+                            AvatarLibraryScreen(
+                                onNavigateBack = { currentScreen = MainScreen.AR },
+                                onAvatarSelected = { avatar ->
+                                    cameraViewModel.selectAvatarFromLibrary(avatar.id)
+                                    currentScreen = MainScreen.AR
+                                }
+                            )
+                        }
                     }
                 }
             }

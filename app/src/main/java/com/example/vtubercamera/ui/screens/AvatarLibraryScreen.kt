@@ -62,6 +62,7 @@ import com.example.vtubercamera.ui.viewmodels.AvatarLibraryViewModel
 @Composable
 fun AvatarLibraryScreen(
     onNavigateBack: () -> Unit,
+    onAvatarSelected: (AvatarInfo) -> Unit = {},
     viewModel: AvatarLibraryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -162,7 +163,10 @@ fun AvatarLibraryScreen(
                         avatars = uiState.avatars,
                         selectedAvatarId = uiState.selectedAvatarId,
                         mode = AvatarListMode.LIST,
-                        onAvatarClick = { viewModel.selectAvatar(it.id) },
+                        onAvatarClick = {
+                            viewModel.selectAvatar(it.id)
+                            onAvatarSelected(it)
+                        },
                         onFavoriteClick = { viewModel.toggleFavorite(it.id) },
                         onRenameClick = { viewModel.showRenameDialog(it.id) },
                         onDeleteClick = { pendingDeleteId = it.id },
