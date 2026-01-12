@@ -87,6 +87,7 @@ import com.example.vtubercamera.utils.PermissionUtils
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.vtubercamera.R
+import com.example.vtubercamera.ui.ar.ARRenderOverlay
 
 /**
  * AR Camera Screen for VTuber avatar recording and interaction
@@ -110,6 +111,8 @@ fun ARCameraScreen(
     val cameraSelector by viewModel.cameraSelector.collectAsStateWithLifecycle()
     val zoomRatio by viewModel.zoomRatio.collectAsStateWithLifecycle()
     val needsCameraRebind by viewModel.needsCameraRebind.collectAsStateWithLifecycle()
+
+    val isARMode by viewModel.isARMode.collectAsStateWithLifecycle()
     val arError by viewModel.arError.collectAsStateWithLifecycle()
 
     // Snackbar for AR errors with simple duplicate suppression
@@ -306,6 +309,15 @@ fun ARCameraScreen(
                 onPreviewViewChanged = { /* no-op */ },
                 onPreviewChanged = { /* no-op */ }
             )
+
+            // AR Rendering overlay (draws on top of camera preview)
+            if (isARMode) {
+                ARRenderOverlay(
+                    isARMode = true,
+                    modifier = Modifier.fillMaxSize(),
+                    viewModel = viewModel
+                )
+            }
 
             // Show AR error in a Snackbar once, avoid rapid repeats
             LaunchedEffect(arError) {

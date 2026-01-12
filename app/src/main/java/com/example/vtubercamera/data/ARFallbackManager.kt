@@ -360,5 +360,15 @@ class ARFallbackManager @Inject constructor() {
         override suspend fun waitForTracking(timeoutMs: Long): Boolean {
             return isInitialized
         }
+
+        override fun getSession(): com.google.ar.core.Session? {
+            // Virtual fallback mode doesn't use ARCore.
+            return null
+        }
+
+        override fun updateFromFrame(frame: com.google.ar.core.Frame) {
+            // Virtual fallback mode doesn't receive ARCore frames.
+            // No-op.
+        }
     }
 }
