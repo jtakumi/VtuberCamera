@@ -52,6 +52,9 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -106,6 +109,12 @@ fun ARCameraScreen(
     val flashMode by viewModel.flashMode.collectAsStateWithLifecycle()
     val cameraSelector by viewModel.cameraSelector.collectAsStateWithLifecycle()
     val zoomRatio by viewModel.zoomRatio.collectAsStateWithLifecycle()
+    val needsCameraRebind by viewModel.needsCameraRebind.collectAsStateWithLifecycle()
+    val arError by viewModel.arError.collectAsStateWithLifecycle()
+
+    // Snackbar for AR errors with simple duplicate suppression
+    val snackbarHostState = remember { SnackbarHostState() }
+    var lastShownError by remember { mutableStateOf<com.example.vtubercamera.data.vrm.ARError?>(null) }
     val currentAvatar by viewModel.currentAvatar.collectAsStateWithLifecycle()
     val avatarState by viewModel.avatarState.collectAsStateWithLifecycle()
     val currentExpression by viewModel.currentExpression.collectAsStateWithLifecycle()
@@ -265,21 +274,54 @@ fun ARCameraScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // AR Camera Preview
-            ARCameraPreview(
+            // Snackbar host for errors
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 12.dp)
+            )
+
+            // AR Camera Preview using robust CameraX host (avoids frequent unbind/rebind)
+            com.example.vtubercamera.ui.camerax.CameraXPreviewHost(
+                context = context,
+                lifecycleOwner = lifecycleOwner,
                 cameraSelector = cameraSelector,
                 flashMode = flashMode,
                 zoomRatio = zoomRatio,
-                onCameraReady = { provider, cam ->
-                    viewModel.setCamera(cam)
-                },
+                needsCameraRebind = needsCameraRebind,
                 modifier = Modifier
                     .fillMaxSize()
                     .modernCameraGestures(
-                        onScale = { zoom -> /* Handle zoom change */ },
+                        onScale = { newZoom ->
+                            viewModel.smoothZoomTo(targetZoom = newZoom, duration = 0)
+                        },
+                        onDoubleTap = { viewModel.resetZoom() },
                         currentZoom = zoomRatio
-                    )
+                    ),
+                onCameraReboundHandled = { viewModel.onCameraRebound() },
+                onImageCaptureCreated = { /* not used here */ },
+                onCameraCreated = { cam -> viewModel.setCamera(cam) },
+                onCameraProviderChanged = { /* no-op */ },
+                onPreviewViewChanged = { /* no-op */ },
+                onPreviewChanged = { /* no-op */ }
             )
+
+            // Show AR error in a Snackbar once, avoid rapid repeats
+            LaunchedEffect(arError) {
+                val error = arError ?: return@LaunchedEffect
+                if (error != lastShownError) {
+                    val msg = error.message ?: "AR error"
+                    snackbarHostState.showSnackbar(
+                        message = msg,
+                        withDismissAction = true,
+                        duration = SnackbarDuration.Short
+                    )
+                    lastShownError = error
+                }
+                // Clear after handling to prevent persistent UI state
+                viewModel.clearARError()
+            }
 
             // Avatar status overlay
             if (showAvatarInfo && currentAvatar != null) {
@@ -561,64 +603,7 @@ fun ARCameraScreen(
     }
 }
 
-@Composable
-private fun ARCameraPreview(
-    cameraSelector: CameraSelector,
-    flashMode: Int,
-    zoomRatio: Float,
-    onCameraReady: (ProcessCameraProvider, Camera) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-
-    AndroidView(
-        factory = { context ->
-            PreviewView(context).apply {
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-                scaleType = PreviewView.ScaleType.FILL_CENTER
-                implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-            }
-        },
-        modifier = modifier,
-        update = { previewView ->
-            val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-            cameraProviderFuture.addListener({
-                val cameraProvider = cameraProviderFuture.get()
-
-                val preview = Preview.Builder()
-                    .build()
-                    .also {
-                        it.surfaceProvider = previewView.surfaceProvider
-                    }
-
-                val imageCapture = ImageCapture.Builder()
-                    .setFlashMode(flashMode)
-                    .build()
-
-                try {
-                    cameraProvider.unbindAll()
-                    val camera = cameraProvider.bindToLifecycle(
-                        lifecycleOwner,
-                        cameraSelector,
-                        preview,
-                        imageCapture
-                    )
-
-                    // Apply zoom
-                    camera.cameraControl.setZoomRatio(zoomRatio)
-
-                    onCameraReady(cameraProvider, camera)
-                } catch (exc: Exception) {
-                    Log.e("ARCameraScreen", "Use case binding failed", exc)
-                }
-            }, ContextCompat.getMainExecutor(context))
-        }
-    )
-}
+// Camera binding is provided by CameraXPreviewHost; no local binding here.
 
 @Composable
 private fun AvatarStatusOverlay(
