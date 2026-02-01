@@ -2,6 +2,8 @@ package com.example.vtubercamera.data.vrm
 
 import android.content.Context
 import android.net.Uri
+import android.provider.OpenableColumns
+import android.util.Log
 import java.io.IOException
 
 /**
@@ -9,6 +11,7 @@ import java.io.IOException
  */
 object VRMValidator {
     
+    private const val TAG = "VRMValidator"
     private const val MAX_FILE_SIZE = 100 * 1024 * 1024L // 100MB
     private const val MIN_FILE_SIZE = 1024L // 1KB
     private val SUPPORTED_VERSIONS = listOf("1.0", "0.0")
@@ -27,18 +30,25 @@ object VRMValidator {
             }
             
             inputStream.use { stream ->
-                // Check file size
-                val fileSize = stream.available().toLong()
-                
-                if (fileSize < MIN_FILE_SIZE) {
-                    errors.add(ValidationError.critical(
-                        ValidationError.ErrorType.INVALID_FORMAT,
-                        "File is too small to be a valid VRM file"
-                    ))
-                }
-                
-                if (fileSize > MAX_FILE_SIZE) {
-                    errors.add(ValidationError.fileSizeExceeded(fileSize, MAX_FILE_SIZE))
+                // Check file size without using InputStream.available()
+                val (fileSize, source) = getFileSizeBytes(context, uri)
+                if (fileSize != null && fileSize >= 0) {
+                    Log.d(TAG, "Size check: $fileSize bytes (source=$source) for uri=$uri")
+                    if (fileSize < MIN_FILE_SIZE) {
+                        errors.add(
+                            ValidationError.critical(
+                                ValidationError.ErrorType.INVALID_FORMAT,
+                                "File is too small to be a valid VRM file"
+                            )
+                        )
+                    }
+                    if (fileSize > MAX_FILE_SIZE) {
+                        errors.add(ValidationError.fileSizeExceeded(fileSize, MAX_FILE_SIZE))
+                    }
+                } else {
+                    Log.w(TAG, "Size check: unknown (source=$source) for uri=$uri; skipping strict size validation")
+                    // Unknown size: skip strict checks. Optionally add a warning, but not critical.
+                    // errors.add(ValidationError.warning(ValidationError.ErrorType.INVALID_FORMAT, "File size unknown; skipping size checks"))
                 }
                 
                 // Read and validate file header
@@ -70,6 +80,37 @@ object VRMValidator {
         } else {
             ValidationResult.Invalid(errors)
         }
+    }
+
+    /**
+     * Try to get file size via ContentResolver. Returns Pair(sizeInBytes or null, sourceLabel)
+     */
+    private fun getFileSizeBytes(context: Context, uri: Uri): Pair<Long?, String> {
+        // 1) Try query(OpenableColumns.SIZE)
+        try {
+            context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+                val idx = cursor.getColumnIndex(OpenableColumns.SIZE)
+                if (idx != -1 && cursor.moveToFirst()) {
+                    val size = if (!cursor.isNull(idx)) cursor.getLong(idx) else null
+                    if (size != null && size >= 0) return size to "OpenableColumns.SIZE"
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to query OpenableColumns.SIZE: ${e.message}")
+        }
+
+        // 2) Try AssetFileDescriptor.length
+        try {
+            context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { afd ->
+                val length = afd.length
+                if (length >= 0) return length to "AssetFileDescriptor.length"
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to get AssetFileDescriptor.length: ${e.message}")
+        }
+
+        // 3) Unknown size
+        return null to "unknown"
     }
     
     /**

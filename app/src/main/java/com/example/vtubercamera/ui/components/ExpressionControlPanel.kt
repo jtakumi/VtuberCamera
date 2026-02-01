@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import com.example.vtubercamera.data.vrm.Expression
 import com.example.vtubercamera.data.vrm.BlendShapeCategory
 import com.example.vtubercamera.data.vrm.ExpressionData
+import java.util.Locale
 
 /**
  * Expression control panel UI component for VRM avatar expression management
@@ -421,7 +422,7 @@ private fun AdvancedExpressionControls(
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
-                text = "${String.format("%.1f", transitionDuration)}s",
+                text = "${String.format(Locale.ROOT, "%.1f", transitionDuration)}s",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -482,7 +483,7 @@ private fun BlendShapeControl(
                 modifier = Modifier.weight(1f)
             )
             Text(
-                text = String.format("%.2f", value),
+                text = String.format(Locale.ROOT, "%.2f", value),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

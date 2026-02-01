@@ -55,4 +55,11 @@ interface ARRepository {
     )
     
     suspend fun waitForTracking(timeoutMs: Long = 5000): Boolean
+
+    // Phase 3 additions
+    // Expose underlying ARCore session for renderer initialization
+    fun getSession(): com.google.ar.core.Session?
+
+    // Propagate per-frame updates into repository state
+    fun updateFromFrame(frame: com.google.ar.core.Frame)
 }

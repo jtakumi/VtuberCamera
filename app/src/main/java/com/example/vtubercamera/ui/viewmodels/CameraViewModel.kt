@@ -57,6 +57,8 @@ class CameraViewModel @Inject constructor(
     private val lightingFeature: LightingFeature,
     private val bootstrapper: CameraViewModelBootstrapper,
     private val arSessionStarter: ARSessionStarter,
+    private val arRepository: com.example.vtubercamera.data.ARRepository,
+    private val arRenderer: com.example.vtubercamera.data.vrm.ARRenderer,
 ) : ViewModel() {
 
     // UI状態の管理
@@ -677,7 +679,75 @@ class CameraViewModel @Inject constructor(
         )
     }
 
+    // ========== AR Rendering Surface Hooks (Phase 3) ==========
+
+    fun onRenderSurfaceAvailable(surface: android.view.Surface, width: Int, height: Int) {
+        try {
+            val session = arRepository.getSession()
+            if (session == null) {
+                Log.w("CameraViewModel", "AR session not ready when surface became available")
+                return
+            }
+            arRenderer.setViewport(width, height)
+            arRenderer.initialize(surface, session)
+            arRenderer.setAvatarRenderingEnabled(_uiState.value.currentAvatar != null)
+            Log.d("CameraViewModel", "ARRenderer initialized with ${width}x${height}")
+        } catch (t: Throwable) {
+            Log.e("CameraViewModel", "Failed to init AR renderer", t)
+            updateUiState { copy(ar = ar.copy(arError = com.example.vtubercamera.data.vrm.ARError.RenderingError("Renderer init failed: ${t.message}"))) }
+        }
+    }
+
+    fun onRenderSurfaceSizeChanged(width: Int, height: Int) {
+        try {
+            if (arRenderer.isInitialized()) {
+                arRenderer.setViewport(width, height)
+                Log.d("CameraViewModel", "ARRenderer viewport updated to ${width}x${height}")
+            }
+        } catch (t: Throwable) {
+            Log.w("CameraViewModel", "Failed to update viewport", t)
+        }
+    }
+
+    fun onRenderSurfaceDestroyed() {
+        try {
+            if (arRenderer.isInitialized()) {
+                arRenderer.cleanup()
+            }
+        } catch (t: Throwable) {
+            Log.w("CameraViewModel", "ARRenderer cleanup error", t)
+        }
+    }
+
+    fun onARFrame(frame: com.google.ar.core.Frame, deltaSeconds: Float) {
+        try {
+            // Update repository state from frame (tracking, camera, light)
+            arRepository.updateFromFrame(frame)
+
+            // Update transitions (blend/pose)
+            updateAvatarTransitions(deltaSeconds)
+
+            // Render/update
+            if (arRenderer.isInitialized()) {
+                arRenderer.updateFrame(frame, _uiState.value.avatarState)
+
+                val avatar = _uiState.value.currentAvatar
+                if (avatar != null) {
+                    arRenderer.setAvatarRenderingEnabled(true)
+                    arRenderer.renderAvatar(avatar, _uiState.value.avatarTransform)
+                } else {
+                    arRenderer.setAvatarRenderingEnabled(false)
+                }
+            }
+        } catch (t: Throwable) {
+            Log.w("CameraViewModel", "onARFrame error", t)
+        }
+    }
+
     // ========== Avatar Management Functions ==========
+
+    // Internal AR session accessor for UI layer
+    fun getARSession(): com.google.ar.core.Session? = arRepository.getSession()
 
     /**
      * Load VRM avatar from URI

@@ -390,4 +390,11 @@ class ARRepositoryImpl @Inject constructor(
             updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE
         }
     }
+
+    // ---- Phase 3 additions ----
+    override fun getSession(): Session? = arSession
+
+    override fun updateFromFrame(frame: Frame) {
+        updateSessionState(frame)
+    }
 }
