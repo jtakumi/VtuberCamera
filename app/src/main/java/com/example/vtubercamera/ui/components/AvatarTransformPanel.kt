@@ -24,6 +24,7 @@ import com.example.vtubercamera.data.vrm.math.Quaternion
 import com.example.vtubercamera.data.vrm.math.Transform
 import com.example.vtubercamera.data.vrm.math.Vector3
 import kotlin.math.PI
+import java.util.Locale
 
 /**
  * Panel to adjust avatar transform: position, rotation, and scale
@@ -136,7 +137,7 @@ fun AvatarTransformPanel(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = String.format("%.2f×", uniformScale), style = MaterialTheme.typography.bodySmall)
+                Text(text = String.format(Locale.ROOT, "%.2f×", uniformScale), style = MaterialTheme.typography.bodySmall)
                 Spacer(modifier = Modifier.width(8.dp))
             }
             Slider(
@@ -163,7 +164,7 @@ private fun AxisSlider(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = "$label: ${String.format("%.2f", value)}", style = MaterialTheme.typography.labelSmall)
+            Text(text = "$label: ${String.format(Locale.ROOT, "%.2f", value)}", style = MaterialTheme.typography.labelSmall)
         }
         Slider(
             value = value.coerceIn(range.start, range.endInclusive),
