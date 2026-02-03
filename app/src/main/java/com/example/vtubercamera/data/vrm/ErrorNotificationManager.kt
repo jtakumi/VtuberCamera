@@ -266,6 +266,66 @@ class ErrorNotificationManager @Inject constructor(
                 ),
                 autoHideAfterMs = null
             )
+
+            ErrorType.VRM_PERMISSION_DENIED -> ErrorNotification(
+                id = notificationId,
+                errorType = errorState.type,
+                title = "Permission Required",
+                message = errorState.userMessage,
+                severity = errorState.severity,
+                icon = NotificationIcon.PERMISSION_ERROR,
+                actions = listOf(
+                    NotificationAction("Grant Permission", ErrorAction.REQUEST_PERMISSIONS),
+                    NotificationAction("Settings", ErrorAction.OPEN_SETTINGS),
+                    NotificationAction("Dismiss", null)
+                ),
+                autoHideAfterMs = null
+            )
+
+            ErrorType.VRM_PARSE_ERROR -> ErrorNotification(
+                id = notificationId,
+                errorType = errorState.type,
+                title = "VRM Parse Error",
+                message = errorState.userMessage,
+                severity = errorState.severity,
+                icon = NotificationIcon.FORMAT_ERROR,
+                actions = listOf(
+                    NotificationAction("Select File", ErrorAction.SELECT_DIFFERENT_FILE),
+                    NotificationAction("Help", ErrorAction.VALIDATE_FILE_FORMAT),
+                    NotificationAction("Dismiss", null)
+                ),
+                autoHideAfterMs = null
+            )
+
+            ErrorType.VRM_CORRUPTED -> ErrorNotification(
+                id = notificationId,
+                errorType = errorState.type,
+                title = "Corrupted VRM File",
+                message = errorState.userMessage,
+                severity = errorState.severity,
+                icon = NotificationIcon.FILE_ERROR,
+                actions = listOf(
+                    NotificationAction("Select File", ErrorAction.SELECT_DIFFERENT_FILE),
+                    NotificationAction("Re-download", ErrorAction.REDOWNLOAD_FILE),
+                    NotificationAction("Dismiss", null)
+                ),
+                autoHideAfterMs = null
+            )
+
+            ErrorType.VRM_UNSUPPORTED_VERSION -> ErrorNotification(
+                id = notificationId,
+                errorType = errorState.type,
+                title = "Unsupported VRM Version",
+                message = errorState.userMessage,
+                severity = errorState.severity,
+                icon = NotificationIcon.FORMAT_ERROR,
+                actions = listOf(
+                    NotificationAction("Convert", ErrorAction.CONVERT_FILE_VERSION),
+                    NotificationAction("Select File", ErrorAction.SELECT_DIFFERENT_FILE),
+                    NotificationAction("Dismiss", null)
+                ),
+                autoHideAfterMs = null
+            )
             
             else -> ErrorNotification(
                 id = notificationId,

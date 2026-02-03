@@ -282,4 +282,80 @@ class ErrorNotificationManagerTest {
         Thread.sleep(100) // Small delay to ensure timestamp difference
         assertFalse(notification.shouldAutoHide()) // Should not auto-hide yet
     }
+
+    @Test
+    fun `showErrorNotification should map VRM permission denied`() = runTest {
+        val errorState = ErrorState(
+            type = ErrorType.VRM_PERMISSION_DENIED,
+            message = "Permission denied",
+            userMessage = "Permission denied to access the file.",
+            severity = ErrorSeverity.HIGH,
+            isRecoverable = true,
+            suggestedActions = listOf(ErrorAction.REQUEST_PERMISSIONS),
+            context = ErrorContext.vrmLoading("test.vrm")
+        )
+
+        val notification = notificationManager.showErrorNotification(errorState)
+
+        assertEquals("Permission Required", notification.title)
+        assertEquals(NotificationIcon.PERMISSION_ERROR, notification.icon)
+        assertTrue(notification.actions.any { it.action == ErrorAction.REQUEST_PERMISSIONS })
+    }
+
+    @Test
+    fun `showErrorNotification should map VRM parse error`() = runTest {
+        val errorState = ErrorState(
+            type = ErrorType.VRM_PARSE_ERROR,
+            message = "Parse error",
+            userMessage = "Error parsing the VRM file.",
+            severity = ErrorSeverity.HIGH,
+            isRecoverable = true,
+            suggestedActions = listOf(ErrorAction.VALIDATE_FILE_FORMAT),
+            context = ErrorContext.vrmLoading("test.vrm")
+        )
+
+        val notification = notificationManager.showErrorNotification(errorState)
+
+        assertEquals("VRM Parse Error", notification.title)
+        assertEquals(NotificationIcon.FORMAT_ERROR, notification.icon)
+        assertTrue(notification.actions.any { it.action == ErrorAction.VALIDATE_FILE_FORMAT })
+    }
+
+    @Test
+    fun `showErrorNotification should map VRM corrupted`() = runTest {
+        val errorState = ErrorState(
+            type = ErrorType.VRM_CORRUPTED,
+            message = "Corrupted",
+            userMessage = "The VRM file appears to be corrupted.",
+            severity = ErrorSeverity.HIGH,
+            isRecoverable = true,
+            suggestedActions = listOf(ErrorAction.REDOWNLOAD_FILE),
+            context = ErrorContext.vrmLoading("test.vrm")
+        )
+
+        val notification = notificationManager.showErrorNotification(errorState)
+
+        assertEquals("Corrupted VRM File", notification.title)
+        assertEquals(NotificationIcon.FILE_ERROR, notification.icon)
+        assertTrue(notification.actions.any { it.action == ErrorAction.REDOWNLOAD_FILE })
+    }
+
+    @Test
+    fun `showErrorNotification should map VRM unsupported version`() = runTest {
+        val errorState = ErrorState(
+            type = ErrorType.VRM_UNSUPPORTED_VERSION,
+            message = "Unsupported",
+            userMessage = "This VRM version is not supported.",
+            severity = ErrorSeverity.MEDIUM,
+            isRecoverable = false,
+            suggestedActions = listOf(ErrorAction.CONVERT_FILE_VERSION),
+            context = ErrorContext.vrmLoading("test.vrm")
+        )
+
+        val notification = notificationManager.showErrorNotification(errorState)
+
+        assertEquals("Unsupported VRM Version", notification.title)
+        assertEquals(NotificationIcon.FORMAT_ERROR, notification.icon)
+        assertTrue(notification.actions.any { it.action == ErrorAction.CONVERT_FILE_VERSION })
+    }
 }

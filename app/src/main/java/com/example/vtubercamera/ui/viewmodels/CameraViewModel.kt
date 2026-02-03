@@ -31,6 +31,7 @@ import com.example.vtubercamera.domain.camera.GalleryFeature
 import com.example.vtubercamera.domain.camera.LensSwitchFeature
 import com.example.vtubercamera.domain.lighting.LightingFeature
 import com.example.vtubercamera.utils.CameraCapabilityManager
+import com.example.vtubercamera.data.vrm.ErrorNotificationManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -59,6 +60,7 @@ class CameraViewModel @Inject constructor(
     private val arSessionStarter: ARSessionStarter,
     private val arRepository: com.example.vtubercamera.data.ARRepository,
     private val arRenderer: com.example.vtubercamera.data.vrm.ARRenderer,
+    private val errorNotificationManager: ErrorNotificationManager,
 ) : ViewModel() {
 
     // UI状態の管理
@@ -193,6 +195,13 @@ class CameraViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = null
     )
+
+    val activeErrorNotifications: StateFlow<List<com.example.vtubercamera.data.vrm.ErrorNotification>> =
+        errorNotificationManager.activeNotifications
+
+    fun dismissErrorNotification(notificationId: String) {
+        errorNotificationManager.dismissNotification(notificationId)
+    }
     val avatarTransform: StateFlow<Transform> = _uiState.map { it.avatarTransform }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
