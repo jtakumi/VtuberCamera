@@ -67,19 +67,12 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = '11'
-        freeCompilerArgs = ['-XXLanguage:+PropertyParamAnnotationDefaultTargetMode']
-    }
     buildFeatures {
         viewBinding = true
         compose = true
         buildConfig = true
     }
     
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.15"
-    }
     packaging {
         resources {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
@@ -90,6 +83,28 @@ android {
         unitTests {
             includeAndroidResources = true
             returnDefaultValues = true
+        }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
+        freeCompilerArgs.add("-XXLanguage:+PropertyParamAnnotationDefaultTargetMode")
+    }
+}
+
+afterEvaluate {
+    tasks.matching { it.name == "hiltJavaCompileDebug" }.configureEach { task ->
+        def config = configurations.findByName("debugCompileClasspath")
+        if (config != null) {
+            task.classpath += config
+        }
+    }
+    tasks.matching { it.name == "hiltJavaCompileRelease" }.configureEach { task ->
+        def config = configurations.findByName("releaseCompileClasspath")
+        if (config != null) {
+            task.classpath += config
         }
     }
 }
@@ -145,7 +160,7 @@ dependencies {
     implementation 'com.google.ar:core:1.52.0'
 
     // Filament 3D Rendering Engine
-    def filament_version = "1.68.3"
+    def filament_version = "1.68.2"
     implementation "com.google.android.filament:filament-android:${filament_version}"
     implementation "com.google.android.filament:filament-utils-android:${filament_version}"
     implementation "com.google.android.filament:gltfio-android:${filament_version}"
@@ -166,7 +181,7 @@ dependencies {
     testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2'
     testImplementation 'com.google.dagger:hilt-android-testing:2.59'
     testImplementation 'org.robolectric:robolectric:4.16'
-    testImplementation 'org.mockito.kotlin:mockito-kotlin:6.2.3'
+    testImplementation 'org.mockito.kotlin:mockito-kotlin:6.1.0'
     testImplementation 'org.mockito:mockito-inline:5.2.0'
     // Add missing MockK dependency for tests that use io.mockk.*
     testImplementation 'io.mockk:mockk:1.14.7'
@@ -181,5 +196,6 @@ dependencies {
     kspAndroidTest 'com.google.dagger:hilt-compiler:2.59'
     debugImplementation "androidx.compose.ui:ui-tooling:$compose_version"
     debugImplementation 'androidx.compose.ui:ui-test-manifest'
-    implementation "org.jetbrains.kotlin:kotlin-test:2.3.0"
+    implementation "org.jetbrains.kotlin:kotlin-test:2.2.20"
 }
+
