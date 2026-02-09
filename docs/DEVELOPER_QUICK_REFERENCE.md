@@ -314,7 +314,7 @@ dependencies {
     
     // Dependency Injection
     implementation "com.google.dagger:hilt-android:2.x.x"
-    kapt "com.google.dagger:hilt-compiler:2.x.x"
+    ksp "com.google.dagger:hilt-compiler:2.x.x"
 }
 ```
 
