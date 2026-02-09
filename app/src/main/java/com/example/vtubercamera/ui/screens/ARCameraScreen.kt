@@ -1,6 +1,9 @@
 package com.example.vtubercamera.ui.screens
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import android.util.Log
 import android.view.ViewGroup
 import android.widget.Toast
@@ -74,6 +77,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.vtubercamera.data.vrm.ErrorType
+import com.example.vtubercamera.data.vrm.ErrorAction
 import com.example.vtubercamera.ui.components.AvatarTransformPanel
 import com.example.vtubercamera.ui.components.ExpressionControlPanel
 import com.example.vtubercamera.ui.components.ExpressionSelectionMenu
@@ -87,6 +92,8 @@ import com.example.vtubercamera.utils.PermissionUtils
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.vtubercamera.R
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 
 /**
  * AR Camera Screen for VTuber avatar recording and interaction
@@ -111,10 +118,12 @@ fun ARCameraScreen(
     val zoomRatio by viewModel.zoomRatio.collectAsStateWithLifecycle()
     val needsCameraRebind by viewModel.needsCameraRebind.collectAsStateWithLifecycle()
     val arError by viewModel.arError.collectAsStateWithLifecycle()
+    val errorNotifications by viewModel.activeErrorNotifications.collectAsStateWithLifecycle()
 
     // Snackbar for AR errors with simple duplicate suppression
     val snackbarHostState = remember { SnackbarHostState() }
     var lastShownError by remember { mutableStateOf<com.example.vtubercamera.data.vrm.ARError?>(null) }
+    var lastShownVrmNotificationId by remember { mutableStateOf<String?>(null) }
     val currentAvatar by viewModel.currentAvatar.collectAsStateWithLifecycle()
     val avatarState by viewModel.avatarState.collectAsStateWithLifecycle()
     val currentExpression by viewModel.currentExpression.collectAsStateWithLifecycle()
@@ -154,6 +163,14 @@ fun ARCameraScreen(
         if (uri != null) {
             viewModel.loadAvatar(uri)
         }
+    }
+
+    val vrmNotification = remember(errorNotifications) {
+        errorNotifications.firstOrNull { it.errorType.isVrmError() }
+    }
+
+    if (vrmNotification != null && vrmNotification.id != lastShownVrmNotificationId) {
+        lastShownVrmNotificationId = vrmNotification.id
     }
 
 
@@ -321,6 +338,51 @@ fun ARCameraScreen(
                 }
                 // Clear after handling to prevent persistent UI state
                 viewModel.clearARError()
+            }
+
+            if (vrmNotification != null && vrmNotification.id == lastShownVrmNotificationId) {
+                val title = getVrmErrorTitle(vrmNotification.errorType)
+                val message = getVrmErrorMessage(vrmNotification.errorType)
+                val supportedPrimaryAction = vrmNotification.actions.firstOrNull { action ->
+                    action.action.isSupportedVrmDialogAction()
+                }
+                AlertDialog(
+                    onDismissRequest = {
+                        viewModel.dismissErrorNotification(vrmNotification.id)
+                    },
+                    title = { Text(title) },
+                    text = { Text(message) },
+                    confirmButton = {
+                        if (supportedPrimaryAction != null) {
+                            TextButton(onClick = {
+                                handleVrmNotificationAction(
+                                    context = context,
+                                    action = supportedPrimaryAction.action,
+                                    launchFilePicker = {
+                                        avatarImportLauncher.launch(
+                                            arrayOf(
+                                                "model/gltf-binary",
+                                                "application/octet-stream",
+                                                "application/vrm",
+                                                "application/*"
+                                            )
+                                        )
+                                    }
+                                )
+                                viewModel.dismissErrorNotification(vrmNotification.id)
+                            }) {
+                                Text(getVrmActionLabel(supportedPrimaryAction.action))
+                            }
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            viewModel.dismissErrorNotification(vrmNotification.id)
+                        }) {
+                            Text(stringResource(R.string.vrm_action_dismiss))
+                        }
+                    }
+                )
             }
 
             // Avatar status overlay
@@ -599,6 +661,93 @@ fun ARCameraScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+private fun ErrorType.isVrmError(): Boolean {
+    return when (this) {
+        ErrorType.VRM_FILE_NOT_FOUND,
+        ErrorType.VRM_INVALID_FORMAT,
+        ErrorType.VRM_FILE_TOO_LARGE,
+        ErrorType.VRM_CORRUPTED,
+        ErrorType.VRM_UNSUPPORTED_VERSION,
+        ErrorType.VRM_INSUFFICIENT_MEMORY,
+        ErrorType.VRM_PERMISSION_DENIED,
+        ErrorType.VRM_PARSE_ERROR -> true
+        else -> false
+    }
+}
+
+@Composable
+private fun getVrmErrorTitle(errorType: ErrorType): String {
+    return when (errorType) {
+        ErrorType.VRM_FILE_NOT_FOUND -> stringResource(R.string.vrm_error_title_file_not_found)
+        ErrorType.VRM_INVALID_FORMAT -> stringResource(R.string.vrm_error_title_invalid_format)
+        ErrorType.VRM_FILE_TOO_LARGE -> stringResource(R.string.vrm_error_title_file_too_large)
+        ErrorType.VRM_CORRUPTED -> stringResource(R.string.vrm_error_title_corrupted)
+        ErrorType.VRM_UNSUPPORTED_VERSION -> stringResource(R.string.vrm_error_title_unsupported_version)
+        ErrorType.VRM_INSUFFICIENT_MEMORY -> stringResource(R.string.vrm_error_title_insufficient_memory)
+        ErrorType.VRM_PERMISSION_DENIED -> stringResource(R.string.vrm_error_title_permission_denied)
+        ErrorType.VRM_PARSE_ERROR -> stringResource(R.string.vrm_error_title_parse_error)
+        else -> stringResource(R.string.vrm_error_title_generic)
+    }
+}
+
+@Composable
+private fun getVrmErrorMessage(errorType: ErrorType): String {
+    return when (errorType) {
+        ErrorType.VRM_FILE_NOT_FOUND -> stringResource(R.string.vrm_error_message_file_not_found)
+        ErrorType.VRM_INVALID_FORMAT -> stringResource(R.string.vrm_error_message_invalid_format)
+        ErrorType.VRM_FILE_TOO_LARGE -> stringResource(R.string.vrm_error_message_file_too_large)
+        ErrorType.VRM_CORRUPTED -> stringResource(R.string.vrm_error_message_corrupted)
+        ErrorType.VRM_UNSUPPORTED_VERSION -> stringResource(R.string.vrm_error_message_unsupported_version)
+        ErrorType.VRM_INSUFFICIENT_MEMORY -> stringResource(R.string.vrm_error_message_insufficient_memory)
+        ErrorType.VRM_PERMISSION_DENIED -> stringResource(R.string.vrm_error_message_permission_denied)
+        ErrorType.VRM_PARSE_ERROR -> stringResource(R.string.vrm_error_message_parse_error)
+        else -> stringResource(R.string.vrm_error_message_generic)
+    }
+}
+
+@Composable
+private fun getVrmActionLabel(action: ErrorAction?): String {
+    return when (action) {
+        ErrorAction.SELECT_DIFFERENT_FILE -> stringResource(R.string.vrm_action_select_file)
+        ErrorAction.SELECT_SMALLER_FILE -> stringResource(R.string.vrm_action_select_smaller_file)
+        ErrorAction.REQUEST_PERMISSIONS -> stringResource(R.string.vrm_action_grant_permission)
+        ErrorAction.OPEN_SETTINGS -> stringResource(R.string.vrm_action_open_settings)
+        else -> stringResource(R.string.vrm_action_dismiss)
+    }
+}
+
+private fun ErrorAction?.isSupportedVrmDialogAction(): Boolean {
+    return when (this) {
+        ErrorAction.SELECT_DIFFERENT_FILE,
+        ErrorAction.SELECT_SMALLER_FILE,
+        ErrorAction.REQUEST_PERMISSIONS,
+        ErrorAction.OPEN_SETTINGS -> true
+        else -> false
+    }
+}
+
+private fun handleVrmNotificationAction(
+    context: android.content.Context,
+    action: ErrorAction?,
+    launchFilePicker: () -> Unit
+) {
+    when (action) {
+        ErrorAction.SELECT_DIFFERENT_FILE,
+        ErrorAction.SELECT_SMALLER_FILE -> launchFilePicker()
+        ErrorAction.REQUEST_PERMISSIONS,
+        ErrorAction.OPEN_SETTINGS -> {
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", context.packageName, null)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        }
+        else -> {
+            // No-op for unsupported actions in this dialog
         }
     }
 }
