@@ -44,4 +44,31 @@
 
     <!-- AR Avatar Import -->
     <string name="ar_select_vrm_file">Select VRM File</string>
+
+    <!-- VRM error dialog -->
+    <string name="vrm_error_title_file_not_found">VRM file not found</string>
+    <string name="vrm_error_title_invalid_format">Invalid VRM format</string>
+    <string name="vrm_error_title_file_too_large">VRM file too large</string>
+    <string name="vrm_error_title_corrupted">VRM file corrupted</string>
+    <string name="vrm_error_title_unsupported_version">Unsupported VRM version</string>
+    <string name="vrm_error_title_insufficient_memory">Insufficient memory</string>
+    <string name="vrm_error_title_permission_denied">Permission denied</string>
+    <string name="vrm_error_title_parse_error">VRM parse error</string>
+    <string name="vrm_error_title_generic">VRM error</string>
+
+    <string name="vrm_error_message_file_not_found">We could not find the selected VRM file.</string>
+    <string name="vrm_error_message_invalid_format">The selected file is not a valid VRM.</string>
+    <string name="vrm_error_message_file_too_large">The selected VRM file is too large to load.</string>
+    <string name="vrm_error_message_corrupted">The VRM file appears to be corrupted.</string>
+    <string name="vrm_error_message_unsupported_version">This VRM version is not supported.</string>
+    <string name="vrm_error_message_insufficient_memory">Not enough memory to load this VRM file.</string>
+    <string name="vrm_error_message_permission_denied">Permission is required to access this VRM file.</string>
+    <string name="vrm_error_message_parse_error">Failed to parse the VRM file.</string>
+    <string name="vrm_error_message_generic">An unexpected VRM error occurred.</string>
+
+    <string name="vrm_action_select_file">Select file</string>
+    <string name="vrm_action_select_smaller_file">Select smaller file</string>
+    <string name="vrm_action_grant_permission">Grant permission</string>
+    <string name="vrm_action_open_settings">Open settings</string>
+    <string name="vrm_action_dismiss">Dismiss</string>
 </resources>
