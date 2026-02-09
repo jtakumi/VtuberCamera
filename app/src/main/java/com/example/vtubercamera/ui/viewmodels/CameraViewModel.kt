@@ -24,6 +24,8 @@ import com.example.vtubercamera.data.vrm.AvatarSortBy
 import com.example.vtubercamera.data.vrm.LightingSettings
 import com.example.vtubercamera.data.vrm.LightingPreset
 import com.example.vtubercamera.data.vrm.EnvironmentLighting
+import com.example.vtubercamera.data.vrm.ErrorNotification
+import com.example.vtubercamera.data.vrm.ErrorNotificationManager
 import com.example.vtubercamera.domain.ar.ARFeature
 import com.example.vtubercamera.domain.avatar.AvatarFeature
 import com.example.vtubercamera.domain.camera.CameraControlsFeature
@@ -195,6 +197,7 @@ class CameraViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = null
     )
+<<<<<<< HEAD
 
     val activeErrorNotifications: StateFlow<List<com.example.vtubercamera.data.vrm.ErrorNotification>> =
         errorNotificationManager.activeNotifications
@@ -202,6 +205,10 @@ class CameraViewModel @Inject constructor(
     fun dismissErrorNotification(notificationId: String) {
         errorNotificationManager.dismissNotification(notificationId)
     }
+=======
+    val activeErrorNotifications: StateFlow<List<ErrorNotification>> =
+        errorNotificationManager.activeNotifications
+>>>>>>> origin/dev
     val avatarTransform: StateFlow<Transform> = _uiState.map { it.avatarTransform }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -450,6 +457,10 @@ class CameraViewModel @Inject constructor(
             updateUiState = this::updateUiState,
             uiStateProvider = { _uiState.value }
         )
+    }
+
+    fun dismissErrorNotification(notificationId: String) {
+        errorNotificationManager.dismissNotification(notificationId)
     }
 
     /**

@@ -4,7 +4,7 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.compose'
     id("com.google.gms.google-services")
     id 'com.google.dagger.hilt.android'
-    id 'org.jetbrains.kotlin.kapt'
+    id 'com.google.devtools.ksp'
 }
 
 android {
@@ -67,19 +67,12 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = '11'
-        freeCompilerArgs = ['-XXLanguage:+PropertyParamAnnotationDefaultTargetMode']
-    }
     buildFeatures {
         viewBinding = true
         compose = true
         buildConfig = true
     }
     
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.15"
-    }
     packaging {
         resources {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
@@ -90,6 +83,28 @@ android {
         unitTests {
             includeAndroidResources = true
             returnDefaultValues = true
+        }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
+        freeCompilerArgs.add("-XXLanguage:+PropertyParamAnnotationDefaultTargetMode")
+    }
+}
+
+afterEvaluate {
+    tasks.matching { it.name == "hiltJavaCompileDebug" }.configureEach { task ->
+        def config = configurations.findByName("debugCompileClasspath")
+        if (config != null) {
+            task.classpath += config
+        }
+    }
+    tasks.matching { it.name == "hiltJavaCompileRelease" }.configureEach { task ->
+        def config = configurations.findByName("releaseCompileClasspath")
+        if (config != null) {
+            task.classpath += config
         }
     }
 }
@@ -137,8 +152,13 @@ dependencies {
     implementation "androidx.camera:camera-extensions:${camerax_version}"
     
     // Hilt
+<<<<<<< HEAD
     implementation 'com.google.dagger:hilt-android:2.57.2'
     kapt 'com.google.dagger:hilt-android-compiler:2.57.2'
+=======
+    implementation 'com.google.dagger:hilt-android:2.59.1'
+    ksp 'com.google.dagger:hilt-compiler:2.59.1'
+>>>>>>> origin/dev
     implementation 'androidx.hilt:hilt-navigation-compose:1.3.0'
     
     // ARCore
@@ -164,22 +184,36 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'androidx.arch.core:core-testing:2.2.0'
     testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2'
+<<<<<<< HEAD
     testImplementation 'com.google.dagger:hilt-android-testing:2.57.2'
+=======
+    testImplementation 'com.google.dagger:hilt-android-testing:2.59.1'
+>>>>>>> origin/dev
     testImplementation 'org.robolectric:robolectric:4.16'
-    testImplementation 'org.mockito.kotlin:mockito-kotlin:6.2.3'
+    testImplementation 'org.mockito.kotlin:mockito-kotlin:6.1.0'
     testImplementation 'org.mockito:mockito-inline:5.2.0'
     // Add missing MockK dependency for tests that use io.mockk.*
     testImplementation 'io.mockk:mockk:1.14.7'
 
+<<<<<<< HEAD
     kaptTest 'com.google.dagger:hilt-android-compiler:2.57.2'
+=======
+    kspTest 'com.google.dagger:hilt-compiler:2.59.1'
+>>>>>>> origin/dev
     androidTestImplementation 'androidx.test.ext:junit:1.3.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
     androidTestImplementation 'androidx.test:rules:1.7.0'
     androidTestImplementation 'androidx.test:runner:1.7.0'
     androidTestImplementation "androidx.compose.ui:ui-test-junit4:$compose_version"
+<<<<<<< HEAD
     androidTestImplementation 'com.google.dagger:hilt-android-testing:2.57.2'
     kaptAndroidTest 'com.google.dagger:hilt-android-compiler:2.57.2'
+=======
+    androidTestImplementation 'com.google.dagger:hilt-android-testing:2.59.1'
+    kspAndroidTest 'com.google.dagger:hilt-compiler:2.59.1'
+>>>>>>> origin/dev
     debugImplementation "androidx.compose.ui:ui-tooling:$compose_version"
     debugImplementation 'androidx.compose.ui:ui-test-manifest'
     implementation "org.jetbrains.kotlin:kotlin-test:2.2.20"
 }
+
