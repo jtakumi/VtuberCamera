@@ -2,6 +2,9 @@ package com.example.vtubercamera.ui.screens
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,14 +49,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.vtubercamera.data.vrm.ErrorAction
+import com.example.vtubercamera.data.vrm.ErrorType
 import com.example.vtubercamera.data.vrm.AvatarInfo
 import com.example.vtubercamera.ui.components.AvatarListMode
 import com.example.vtubercamera.ui.components.AvatarListView
 import com.example.vtubercamera.ui.viewmodels.AvatarLibraryViewModel
+import com.example.vtubercamera.R
 
 /**
  * Screen for managing the avatar library
@@ -66,7 +73,9 @@ fun AvatarLibraryScreen(
     viewModel: AvatarLibraryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    LocalContext.current
+    val context = LocalContext.current
+    val errorNotifications by viewModel.activeErrorNotifications.collectAsStateWithLifecycle()
+    var lastShownVrmNotificationId by remember { mutableStateOf<String?>(null) }
 
     // File picker for VRM import
     val importLauncher = rememberLauncherForActivityResult(
@@ -77,6 +86,14 @@ fun AvatarLibraryScreen(
         } else {
             viewModel.hideImportDialog()
         }
+    }
+
+    val vrmNotification = remember(errorNotifications) {
+        errorNotifications.firstOrNull { it.errorType.isVrmError() }
+    }
+
+    if (vrmNotification != null && vrmNotification.id != lastShownVrmNotificationId) {
+        lastShownVrmNotificationId = vrmNotification.id
     }
 
     Scaffold(
@@ -196,6 +213,51 @@ fun AvatarLibraryScreen(
         }
     }
 
+    if (vrmNotification != null && vrmNotification.id == lastShownVrmNotificationId) {
+        val title = getVrmErrorTitle(vrmNotification.errorType)
+        val message = getVrmErrorMessage(vrmNotification.errorType)
+        val supportedPrimaryAction = vrmNotification.actions.firstOrNull { action ->
+            action.action.isSupportedVrmDialogAction()
+        }
+        AlertDialog(
+            onDismissRequest = {
+                viewModel.dismissErrorNotification(vrmNotification.id)
+            },
+            title = { Text(title) },
+            text = { Text(message) },
+            confirmButton = {
+                if (supportedPrimaryAction != null) {
+                    TextButton(onClick = {
+                        handleVrmNotificationAction(
+                            context = context,
+                            action = supportedPrimaryAction.action,
+                            launchFilePicker = {
+                                importLauncher.launch(
+                                    arrayOf(
+                                        "model/gltf-binary",
+                                        "application/octet-stream",
+                                        "application/vrm",
+                                        "application/*"
+                                    )
+                                )
+                            }
+                        )
+                        viewModel.dismissErrorNotification(vrmNotification.id)
+                    }) {
+                        Text(getVrmActionLabel(supportedPrimaryAction.action))
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    viewModel.dismissErrorNotification(vrmNotification.id)
+                }) {
+                    Text(stringResource(R.string.vrm_action_dismiss))
+                }
+            }
+        )
+    }
+
     // Error handling
     uiState.error?.let { error ->
         LaunchedEffect(error) {
@@ -229,6 +291,94 @@ fun AvatarLibraryScreen(
                 TextButton(onClick = { viewModel.hideRenameDialog() }) { Text("Cancel") }
             }
         )
+    }
+}
+
+private fun ErrorType.isVrmError(): Boolean {
+    return when (this) {
+        ErrorType.VRM_FILE_NOT_FOUND,
+        ErrorType.VRM_INVALID_FORMAT,
+        ErrorType.VRM_FILE_TOO_LARGE,
+        ErrorType.VRM_CORRUPTED,
+        ErrorType.VRM_UNSUPPORTED_VERSION,
+        ErrorType.VRM_INSUFFICIENT_MEMORY,
+        ErrorType.VRM_PERMISSION_DENIED,
+        ErrorType.VRM_PARSE_ERROR -> true
+        else -> false
+    }
+}
+
+@Composable
+private fun getVrmErrorTitle(errorType: ErrorType): String {
+    return when (errorType) {
+        ErrorType.VRM_FILE_NOT_FOUND -> stringResource(R.string.vrm_error_title_file_not_found)
+        ErrorType.VRM_INVALID_FORMAT -> stringResource(R.string.vrm_error_title_invalid_format)
+        ErrorType.VRM_FILE_TOO_LARGE -> stringResource(R.string.vrm_error_title_file_too_large)
+        ErrorType.VRM_CORRUPTED -> stringResource(R.string.vrm_error_title_corrupted)
+        ErrorType.VRM_UNSUPPORTED_VERSION -> stringResource(R.string.vrm_error_title_unsupported_version)
+        ErrorType.VRM_INSUFFICIENT_MEMORY -> stringResource(R.string.vrm_error_title_insufficient_memory)
+        ErrorType.VRM_PERMISSION_DENIED -> stringResource(R.string.vrm_error_title_permission_denied)
+        ErrorType.VRM_PARSE_ERROR -> stringResource(R.string.vrm_error_title_parse_error)
+        else -> stringResource(R.string.vrm_error_title_generic)
+    }
+}
+
+@Composable
+private fun getVrmErrorMessage(errorType: ErrorType): String {
+    return when (errorType) {
+        ErrorType.VRM_FILE_NOT_FOUND -> stringResource(R.string.vrm_error_message_file_not_found)
+        ErrorType.VRM_INVALID_FORMAT -> stringResource(R.string.vrm_error_message_invalid_format)
+        ErrorType.VRM_FILE_TOO_LARGE -> stringResource(R.string.vrm_error_message_file_too_large)
+        ErrorType.VRM_CORRUPTED -> stringResource(R.string.vrm_error_message_corrupted)
+        ErrorType.VRM_UNSUPPORTED_VERSION -> stringResource(R.string.vrm_error_message_unsupported_version)
+        ErrorType.VRM_INSUFFICIENT_MEMORY -> stringResource(R.string.vrm_error_message_insufficient_memory)
+        ErrorType.VRM_PERMISSION_DENIED -> stringResource(R.string.vrm_error_message_permission_denied)
+        ErrorType.VRM_PARSE_ERROR -> stringResource(R.string.vrm_error_message_parse_error)
+        else -> stringResource(R.string.vrm_error_message_generic)
+    }
+}
+
+@Composable
+private fun getVrmActionLabel(action: ErrorAction?): String {
+    return when (action) {
+        ErrorAction.SELECT_DIFFERENT_FILE -> stringResource(R.string.vrm_action_select_file)
+        ErrorAction.SELECT_SMALLER_FILE -> stringResource(R.string.vrm_action_select_smaller_file)
+        ErrorAction.REQUEST_PERMISSIONS -> stringResource(R.string.vrm_action_retry_file_selection)
+        ErrorAction.OPEN_SETTINGS -> stringResource(R.string.vrm_action_open_settings)
+        else -> stringResource(R.string.vrm_action_dismiss)
+    }
+}
+
+private fun ErrorAction?.isSupportedVrmDialogAction(): Boolean {
+    return when (this) {
+        ErrorAction.SELECT_DIFFERENT_FILE,
+        ErrorAction.SELECT_SMALLER_FILE,
+        ErrorAction.REQUEST_PERMISSIONS,
+        ErrorAction.OPEN_SETTINGS -> true
+        else -> false
+    }
+}
+
+private fun handleVrmNotificationAction(
+    context: android.content.Context,
+    action: ErrorAction?,
+    launchFilePicker: () -> Unit
+) {
+    when (action) {
+        ErrorAction.SELECT_DIFFERENT_FILE,
+        ErrorAction.SELECT_SMALLER_FILE,
+        // SAF URI access is re-granted by selecting the document again.
+        ErrorAction.REQUEST_PERMISSIONS -> launchFilePicker()
+        ErrorAction.OPEN_SETTINGS -> {
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", context.packageName, null)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        }
+        else -> {
+            // No-op for unsupported actions in this dialog
+        }
     }
 }
 

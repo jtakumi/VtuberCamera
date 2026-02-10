@@ -8,6 +8,7 @@ import com.example.vtubercamera.data.vrm.AvatarLibraryManager
 import com.example.vtubercamera.data.vrm.AvatarLibraryStats
 import com.example.vtubercamera.data.vrm.AvatarSortBy
 import com.example.vtubercamera.data.VRMRepository
+import com.example.vtubercamera.data.vrm.ErrorNotificationManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -19,13 +20,21 @@ import javax.inject.Inject
 @HiltViewModel
 class AvatarLibraryViewModel @Inject constructor(
     private val avatarLibraryManager: AvatarLibraryManager,
-    private val vrmRepository: VRMRepository
+    private val vrmRepository: VRMRepository,
+    private val errorNotificationManager: ErrorNotificationManager,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvatarLibraryUiState())
     val uiState: StateFlow<AvatarLibraryUiState> = _uiState.asStateFlow()
 
     private val _sortBy = MutableStateFlow(AvatarSortBy.DATE_ADDED_DESC)
+
+    val activeErrorNotifications: StateFlow<List<com.example.vtubercamera.data.vrm.ErrorNotification>> =
+        errorNotificationManager.activeNotifications
+
+    fun dismissErrorNotification(notificationId: String) {
+        errorNotificationManager.dismissNotification(notificationId)
+    }
     
     init {
         loadAvatars()

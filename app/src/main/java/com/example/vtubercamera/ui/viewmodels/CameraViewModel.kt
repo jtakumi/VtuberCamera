@@ -196,8 +196,10 @@ class CameraViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = null
     )
+
     val activeErrorNotifications: StateFlow<List<ErrorNotification>> =
         errorNotificationManager.activeNotifications
+
     val avatarTransform: StateFlow<Transform> = _uiState.map { it.avatarTransform }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),

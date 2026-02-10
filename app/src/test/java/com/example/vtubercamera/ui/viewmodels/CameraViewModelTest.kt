@@ -14,11 +14,13 @@ import com.example.vtubercamera.data.vrm.AvatarController
 import com.example.vtubercamera.data.vrm.ExpressionController
 import com.example.vtubercamera.data.vrm.PoseController
 import com.example.vtubercamera.data.vrm.LightingSystem
+import com.example.vtubercamera.data.vrm.ARRenderer
 import com.example.vtubercamera.data.vrm.AvatarState
 import com.example.vtubercamera.data.vrm.AvatarSortBy
 import com.example.vtubercamera.data.vrm.ARSessionState
 import com.example.vtubercamera.data.vrm.ARCameraState
 import com.example.vtubercamera.data.vrm.ARError
+import com.example.vtubercamera.data.vrm.ErrorNotificationManager
 import com.example.vtubercamera.data.vrm.VRMModel
 import com.example.vtubercamera.data.vrm.Expression
 import com.example.vtubercamera.data.vrm.Pose
@@ -88,7 +90,12 @@ class CameraViewModelTest {
 
     @Mock
     private lateinit var mockLightingSystem: LightingSystem
-    
+
+    @Mock
+    private lateinit var mockARRenderer: ARRenderer
+
+    @Mock
+    private lateinit var mockErrorNotificationManager: ErrorNotificationManager
 
     private lateinit var viewModel: CameraViewModel
     private val testDispatcher = StandardTestDispatcher()
@@ -164,6 +171,9 @@ class CameraViewModelTest {
             lightingFeature = lightingFeature,
             bootstrapper = bootstrapper,
             arSessionStarter = arSessionStarter,
+            arRepository = mockARRepository,
+            arRenderer = mockARRenderer,
+            errorNotificationManager = mockErrorNotificationManager,
         )
 
         // Run ViewModel init coroutines

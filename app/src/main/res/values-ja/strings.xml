@@ -69,6 +69,7 @@
     <string name="vrm_action_select_file">別のファイルを選択</string>
     <string name="vrm_action_select_smaller_file">小さいファイルを選択</string>
     <string name="vrm_action_grant_permission">権限を付与</string>
+    <string name="vrm_action_retry_file_selection">ファイルを再選択</string>
     <string name="vrm_action_open_settings">設定を開く</string>
     <string name="vrm_action_dismiss">閉じる</string>
 </resources>
