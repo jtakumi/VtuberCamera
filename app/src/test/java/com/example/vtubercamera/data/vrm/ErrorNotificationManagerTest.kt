@@ -299,7 +299,32 @@ class ErrorNotificationManagerTest {
 
         assertEquals("Permission Required", notification.title)
         assertEquals(NotificationIcon.PERMISSION_ERROR, notification.icon)
-        assertTrue(notification.actions.any { it.action == ErrorAction.REQUEST_PERMISSIONS })
+        val primaryAction = notification.actions.firstOrNull { it.action == ErrorAction.REQUEST_PERMISSIONS }
+        assertNotNull(primaryAction)
+        assertEquals("Re-select File", primaryAction?.label)
+        assertTrue(notification.actions.any { it.action == ErrorAction.OPEN_SETTINGS && it.label == "Settings" })
+    }
+
+    @Test
+    fun `showErrorNotification should map file permission denied with re-select primary action`() = runTest {
+        val errorState = ErrorState(
+            type = ErrorType.FILE_PERMISSION_DENIED,
+            message = "Permission denied",
+            userMessage = "Permission denied to access the file.",
+            severity = ErrorSeverity.HIGH,
+            isRecoverable = true,
+            suggestedActions = listOf(ErrorAction.REQUEST_PERMISSIONS, ErrorAction.OPEN_SETTINGS),
+            context = ErrorContext.fileAccess("content://test.vrm")
+        )
+
+        val notification = notificationManager.showErrorNotification(errorState)
+
+        assertEquals("Permission Required", notification.title)
+        assertEquals(NotificationIcon.PERMISSION_ERROR, notification.icon)
+        val primaryAction = notification.actions.firstOrNull { it.action == ErrorAction.REQUEST_PERMISSIONS }
+        assertNotNull(primaryAction)
+        assertEquals("Re-select File", primaryAction?.label)
+        assertTrue(notification.actions.any { it.action == ErrorAction.OPEN_SETTINGS && it.label == "Settings" })
     }
 
     @Test

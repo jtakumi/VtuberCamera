@@ -96,7 +96,7 @@ class ErrorRecoveryManager @Inject constructor(
             return when (action) {
                 ErrorAction.REQUEST_PERMISSIONS -> {
                     requestStoragePermissions()
-                    RecoveryResult.ActionRequired("Please grant storage permissions and try again")
+                    RecoveryResult.ActionRequired("Please re-select the file to re-grant document access and try again")
                 }
                 
                 ErrorAction.REQUEST_CAMERA_PERMISSION -> {
@@ -429,8 +429,8 @@ class ErrorRecoveryManager @Inject constructor(
     }
     
     private fun requestStoragePermissions() {
-        // This would typically be handled by the UI layer
-        Log.d(TAG, "Storage permissions requested")
+        // For SAF URIs, access recovery is handled by re-selecting the document in UI.
+        Log.d(TAG, "Document access re-selection requested")
     }
     
     private fun requestCameraPermissions() {

@@ -245,7 +245,7 @@ class ErrorNotificationManager @Inject constructor(
                 severity = errorState.severity,
                 icon = NotificationIcon.PERMISSION_ERROR,
                 actions = listOf(
-                    NotificationAction("Grant Permission", ErrorAction.REQUEST_PERMISSIONS),
+                    NotificationAction("Re-select File", ErrorAction.REQUEST_PERMISSIONS),
                     NotificationAction("Settings", ErrorAction.OPEN_SETTINGS),
                     NotificationAction("Dismiss", null)
                 ),
@@ -275,7 +275,7 @@ class ErrorNotificationManager @Inject constructor(
                 severity = errorState.severity,
                 icon = NotificationIcon.PERMISSION_ERROR,
                 actions = listOf(
-                    NotificationAction("Grant Permission", ErrorAction.REQUEST_PERMISSIONS),
+                    NotificationAction("Re-select File", ErrorAction.REQUEST_PERMISSIONS),
                     NotificationAction("Settings", ErrorAction.OPEN_SETTINGS),
                     NotificationAction("Dismiss", null)
                 ),
