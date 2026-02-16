@@ -144,8 +144,8 @@ fun CameraScreen(
         context = context,
         onPartialAccessDetected = { showPartialAccessDialog = true },
     )
-    val hasCameraPermission = permissionState.hasCameraPermission
-    val hasMediaPermissions = permissionState.hasMediaPermissions
+    val hasCameraPermission = PermissionUtils.hasCameraPermission(context)
+    val hasMediaPermissions = PermissionUtils.hasMediaPermissions(context)
 
     LaunchedEffect(hasMediaPermissions) {
         if (hasMediaPermissions) {
