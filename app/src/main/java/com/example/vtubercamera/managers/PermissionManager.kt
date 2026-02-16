@@ -1,20 +1,17 @@
 package com.example.vtubercamera.managers
 
-import android.content.Context
-import com.example.vtubercamera.utils.PermissionUtils
-import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class PermissionManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    private val permissionGateway: PermissionGateway,
 ) {
-    fun hasCameraPermission(): Boolean = PermissionUtils.hasCameraPermission(context)
-    
-    fun hasMediaPermissions(): Boolean = PermissionUtils.hasMediaPermissions(context)
-    
-    fun hasPartialMediaAccess(): Boolean = PermissionUtils.hasPartialMediaAccess(context)
-    
-    fun getRequiredMediaPermissions(): Array<String> = PermissionUtils.getRequiredMediaPermissions()
+    fun hasCameraPermission(): Boolean = permissionGateway.hasCameraPermission()
+
+    fun hasMediaPermissions(): Boolean = permissionGateway.hasMediaPermissions()
+
+    fun hasPartialMediaAccess(): Boolean = permissionGateway.hasPartialMediaAccess()
+
+    fun getRequiredMediaPermissions(): Array<String> = permissionGateway.getRequiredMediaPermissions()
 }

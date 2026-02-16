@@ -140,44 +140,12 @@ fun CameraScreen(
     var showLensSwitchFeedback by remember { mutableStateOf(false) }
     var lensSwitchFeedbackName by remember { mutableStateOf("") }
 
-    var hasCameraPermission by remember {
-        mutableStateOf(
-            PermissionUtils.hasCameraPermission(context)
-        )
-    }
-    var hasMediaPermissions by remember {
-        mutableStateOf(
-            PermissionUtils.hasMediaPermissions(context)
-        )
-    }
-
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { granted ->
-            hasCameraPermission = granted
-        }
+    val permissionState = rememberCameraPermissionState(
+        context = context,
+        onPartialAccessDetected = { showPartialAccessDialog = true },
     )
-    val mediaPermissionsLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions(),
-        onResult = { permissions ->
-            hasMediaPermissions = permissions.values.all { it }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                val hasPartialAccess = PermissionUtils.hasPartialMediaAccess(context)
-                if (hasPartialAccess && !permissions[Manifest.permission.READ_MEDIA_IMAGES]!!) {
-                    showPartialAccessDialog = true
-                }
-            }
-        }
-    )
-
-    LaunchedEffect(Unit) {
-        if (!hasCameraPermission) {
-            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-        }
-        if (!hasMediaPermissions) {
-            mediaPermissionsLauncher.launch(PermissionUtils.getRequiredMediaPermissions())
-        }
-    }
+    val hasCameraPermission = permissionState.hasCameraPermission
+    val hasMediaPermissions = permissionState.hasMediaPermissions
 
     LaunchedEffect(hasMediaPermissions) {
         if (hasMediaPermissions) {
@@ -376,6 +344,51 @@ fun CameraScreen(
 
 // end of CameraScreen
 
+
+private data class CameraPermissionState(
+    val hasCameraPermission: Boolean,
+    val hasMediaPermissions: Boolean,
+)
+
+@Composable
+private fun rememberCameraPermissionState(
+    context: android.content.Context,
+    onPartialAccessDetected: () -> Unit,
+): CameraPermissionState {
+    var hasCameraPermission by remember { mutableStateOf(PermissionUtils.hasCameraPermission(context)) }
+    var hasMediaPermissions by remember { mutableStateOf(PermissionUtils.hasMediaPermissions(context)) }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { granted -> hasCameraPermission = granted }
+    )
+    val mediaPermissionsLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+        onResult = { permissions ->
+            hasMediaPermissions = permissions.values.all { it }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                val hasPartialAccess = PermissionUtils.hasPartialMediaAccess(context)
+                if (hasPartialAccess && permissions[Manifest.permission.READ_MEDIA_IMAGES] == false) {
+                    onPartialAccessDetected()
+                }
+            }
+        }
+    )
+
+    LaunchedEffect(Unit) {
+        if (!hasCameraPermission) {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+        if (!hasMediaPermissions) {
+            mediaPermissionsLauncher.launch(PermissionUtils.getRequiredMediaPermissions())
+        }
+    }
+
+    return CameraPermissionState(
+        hasCameraPermission = hasCameraPermission,
+        hasMediaPermissions = hasMediaPermissions,
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

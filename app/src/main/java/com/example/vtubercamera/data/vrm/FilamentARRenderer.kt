@@ -6,7 +6,6 @@ import android.opengl.GLES20
 import android.opengl.Matrix
 import android.util.Log
 import android.view.Surface
-import androidx.core.graphics.createBitmap
 import com.example.vtubercamera.data.vrm.math.Transform
 import com.google.android.filament.Camera
 import com.google.android.filament.Engine
@@ -73,7 +72,9 @@ class FilamentARRenderer @Inject constructor(
     private val materialManager: FilamentMaterialManager,
     private val textureManager: FilamentTextureManager,
     private val lightingSystem: LightingSystem,
-    private val shadowSystem: ShadowSystem
+    private val shadowSystem: ShadowSystem,
+    private val lightingApplier: FilamentLightingApplier,
+    private val frameCaptureService: FilamentFrameCaptureService,
 ) : ARRenderer {
 
     companion object {
@@ -258,27 +259,12 @@ class FilamentARRenderer @Inject constructor(
 
         if (!isInitialized) return
 
-        try {
-            // Update lighting system with environment lighting
-            lightingSystem.updateEnvironmentLighting(lightEstimate)
-
-            // Update shadow system with new lighting
-            val cameraPosition = floatArrayOf(0f, 0f, 5f)
-            val cameraTarget = floatArrayOf(0f, 0f, 0f)
-            shadowSystem.updateShadows(
-                lightingSystem.finalLightingParameters.value,
-                cameraPosition,
-                cameraTarget
-            )
-
-            // TODO: Apply lighting to Filament scene
-            // updateSceneLighting(lightEstimate)
-
-            Log.d(TAG, "Updated lighting - Intensity: ${lightEstimate.pixelIntensity}")
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Error setting lighting", e)
-        }
+        lightingApplier.applyLighting(
+            tag = TAG,
+            lightingSystem = lightingSystem,
+            shadowSystem = shadowSystem,
+            lightEstimate = lightEstimate,
+        )
     }
 
     override fun captureFrame(): Bitmap {
@@ -292,13 +278,11 @@ class FilamentARRenderer @Inject constructor(
         }
 
         try {
-            // TODO: Capture frame from Filament renderer
-            // return captureFilamentFrame()
-
-            // Placeholder implementation
-            Log.d(TAG, "Capturing frame (placeholder)")
-            return createBitmap(viewportWidth, viewportHeight)
-
+            return frameCaptureService.capturePlaceholder(
+                tag = TAG,
+                width = viewportWidth,
+                height = viewportHeight,
+            )
         } catch (e: Exception) {
             Log.e(TAG, "Error capturing frame", e)
             throw ARError.RenderingError("Failed to capture frame: ${e.message}")

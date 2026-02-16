@@ -4,7 +4,6 @@ import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -14,7 +13,6 @@ import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.google.ar.core.ArCoreApk
@@ -27,7 +25,8 @@ import kotlin.coroutines.resume
 
 @Singleton
 class ARPermissionManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val permissionGateway: PermissionGateway,
 ) : DefaultLifecycleObserver {
     
     private companion object {
@@ -107,7 +106,7 @@ class ARPermissionManager @Inject constructor(
         
         requiredARPermissions.forEach { permission ->
             when {
-                ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED -> {
+                !permissionGateway.isPermissionGranted(permission) -> {
                     deniedPermissions.add(permission)
                     
                     currentActivity?.let { activity ->
@@ -146,7 +145,7 @@ class ARPermissionManager @Inject constructor(
         permissionCallback = callback
         
         val permissionsToRequest = requiredARPermissions.filter { permission ->
-            ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED
+            !permissionGateway.isPermissionGranted(permission)
         }.toTypedArray()
         
         if (permissionsToRequest.isNotEmpty()) {
@@ -164,7 +163,7 @@ class ARPermissionManager @Inject constructor(
     
     fun checkOptionalPermissions(): Map<String, Boolean> {
         return optionalARPermissions.associateWith { permission ->
-            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+            permissionGateway.isPermissionGranted(permission)
         }
     }
     
@@ -177,7 +176,7 @@ class ARPermissionManager @Inject constructor(
         }
         
         val deniedPermissions = validPermissions.filter { permission ->
-            ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED
+            !permissionGateway.isPermissionGranted(permission)
         }
         
         if (deniedPermissions.isEmpty()) {
@@ -369,27 +368,15 @@ class ARPermissionManager @Inject constructor(
     fun hasAllRequiredPermissions(): Boolean = checkARPermissions().granted
     
     fun hasCameraPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            context, 
-            Manifest.permission.CAMERA
-        ) == PackageManager.PERMISSION_GRANTED
+        return permissionGateway.isPermissionGranted(Manifest.permission.CAMERA)
     }
     
     fun hasLocationPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            context, 
-            Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED ||
-        ContextCompat.checkSelfPermission(
-            context, 
-            Manifest.permission.ACCESS_COARSE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
+        return permissionGateway.isPermissionGranted(Manifest.permission.ACCESS_FINE_LOCATION) ||
+            permissionGateway.isPermissionGranted(Manifest.permission.ACCESS_COARSE_LOCATION)
     }
     
     fun hasAudioPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            context, 
-            Manifest.permission.RECORD_AUDIO
-        ) == PackageManager.PERMISSION_GRANTED
+        return permissionGateway.isPermissionGranted(Manifest.permission.RECORD_AUDIO)
     }
 }

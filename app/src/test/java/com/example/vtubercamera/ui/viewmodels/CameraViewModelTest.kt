@@ -29,6 +29,7 @@ import com.example.vtubercamera.data.vrm.LightingSettings
 import com.example.vtubercamera.domain.ar.ARFeature
 import com.example.vtubercamera.domain.avatar.AvatarFeature
 import com.example.vtubercamera.domain.camera.CameraControlsFeature
+import com.example.vtubercamera.domain.camera.CameraCaptureFeature
 import com.example.vtubercamera.domain.camera.GalleryFeature
 import com.example.vtubercamera.domain.camera.LensSwitchFeature
 import com.example.vtubercamera.domain.lighting.LightingFeature
@@ -141,6 +142,7 @@ class CameraViewModelTest {
         whenever(mockLightingSystem.getLightingPresets()).thenReturn(emptyList())
 
         val cameraControlsFeature = CameraControlsFeature()
+        val cameraCaptureFeature = CameraCaptureFeature(cameraRepository = mockCameraRepository)
         val galleryFeature = GalleryFeature(mediaRepository = mockMediaRepository)
         val lensSwitchFeature = LensSwitchFeature(cameraCapabilityManager = mockCameraCapabilityManager)
         val arFeature = ARFeature(arRepository = mockARRepository)
@@ -164,6 +166,7 @@ class CameraViewModelTest {
             cameraRepository = mockCameraRepository,
             mediaRepository = mockMediaRepository,
             cameraControlsFeature = cameraControlsFeature,
+            cameraCaptureFeature = cameraCaptureFeature,
             galleryFeature = galleryFeature,
             lensSwitchFeature = lensSwitchFeature,
             arFeature = arFeature,
