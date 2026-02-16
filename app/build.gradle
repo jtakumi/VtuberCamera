@@ -185,7 +185,7 @@ dependencies {
     testImplementation 'org.mockito.kotlin:mockito-kotlin:6.1.0'
     testImplementation 'org.mockito:mockito-inline:5.2.0'
     // Add missing MockK dependency for tests that use io.mockk.*
-    testImplementation 'io.mockk:mockk:1.14.7'
+    testImplementation 'io.mockk:mockk:1.14.9'
 
     kspTest 'com.google.dagger:hilt-compiler:2.59.1'
     androidTestImplementation 'androidx.test.ext:junit:1.3.0'
