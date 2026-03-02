@@ -127,8 +127,8 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.10.0'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0'
     // Navigation
-    implementation 'androidx.navigation:navigation-fragment-ktx:2.9.6'
-    implementation 'androidx.navigation:navigation-ui-ktx:2.9.6'
+    implementation 'androidx.navigation:navigation-fragment-ktx:2.9.7'
+    implementation 'androidx.navigation:navigation-ui-ktx:2.9.7'
 
     // Compose
     implementation "androidx.compose.ui:ui:$compose_version"
