@@ -18,11 +18,15 @@ class CameraCaptureFeature @Inject constructor(
         onError: (String) -> Unit,
     ) {
         scope.launch {
-            cameraRepository.capturePhoto(
-                imageCapture = imageCapture,
-                onPhotoSaved = onPhotoSaved,
-                onError = onError,
-            )
+            try {
+                cameraRepository.capturePhoto(
+                    imageCapture = imageCapture,
+                    onPhotoSaved = onPhotoSaved,
+                    onError = onError,
+                )
+            } catch (e: Exception) {
+                onError(e.message ?: "Failed to capture photo. Please try again.")
+            }
         }
     }
 
@@ -34,12 +38,16 @@ class CameraCaptureFeature @Inject constructor(
         onError: (String) -> Unit,
     ) {
         scope.launch {
-            cameraRepository.captureARPhoto(
-                imageCapture = imageCapture,
-                arMetadata = arMetadata,
-                onPhotoSaved = onPhotoSaved,
-                onError = onError,
-            )
+            try {
+                cameraRepository.captureARPhoto(
+                    imageCapture = imageCapture,
+                    arMetadata = arMetadata,
+                    onPhotoSaved = onPhotoSaved,
+                    onError = onError,
+                )
+            } catch (e: Exception) {
+                onError(e.message ?: "Failed to capture AR photo. Please try again.")
+            }
         }
     }
 }
