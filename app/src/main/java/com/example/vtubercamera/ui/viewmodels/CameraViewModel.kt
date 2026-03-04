@@ -876,7 +876,7 @@ class CameraViewModel @Inject constructor(
         updateUiState {
             copy(
                 avatar = avatar.copy(
-                    avatarState = currentState.avatarState.copy(isVisible = shouldShow)
+                    avatarState = avatar.avatarState.copy(isVisible = shouldShow)
                 )
             )
         }
