@@ -1,0 +1,430 @@
+name: Dependency Auto-Merge Gate
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+      - ready_for_review
+
+jobs:
+  dependency-automerge-gate:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Evaluate auto-merge eligibility
+        uses: actions/github-script@v8
+        env:
+          METADATA_DEPENDENCY_NAMES: ${{ steps.metadata.outputs.dependency-names }}
+          METADATA_UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
+          METADATA_PACKAGE_ECOSYSTEM: ${{ steps.metadata.outputs.package-ecosystem }}
+          METADATA_DIRECTORY: ${{ steps.metadata.outputs.directory }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const marker = '<!-- dependency-automerge-gate -->';
+            const reviewLabel = 'needs-human-review';
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const pullNumber = context.issue.number;
+            const pr = context.payload.pull_request;
+
+            function uniq(values) {
+              return [...new Set(values.filter(Boolean))];
+            }
+
+            function parseList(value) {
+              if (!value) {
+                return [];
+              }
+
+              const trimmed = value.trim();
+              if (!trimmed) {
+                return [];
+              }
+
+              try {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed)) {
+                  return uniq(parsed.map((item) => String(item).trim()));
+                }
+              } catch (error) {
+              }
+
+              return uniq(
+                trimmed
+                  .split(/[\n,]/)
+                  .map((item) => item.trim())
+              );
+            }
+
+            function extractUrls(text) {
+              return uniq(
+                (text.match(/https?:\/\/[^\s)>\]]+/g) || [])
+                  .map((url) => url.replace(/[),.;]+$/, ''))
+              );
+            }
+
+            function containsBreakingSignals(text) {
+              if (!text) {
+                return false;
+              }
+
+              const normalized = text.toLowerCase();
+              const patterns = [
+                /\bbreaking changes?\b/,
+                /\bbreaking:\b/,
+                /\bbreaking\b/,
+                /\bmigration guide\b/,
+                /\brequires migration\b/,
+                /\bmanual migration\b/,
+                /\bdeprecated and removed\b/,
+                /\bremoved\b/,
+                /\bincompatible\b/,
+              ];
+
+              return patterns.some((pattern) => pattern.test(normalized));
+            }
+
+            function hasReleaseNotesSection(text) {
+              if (!text) {
+                return false;
+              }
+
+              return /(release notes|changelog|migration|breaking changes?)/i.test(text);
+            }
+
+            async function listAllFiles() {
+              return github.paginate(github.rest.pulls.listFiles, {
+                owner,
+                repo,
+                pull_number: pullNumber,
+                per_page: 100,
+              });
+            }
+
+            async function upsertComment(body) {
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner,
+                repo,
+                issue_number: pullNumber,
+                per_page: 100,
+              });
+
+              const existing = comments.find((comment) => comment.body && comment.body.includes(marker));
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner,
+                  repo,
+                  comment_id: existing.id,
+                  body,
+                });
+                return;
+              }
+
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: pullNumber,
+                body,
+              });
+            }
+
+            async function ensureRepositoryLabel(name) {
+              try {
+                await github.rest.issues.getLabel({
+                  owner,
+                  repo,
+                  name,
+                });
+              } catch (error) {
+                if (error.status !== 404) {
+                  throw error;
+                }
+
+                await github.rest.issues.createLabel({
+                  owner,
+                  repo,
+                  name,
+                  color: 'B60205',
+                  description: 'Dependabot PRs that require human review before merge',
+                });
+              }
+            }
+
+            async function ensureLabel(name) {
+              await ensureRepositoryLabel(name);
+              try {
+                await github.rest.issues.addLabels({
+                  owner,
+                  repo,
+                  issue_number: pullNumber,
+                  labels: [name],
+                });
+              } catch (error) {
+                if (error.status !== 422) {
+                  throw error;
+                }
+              }
+            }
+
+            async function removeLabel(name) {
+              try {
+                await github.rest.issues.removeLabel({
+                  owner,
+                  repo,
+                  issue_number: pullNumber,
+                  name,
+                });
+              } catch (error) {
+                if (error.status !== 404) {
+                  throw error;
+                }
+              }
+            }
+
+            async function getAutoMergeState(nodeId) {
+              const query = `
+                query($owner: String!, $repo: String!, $pullNumber: Int!) {
+                  repository(owner: $owner, name: $repo) {
+                    mergeCommitAllowed
+                    squashMergeAllowed
+                    rebaseMergeAllowed
+                    pullRequest(number: $pullNumber) {
+                      id
+                      autoMergeRequest {
+                        enabledAt
+                      }
+                    }
+                  }
+                }
+              `;
+
+              const result = await github.graphql(query, {
+                owner,
+                repo,
+                pullNumber,
+              });
+
+              return result.repository;
+            }
+
+            async function enableAutoMerge(nodeId, repositoryInfo) {
+              const mergeMethod =
+                repositoryInfo.squashMergeAllowed ? 'SQUASH' :
+                repositoryInfo.mergeCommitAllowed ? 'MERGE' :
+                repositoryInfo.rebaseMergeAllowed ? 'REBASE' :
+                null;
+
+              if (!mergeMethod) {
+                return { enabled: false, reason: 'Repository does not allow merge, squash, or rebase auto-merge.' };
+              }
+
+              if (repositoryInfo.pullRequest.autoMergeRequest) {
+                return { enabled: true, reason: `Auto-merge already enabled (${mergeMethod}).` };
+              }
+
+              const mutation = `
+                mutation($pullRequestId: ID!, $mergeMethod: PullRequestMergeMethod!) {
+                  enablePullRequestAutoMerge(input: {
+                    pullRequestId: $pullRequestId,
+                    mergeMethod: $mergeMethod
+                  }) {
+                    pullRequest {
+                      number
+                    }
+                  }
+                }
+              `;
+
+              await github.graphql(mutation, {
+                pullRequestId: nodeId,
+                mergeMethod,
+              });
+
+              return { enabled: true, reason: `Enabled auto-merge with ${mergeMethod.toLowerCase()}.` };
+            }
+
+            async function disableAutoMerge(nodeId, repositoryInfo) {
+              if (!repositoryInfo.pullRequest.autoMergeRequest) {
+                return;
+              }
+
+              const mutation = `
+                mutation($pullRequestId: ID!) {
+                  disablePullRequestAutoMerge(input: { pullRequestId: $pullRequestId }) {
+                    pullRequest {
+                      number
+                    }
+                  }
+                }
+              `;
+
+              await github.graphql(mutation, {
+                pullRequestId: nodeId,
+              });
+            }
+
+            const dependencyNames = parseList(process.env.METADATA_DEPENDENCY_NAMES);
+            const updateTypes = parseList(process.env.METADATA_UPDATE_TYPE);
+            const packageEcosystem = process.env.METADATA_PACKAGE_ECOSYSTEM || 'unknown';
+            const directory = process.env.METADATA_DIRECTORY || '/';
+            const bodyText = pr.body || '';
+            const titleText = pr.title || '';
+
+            const files = await listAllFiles();
+            const majorFromMetadata = updateTypes.some((type) => type.includes('version-update:semver-major'));
+            const majorFromTitle = /\bfrom\s+(\d+)\.[^ ]+\s+to\s+(\d+)\./i.test(titleText) &&
+              Number(titleText.match(/\bfrom\s+(\d+)\.[^ ]+\s+to\s+(\d+)\./i)[1]) !== Number(titleText.match(/\bfrom\s+(\d+)\.[^ ]+\s+to\s+(\d+)\./i)[2]);
+            const hasMajorUpdate = majorFromMetadata || majorFromTitle;
+
+            const bodyHasSignals = containsBreakingSignals(`${titleText}\n${bodyText}`);
+            const candidateUrls = extractUrls(bodyText).filter((url) =>
+              /(release|releases|notes|changelog|migration|breaking)/i.test(url)
+            );
+
+            const fetchedEvidence = [];
+            const fetchErrors = [];
+
+            for (const url of candidateUrls.slice(0, 5)) {
+              try {
+                const response = await fetch(url, {
+                  headers: {
+                    'user-agent': 'dependency-automerge-gate',
+                    'accept': 'text/html, text/plain;q=0.9, application/json;q=0.8',
+                  },
+                });
+
+                if (!response.ok) {
+                  fetchErrors.push(`${url} returned ${response.status}`);
+                  continue;
+                }
+
+                const text = await response.text();
+                fetchedEvidence.push({
+                  url,
+                  hasBreakingSignal: containsBreakingSignals(text),
+                });
+              } catch (error) {
+                fetchErrors.push(`${url} fetch failed`);
+              }
+            }
+
+            const fetchedBreaking = fetchedEvidence.some((entry) => entry.hasBreakingSignal);
+            const hasBreakingChange = bodyHasSignals || fetchedBreaking;
+
+            const hasEvidence =
+              hasReleaseNotesSection(bodyText) ||
+              candidateUrls.length > 0 ||
+              fetchedEvidence.length > 0;
+
+            const manualReasons = [];
+            if (hasMajorUpdate) {
+              manualReasons.push('Major version update detected.');
+            }
+            if (hasBreakingChange) {
+              manualReasons.push('Breaking change or migration signal detected.');
+            }
+            if (!hasMajorUpdate && !hasBreakingChange && !hasEvidence) {
+              manualReasons.push('Unable to verify breaking changes from the PR body or release notes.');
+            }
+            if (!hasMajorUpdate && !hasBreakingChange && candidateUrls.length > 0 && fetchedEvidence.length === 0) {
+              manualReasons.push('Release notes links were present, but none could be retrieved for verification.');
+            }
+
+            const eligible = manualReasons.length === 0;
+            const repositoryInfo = await getAutoMergeState(pr.node_id);
+
+            if (eligible) {
+              await removeLabel(reviewLabel);
+            } else {
+              await ensureLabel(reviewLabel);
+              await disableAutoMerge(repositoryInfo.pullRequest.id, repositoryInfo);
+            }
+
+            let autoMergeResult = { enabled: false, reason: 'Manual review required.' };
+            if (eligible) {
+              autoMergeResult = await enableAutoMerge(repositoryInfo.pullRequest.id, repositoryInfo);
+            }
+
+            const changedFiles = files.map((file) => `- \`${file.filename}\``).join('\n') || '- No changed files detected';
+            const dependencyLines = dependencyNames.length > 0
+              ? dependencyNames.map((name) => `- \`${name}\``).join('\n')
+              : '- Metadata did not include dependency names';
+            const updateTypeLines = updateTypes.length > 0
+              ? updateTypes.map((type) => `- \`${type}\``).join('\n')
+              : '- Metadata did not include update types';
+            const releaseNoteLines = candidateUrls.length > 0
+              ? candidateUrls.map((url) => `- ${url}`).join('\n')
+              : '- No release-notes/changelog URLs found in the PR body';
+            const fetchErrorLines = fetchErrors.length > 0
+              ? fetchErrors.map((line) => `- ${line}`).join('\n')
+              : '- None';
+            const evidenceLines = fetchedEvidence.length > 0
+              ? fetchedEvidence.map((entry) => `- ${entry.url} (${entry.hasBreakingSignal ? 'breaking signal found' : 'no breaking signal found'})`).join('\n')
+              : '- No release note pages were fetched';
+            const reasonLines = manualReasons.length > 0
+              ? manualReasons.map((reason) => `- ${reason}`).join('\n')
+              : '- No manual review reasons';
+
+            const summary = eligible
+              ? '### ✅ Auto-merge eligible\n\nThis Dependabot PR passed the safety gate and auto-merge has been enabled.'
+              : '### 🛑 Manual review required\n\nThis Dependabot PR did not pass the safety gate and will not be auto-merged.';
+
+            const commentBody = [
+              marker,
+              '## Dependency Auto-Merge Gate',
+              '',
+              summary,
+              '',
+              '### Decision Inputs',
+              `- Package ecosystem: \`${packageEcosystem}\``,
+              `- Directory: \`${directory}\``,
+              `- Release notes evidence found: \`${hasEvidence ? 'yes' : 'no'}\``,
+              '',
+              '### Dependencies',
+              dependencyLines,
+              '',
+              '### Update Types',
+              updateTypeLines,
+              '',
+              '### Manual Review Reasons',
+              reasonLines,
+              '',
+              '### Auto-Merge Result',
+              `- ${autoMergeResult.reason}`,
+              '',
+              '### Changed Files',
+              changedFiles,
+              '',
+              '### Release Notes Links',
+              releaseNoteLines,
+              '',
+              '### Release Notes Fetch Results',
+              evidenceLines,
+              '',
+              '### Fetch Errors',
+              fetchErrorLines,
+            ].join('\n');
+
+            await upsertComment(commentBody);
+
+            core.summary
+              .addHeading('Dependency Auto-Merge Gate')
+              .addRaw(`Eligible: ${eligible ? 'yes' : 'no'}`)
+              .addBreak()
+              .addRaw(`Manual review reasons: ${manualReasons.length > 0 ? manualReasons.join(' | ') : 'none'}`)
+            await core.summary.write();
