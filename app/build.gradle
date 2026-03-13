@@ -110,6 +110,7 @@ afterEvaluate {
 }
 
 dependencies {
+    implementation project(':shared')
     implementation 'androidx.lifecycle:lifecycle-viewmodel-android:2.10.0'
     implementation 'androidx.wear.compose:compose-material3:1.5.6'
     def camerax_version = "1.5.3"

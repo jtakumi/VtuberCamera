@@ -1,0 +1,43 @@
+plugins {
+    id 'org.jetbrains.kotlin.multiplatform'
+    id 'com.android.library'
+}
+
+kotlin {
+    androidTarget()
+
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
+
+    sourceSets {
+        commonMain.dependencies {
+            implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2'
+        }
+        commonTest.dependencies {
+            implementation 'org.jetbrains.kotlin:kotlin-test:2.3.10'
+            implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2'
+        }
+    }
+
+    targets.withType(org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget).configureEach {
+        binaries.framework {
+            baseName = "Shared"
+            isStatic = true
+        }
+    }
+}
+
+android {
+    namespace 'com.example.vtubercamera.shared'
+    compileSdk 36
+
+    defaultConfig {
+        minSdk 25
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+}
