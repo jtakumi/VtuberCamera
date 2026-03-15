@@ -94,21 +94,6 @@ kotlin {
     }
 }
 
-afterEvaluate {
-    tasks.matching { it.name == "hiltJavaCompileDebug" }.configureEach { task ->
-        def config = configurations.findByName("debugCompileClasspath")
-        if (config != null) {
-            task.classpath += config
-        }
-    }
-    tasks.matching { it.name == "hiltJavaCompileRelease" }.configureEach { task ->
-        def config = configurations.findByName("releaseCompileClasspath")
-        if (config != null) {
-            task.classpath += config
-        }
-    }
-}
-
 dependencies {
     implementation project(':shared')
     implementation 'androidx.lifecycle:lifecycle-viewmodel-android:2.10.0'
