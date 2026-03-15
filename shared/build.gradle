@@ -11,6 +11,9 @@ kotlin {
     iosSimulatorArm64()
 
     sourceSets {
+        androidMain.dependencies {
+            implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'
+        }
         commonMain.dependencies {
             implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2'
         }
