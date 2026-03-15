@@ -3,6 +3,7 @@ package com.example.vtubercamera.shared
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 /**
  * PoC state store shared by Android/iOS.
@@ -12,17 +13,19 @@ class SharedCameraStore {
     val uiState: StateFlow<CameraUiState> = _uiState.asStateFlow()
 
     fun switchCamera() {
-        _uiState.value = _uiState.value.copy(
-            currentLens = if (_uiState.value.currentLens == LensType.BACK) LensType.FRONT else LensType.BACK
-        )
+        _uiState.update { state ->
+            state.copy(
+                currentLens = if (state.currentLens == LensType.BACK) LensType.FRONT else LensType.BACK
+            )
+        }
     }
 
     fun setFlashEnabled(enabled: Boolean) {
-        _uiState.value = _uiState.value.copy(isFlashEnabled = enabled)
+        _uiState.update { state -> state.copy(isFlashEnabled = enabled) }
     }
 
     fun markCaptured() {
-        _uiState.value = _uiState.value.copy(captureCount = _uiState.value.captureCount + 1)
+        _uiState.update { state -> state.copy(captureCount = state.captureCount + 1) }
     }
 }
 
