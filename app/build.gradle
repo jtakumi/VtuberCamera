@@ -33,12 +33,6 @@ android {
     }
 
     signingConfigs {
-        debug {
-            storeFile file(System.getProperty('user.home') + '/.android/debug.keystore')
-            storePassword 'android'
-            keyAlias 'androiddebugkey'
-            keyPassword 'android'
-        }
         release {
             // リリース用の署名設定（開発時はdebugと同じ設定を使用）
             storeFile file(System.getProperty('user.home') + '/.android/debug.keystore')
@@ -60,7 +54,6 @@ android {
         debug {
             minifyEnabled false
             debuggable true
-            signingConfig signingConfigs.debug
         }
     }
     compileOptions {
@@ -94,22 +87,8 @@ kotlin {
     }
 }
 
-afterEvaluate {
-    tasks.matching { it.name == "hiltJavaCompileDebug" }.configureEach { task ->
-        def config = configurations.findByName("debugCompileClasspath")
-        if (config != null) {
-            task.classpath += config
-        }
-    }
-    tasks.matching { it.name == "hiltJavaCompileRelease" }.configureEach { task ->
-        def config = configurations.findByName("releaseCompileClasspath")
-        if (config != null) {
-            task.classpath += config
-        }
-    }
-}
-
 dependencies {
+    implementation project(':shared')
     implementation 'androidx.lifecycle:lifecycle-viewmodel-android:2.10.0'
     implementation 'androidx.wear.compose:compose-material3:1.5.6'
     def camerax_version = "1.5.3"
