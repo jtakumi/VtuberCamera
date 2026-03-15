@@ -27,7 +27,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Android build + shared tests
-        run: ./gradlew :app:assembleDebug :shared:allTests
+        run: ./gradlew :app:assembleDebug :shared:androidUnitTest
 
   ios-framework-build:
     runs-on: macos-14
