@@ -9,15 +9,16 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 class StateFlowSubscription internal constructor(
-    private val job: Job
+    private val parentJob: Job
 ) {
-    fun cancel() = job.cancel()
+    fun cancel() = parentJob.cancel()
 }
 
 fun <T> StateFlow<T>.subscribe(onEach: (T) -> Unit): StateFlowSubscription {
-    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    val job = scope.launch {
+    val parentJob = SupervisorJob()
+    val scope = CoroutineScope(parentJob + Dispatchers.Main)
+    scope.launch {
         collect { value -> onEach(value) }
     }
-    return StateFlowSubscription(job)
+    return StateFlowSubscription(parentJob)
 }
