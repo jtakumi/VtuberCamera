@@ -714,7 +714,7 @@ private fun getVrmActionLabel(action: ErrorAction?): String {
     return when (action) {
         ErrorAction.SELECT_DIFFERENT_FILE -> stringResource(R.string.vrm_action_select_file)
         ErrorAction.SELECT_SMALLER_FILE -> stringResource(R.string.vrm_action_select_smaller_file)
-        ErrorAction.REQUEST_PERMISSIONS -> stringResource(R.string.vrm_action_retry_file_selection)
+        ErrorAction.REQUEST_PERMISSIONS -> stringResource(R.string.vrm_action_grant_permission)
         ErrorAction.OPEN_SETTINGS -> stringResource(R.string.vrm_action_open_settings)
         else -> stringResource(R.string.vrm_action_dismiss)
     }
@@ -737,9 +737,8 @@ private fun handleVrmNotificationAction(
 ) {
     when (action) {
         ErrorAction.SELECT_DIFFERENT_FILE,
-        ErrorAction.SELECT_SMALLER_FILE,
-        // SAF URI access is re-granted by selecting the document again.
-        ErrorAction.REQUEST_PERMISSIONS -> launchFilePicker()
+        ErrorAction.SELECT_SMALLER_FILE -> launchFilePicker()
+        ErrorAction.REQUEST_PERMISSIONS,
         ErrorAction.OPEN_SETTINGS -> {
             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                 data = Uri.fromParts("package", context.packageName, null)
