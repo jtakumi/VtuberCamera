@@ -1,7 +1,7 @@
 package com.example.vtubercamera.shared
 
-import kotlin.test.Test
-import kotlin.test.assertEquals
+import org.junit.Assert.assertEquals
+import org.junit.Test
 
 class SharedModuleIntegrationTest {
     @Test
