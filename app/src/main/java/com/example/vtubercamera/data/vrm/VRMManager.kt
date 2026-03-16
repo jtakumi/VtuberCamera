@@ -26,12 +26,7 @@ class VRMManager @Inject constructor(
     private val expressionLoader = VRMExpressionLoader()
     private val poseLoader = VRMPoseLoader()
     
-    // Simple in-memory cache
-    private val modelCache = mutableMapOf<String, VRMModel>()
-    private val meshCache = mutableMapOf<String, MeshData>()
-    private val textureCache = mutableMapOf<String, TextureData>()
-    private val expressionCache = mutableMapOf<String, ExpressionData>()
-    private val poseCache = mutableMapOf<String, PoseData>()
+    private val assetCache = VRMAssetCache()
     
     /**
      * Load complete VRM model with all components
@@ -55,7 +50,7 @@ class VRMManager @Inject constructor(
             modelResult.fold(
                 onSuccess = { vrmModel ->
                     val modelId = vrmModel.id
-                    modelCache[modelId] = vrmModel
+                    assetCache.putModel(modelId, vrmModel)
                     
                     // Load detailed components
                     emit(VRMLoadingProgress.LoadingMesh(0.3f))
@@ -92,7 +87,7 @@ class VRMManager @Inject constructor(
      * Load mesh data for VRM model
      */
     private suspend fun loadMeshData(modelId: String, vrmModel: VRMModel): MeshData = withContext(Dispatchers.IO) {
-        meshCache[modelId]?.let { return@withContext it }
+        assetCache.getMesh(modelId)?.let { return@withContext it }
         
         try {
             // Parse mesh data from VRM binary data
@@ -101,7 +96,7 @@ class VRMManager @Inject constructor(
                 binaryData = vrmModel.meshData
             )
             
-            meshCache[modelId] = meshData
+            assetCache.putMesh(modelId, meshData)
             meshData
         } catch (_: Exception) {
             MeshData.empty()
@@ -112,7 +107,7 @@ class VRMManager @Inject constructor(
      * Load texture data for VRM model
      */
     private suspend fun loadTextureData(modelId: String, vrmModel: VRMModel): TextureData = withContext(Dispatchers.IO) {
-        textureCache[modelId]?.let { return@withContext it }
+        assetCache.getTexture(modelId)?.let { return@withContext it }
         
         try {
             val textureData = textureExtractor.extractTextures(
@@ -121,7 +116,7 @@ class VRMManager @Inject constructor(
                 fullFileData = vrmModel.meshData
             )
             
-            textureCache[modelId] = textureData
+            assetCache.putTexture(modelId, textureData)
             textureData
         } catch (_: Exception) {
             TextureData.empty()
@@ -132,10 +127,10 @@ class VRMManager @Inject constructor(
      * Load expression data for VRM model
      */
     private suspend fun loadExpressionData(modelId: String, vrmModel: VRMModel): ExpressionData = withContext(Dispatchers.IO) {
-        expressionCache[modelId]?.let { return@withContext it }
+        assetCache.getExpression(modelId)?.let { return@withContext it }
         
         try {
-            val meshData = meshCache[modelId] ?: MeshData.empty()
+            val meshData = assetCache.getMesh(modelId) ?: MeshData.empty()
             val vrmExtension = extractVRMExtension(vrmModel.meshData)
             
             val expressionData = if (vrmExtension != null) {
@@ -150,7 +145,7 @@ class VRMManager @Inject constructor(
                 )
             }
             
-            expressionCache[modelId] = expressionData
+            assetCache.putExpression(modelId, expressionData)
             expressionData
         } catch (_: Exception) {
             ExpressionData.empty()
@@ -161,7 +156,7 @@ class VRMManager @Inject constructor(
      * Load pose data for VRM model
      */
     private suspend fun loadPoseData(modelId: String, vrmModel: VRMModel): PoseData = withContext(Dispatchers.IO) {
-        poseCache[modelId]?.let { return@withContext it }
+        assetCache.getPose(modelId)?.let { return@withContext it }
         
         try {
             val gltfJson = parseJsonFromVRM(vrmModel.meshData)
@@ -173,7 +168,7 @@ class VRMManager @Inject constructor(
                 vrmExtension = vrmExtension
             )
             
-            poseCache[modelId] = poseData
+            assetCache.putPose(modelId, poseData)
             poseData
         } catch (_: Exception) {
             // Use the poses from the model
@@ -190,67 +185,47 @@ class VRMManager @Inject constructor(
     /**
      * Get cached VRM model
      */
-    fun getCachedModel(modelId: String): VRMModel? = modelCache[modelId]
+    fun getCachedModel(modelId: String): VRMModel? = assetCache.getModel(modelId)
     
     /**
      * Get cached mesh data
      */
-    fun getCachedMeshData(modelId: String): MeshData? = meshCache[modelId]
+    fun getCachedMeshData(modelId: String): MeshData? = assetCache.getMesh(modelId)
     
     /**
      * Get cached texture data
      */
-    fun getCachedTextureData(modelId: String): TextureData? = textureCache[modelId]
+    fun getCachedTextureData(modelId: String): TextureData? = assetCache.getTexture(modelId)
     
     /**
      * Get cached expression data
      */
-    fun getCachedExpressionData(modelId: String): ExpressionData? = expressionCache[modelId]
+    fun getCachedExpressionData(modelId: String): ExpressionData? = assetCache.getExpression(modelId)
     
     /**
      * Get cached pose data
      */
-    fun getCachedPoseData(modelId: String): PoseData? = poseCache[modelId]
+    fun getCachedPoseData(modelId: String): PoseData? = assetCache.getPose(modelId)
     
     /**
      * Clear cache for specific model
      */
     fun clearModelCache(modelId: String) {
-        modelCache.remove(modelId)
-        meshCache.remove(modelId)
-        textureCache.remove(modelId)
-        expressionCache.remove(modelId)
-        poseCache.remove(modelId)
+        assetCache.clearModel(modelId)
     }
     
     /**
      * Clear all caches
      */
     fun clearAllCaches() {
-        modelCache.clear()
-        meshCache.clear()
-        textureCache.clear()
-        expressionCache.clear()
-        poseCache.clear()
+        assetCache.clearAll()
     }
     
     /**
      * Get memory usage statistics
      */
     fun getMemoryStats(): VRMMemoryStats {
-        val modelMemory = modelCache.values.sumOf { it.getEstimatedMemoryUsage() }
-        val meshMemory = meshCache.values.sumOf { it.getMemoryUsage() }
-        val textureMemory = textureCache.values.sumOf { it.totalMemoryUsage }
-        
-        return VRMMemoryStats(
-            totalMemoryUsage = modelMemory + meshMemory + textureMemory,
-            modelMemory = modelMemory,
-            meshMemory = meshMemory,
-            textureMemory = textureMemory,
-            cachedModels = modelCache.size,
-            cachedMeshes = meshCache.size,
-            cachedTextures = textureCache.size
-        )
+        return assetCache.memoryStats()
     }
     
     /**
@@ -280,10 +255,10 @@ class VRMManager @Inject constructor(
     private fun createCompleteVRMData(modelId: String, vrmModel: VRMModel): CompleteVRMData {
         return CompleteVRMData(
             model = vrmModel,
-            meshData = meshCache[modelId] ?: MeshData.empty(),
-            textureData = textureCache[modelId] ?: TextureData.empty(),
-            expressionData = expressionCache[modelId] ?: ExpressionData.empty(),
-            poseData = poseCache[modelId] ?: PoseData.empty()
+            meshData = assetCache.getMesh(modelId) ?: MeshData.empty(),
+            textureData = assetCache.getTexture(modelId) ?: TextureData.empty(),
+            expressionData = assetCache.getExpression(modelId) ?: ExpressionData.empty(),
+            poseData = assetCache.getPose(modelId) ?: PoseData.empty()
         )
     }
     

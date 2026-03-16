@@ -31,6 +31,8 @@ class FilamentARRendererTest {
     private lateinit var textureManager: FilamentTextureManager
     private lateinit var lightingSystem: LightingSystem
     private lateinit var shadowSystem: ShadowSystem
+    private lateinit var lightingApplier: FilamentLightingApplier
+    private lateinit var frameCaptureService: FilamentFrameCaptureService
     private lateinit var mockSurface: Surface
     private lateinit var mockSession: Session
     private lateinit var mockFrame: Frame
@@ -43,6 +45,8 @@ class FilamentARRendererTest {
         textureManager = mock()
         lightingSystem = mock()
         shadowSystem = mock()
+        lightingApplier = FilamentLightingApplier()
+        frameCaptureService = FilamentFrameCaptureService()
 
         whenever(lightingSystem.finalLightingParameters)
             .thenReturn(MutableStateFlow(LightingParameters()))
@@ -70,7 +74,9 @@ class FilamentARRendererTest {
             materialManager,
             textureManager,
             lightingSystem,
-            shadowSystem
+            shadowSystem,
+            lightingApplier,
+            frameCaptureService,
         )
 
         mockSurface = mock()

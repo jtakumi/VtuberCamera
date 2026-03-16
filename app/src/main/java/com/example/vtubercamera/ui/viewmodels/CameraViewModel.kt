@@ -29,6 +29,7 @@ import com.example.vtubercamera.data.vrm.ErrorNotificationManager
 import com.example.vtubercamera.domain.ar.ARFeature
 import com.example.vtubercamera.domain.avatar.AvatarFeature
 import com.example.vtubercamera.domain.camera.CameraControlsFeature
+import com.example.vtubercamera.domain.camera.CameraCaptureFeature
 import com.example.vtubercamera.domain.camera.GalleryFeature
 import com.example.vtubercamera.domain.camera.LensSwitchFeature
 import com.example.vtubercamera.domain.lighting.LightingFeature
@@ -52,6 +53,7 @@ class CameraViewModel @Inject constructor(
     private val cameraRepository: CameraRepository,
     private val mediaRepository: MediaRepository,
     private val cameraControlsFeature: CameraControlsFeature,
+    private val cameraCaptureFeature: CameraCaptureFeature,
     private val galleryFeature: GalleryFeature,
     private val lensSwitchFeature: LensSwitchFeature,
     private val arFeature: ARFeature,
@@ -405,24 +407,23 @@ class CameraViewModel @Inject constructor(
         onPhotoSaved: (String) -> Unit = {},
         onError: (String) -> Unit = {}
     ) {
-        viewModelScope.launch {
-            cameraRepository.capturePhoto(
-                imageCapture = imageCapture,
-                onPhotoSaved = { uri ->
-                    val msg = "写真を保存しました: $uri"
-                    updateUiState {
-                        copy(
-                            camera = camera.copy(
-                                lastCapturedImageUri = uri,
-                            )
+        cameraCaptureFeature.capturePhoto(
+            imageCapture = imageCapture,
+            scope = viewModelScope,
+            onPhotoSaved = { uri ->
+                val msg = "写真を保存しました: $uri"
+                updateUiState {
+                    copy(
+                        camera = camera.copy(
+                            lastCapturedImageUri = uri,
                         )
-                    }
-                    onPhotoSaved(msg)
-                    refreshPhotos()
-                },
-                onError = onError
-            )
-        }
+                    )
+                }
+                onPhotoSaved(msg)
+                refreshPhotos()
+            },
+            onError = onError,
+        )
     }
 
     fun enterPreviewMode() {
@@ -646,6 +647,7 @@ class CameraViewModel @Inject constructor(
             scope = viewModelScope,
             updateUiState = this::updateUiState,
             uiStateProvider = { _uiState.value },
+            onTrackingStateChanged = this::onARTrackingStateChanged,
             startSession = { onSessionReady, onError ->
                 arSessionStarter.start(
                     context = context,
@@ -665,6 +667,7 @@ class CameraViewModel @Inject constructor(
             scope = viewModelScope,
             updateUiState = this::updateUiState,
             uiStateProvider = { _uiState.value },
+            resetAvatarState = this::resetAvatarState,
         )
     }
 
@@ -679,6 +682,8 @@ class CameraViewModel @Inject constructor(
             scope = viewModelScope,
             updateUiState = this::updateUiState,
             uiStateProvider = { _uiState.value },
+            onTrackingStateChanged = this::onARTrackingStateChanged,
+            resetAvatarState = this::resetAvatarState,
             startSession = { onSessionReady, onError ->
                 arSessionStarter.start(
                     context = context,
@@ -827,51 +832,71 @@ class CameraViewModel @Inject constructor(
             return
         }
 
-        viewModelScope.launch {
-            try {
-                Log.d("CameraViewModel", "Capturing AR photo...")
+        Log.d("CameraViewModel", "Capturing AR photo...")
 
-                // Prepare AR metadata for the photo
-                val arMetadata = com.example.vtubercamera.data.ARPhotoMetadata(
-                    avatarName = currentAvatar.value?.name,
-                    poseName = currentPose.value?.name,
-                    expressionName = currentExpression.value?.name,
-                    lightingPreset = getCurrentLightingPresetName()
-                )
+        val arMetadata = com.example.vtubercamera.data.ARPhotoMetadata(
+            avatarName = currentAvatar.value?.name,
+            poseName = currentPose.value?.name,
+            expressionName = currentExpression.value?.name,
+            lightingPreset = getCurrentLightingPresetName()
+        )
 
-                // Use new AR photo capture functionality
-                cameraRepository.captureARPhoto(
-                    imageCapture = imageCapture,
-                    arMetadata = arMetadata,
-                    onPhotoSaved = { uri ->
-                        val msg = "AR写真を保存しました: $uri"
-                        val currentState = _uiState.value
-                        _uiState.value = currentState.copy(
-                            camera = currentState.camera.copy(
-                                lastCapturedImageUri = uri
-                            )
-                        )
-                        onPhotoSaved(msg)
-                        refreshPhotos()
-                        Log.d("CameraViewModel", "AR photo captured successfully with metadata: $arMetadata")
-                    },
-                    onError = { errorMsg ->
-                        Log.e("CameraViewModel", "AR photo capture failed: $errorMsg")
-                        onError(errorMsg)
-                    }
+        cameraCaptureFeature.captureARPhoto(
+            imageCapture = imageCapture,
+            arMetadata = arMetadata,
+            scope = viewModelScope,
+            onPhotoSaved = { uri ->
+                val msg = "AR写真を保存しました: $uri"
+                val currentState = _uiState.value
+                _uiState.value = currentState.copy(
+                    camera = currentState.camera.copy(
+                        lastCapturedImageUri = uri
+                    )
                 )
-            } catch (e: Exception) {
-                Log.e("CameraViewModel", "Error capturing AR photo", e)
-                onError("AR photo capture error: ${e.message}")
-            }
-        }
+                onPhotoSaved(msg)
+                refreshPhotos()
+                Log.d("CameraViewModel", "AR photo captured successfully with metadata: $arMetadata")
+            },
+            onError = { errorMsg ->
+                Log.e("CameraViewModel", "AR photo capture failed: $errorMsg")
+                onError(errorMsg)
+            },
+        )
     }
 
     // ========== AR State Observation ==========
 
-    /**
-     * Start observing AR repository state flows
-     */
+    private fun onARTrackingStateChanged(trackingState: com.example.vtubercamera.data.vrm.TrackingState) {
+        val currentState = _uiState.value
+        if (currentState.avatarState.model == null) return
+
+        val shouldShow = trackingState == com.example.vtubercamera.data.vrm.TrackingState.TRACKING
+        if (currentState.avatarState.isVisible == shouldShow) return
+
+        updateUiState {
+            copy(
+                avatar = avatar.copy(
+                    avatarState = avatar.avatarState.copy(isVisible = shouldShow)
+                )
+            )
+        }
+    }
+
+    private fun resetAvatarState() {
+        val currentAvatarState = _uiState.value.avatarState
+        updateUiState {
+            copy(
+                avatar = avatar.copy(
+                    avatarState = currentAvatarState.copy(
+                        transform = Transform.identity(),
+                        isVisible = false,
+                    ),
+                    avatarTransform = Transform.identity(),
+                ),
+            )
+        }
+    }
+
     /**
      * Clear AR error state
      */

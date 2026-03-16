@@ -6,7 +6,6 @@ import com.example.vtubercamera.data.vrm.ARCameraState
 import com.example.vtubercamera.data.vrm.ARError
 import com.example.vtubercamera.data.vrm.ARSessionState
 import com.example.vtubercamera.data.vrm.TrackingState
-import com.example.vtubercamera.data.vrm.math.Transform
 import com.example.vtubercamera.domain.camera.UiStateProvider
 import com.example.vtubercamera.domain.camera.UiStateUpdater
 import kotlinx.coroutines.CoroutineScope
@@ -25,6 +24,7 @@ class ARFeature @Inject constructor(
         scope: CoroutineScope,
         updateUiState: UiStateUpdater,
         uiStateProvider: UiStateProvider,
+        onTrackingStateChanged: (TrackingState) -> Unit,
         startSession: suspend (
             onSessionReady: () -> Unit,
             onError: (ARError) -> Unit,
@@ -55,7 +55,7 @@ class ARFeature @Inject constructor(
                         observeARStates(
                             scope = scope,
                             updateUiState = updateUiState,
-                            uiStateProvider = uiStateProvider,
+                            onTrackingStateChanged = onTrackingStateChanged,
                         )
                     },
                     { error ->
@@ -65,6 +65,7 @@ class ARFeature @Inject constructor(
                             scope = scope,
                             updateUiState = updateUiState,
                             uiStateProvider = uiStateProvider,
+                            resetAvatarState = {},
                         )
                     }
                 )
@@ -77,6 +78,7 @@ class ARFeature @Inject constructor(
                     scope = scope,
                     updateUiState = updateUiState,
                     uiStateProvider = uiStateProvider,
+                    resetAvatarState = {},
                 )
             }
         }
@@ -86,6 +88,7 @@ class ARFeature @Inject constructor(
         scope: CoroutineScope,
         updateUiState: UiStateUpdater,
         uiStateProvider: UiStateProvider,
+        resetAvatarState: () -> Unit,
     ) {
         if (!uiStateProvider().isARMode) {
             Log.d(TAG, "AR mode already disabled")
@@ -98,7 +101,6 @@ class ARFeature @Inject constructor(
 
                 arRepository.destroySession()
 
-                val currentAvatarState = uiStateProvider().avatarState
                 updateUiState {
                     copy(
                         ar = ar.copy(
@@ -107,18 +109,12 @@ class ARFeature @Inject constructor(
                             arCameraState = ARCameraState.default(),
                             arError = null,
                         ),
-                        avatar = avatar.copy(
-                            avatarState = currentAvatarState.copy(
-                                transform = Transform.identity(),
-                                isVisible = false,
-                            ),
-                            avatarTransform = Transform.identity(),
-                        ),
                         camera = camera.copy(
                             needsCameraRebind = true,
                         )
                     )
                 }
+                resetAvatarState()
 
                 Log.d(TAG, "AR mode disabled")
             } catch (e: Exception) {
@@ -131,6 +127,8 @@ class ARFeature @Inject constructor(
         scope: CoroutineScope,
         updateUiState: UiStateUpdater,
         uiStateProvider: UiStateProvider,
+        onTrackingStateChanged: (TrackingState) -> Unit,
+        resetAvatarState: () -> Unit,
         startSession: suspend (
             onSessionReady: () -> Unit,
             onError: (ARError) -> Unit,
@@ -141,12 +139,14 @@ class ARFeature @Inject constructor(
                 scope = scope,
                 updateUiState = updateUiState,
                 uiStateProvider = uiStateProvider,
+                resetAvatarState = resetAvatarState,
             )
         } else {
             enableARMode(
                 scope = scope,
                 updateUiState = updateUiState,
                 uiStateProvider = uiStateProvider,
+                onTrackingStateChanged = onTrackingStateChanged,
                 startSession = startSession,
             )
         }
@@ -155,7 +155,7 @@ class ARFeature @Inject constructor(
     private fun observeARStates(
         scope: CoroutineScope,
         updateUiState: UiStateUpdater,
-        uiStateProvider: UiStateProvider,
+        onTrackingStateChanged: (TrackingState) -> Unit,
     ) {
         scope.launch {
             arRepository.sessionState.collect { sessionState ->
@@ -172,19 +172,7 @@ class ARFeature @Inject constructor(
         scope.launch {
             arRepository.trackingState.collect { trackingState ->
                 Log.d(TAG, "AR tracking state changed: $trackingState")
-                val currentState = uiStateProvider()
-                if (currentState.avatarState.model != null) {
-                    val shouldShow = trackingState == TrackingState.TRACKING
-                    if (currentState.avatarState.isVisible != shouldShow) {
-                        updateUiState {
-                            copy(
-                                avatar = avatar.copy(
-                                    avatarState = currentState.avatarState.copy(isVisible = shouldShow)
-                                )
-                            )
-                        }
-                    }
-                }
+                onTrackingStateChanged(trackingState)
             }
         }
     }
