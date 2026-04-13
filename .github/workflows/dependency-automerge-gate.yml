@@ -26,7 +26,7 @@ jobs:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Evaluate auto-merge eligibility
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           METADATA_DEPENDENCY_NAMES: ${{ steps.metadata.outputs.dependency-names }}
           METADATA_UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
